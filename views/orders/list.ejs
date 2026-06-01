@@ -1,35 +1,51 @@
-<%- include('../partials/layout-top', { title: 'Заказы', user }) %>
+<%- include('../partials/layout-top', { title: 'Заказы', user, category: 'orders' }) %>
 <section class="card">
-  <form method="get" style="display:flex; gap:8px; flex-wrap:wrap;">
+  <form method="get" class="orders-filter-form">
+    <input name="search" placeholder="№, клиент, телефон, номер" value="<%= filters.search || '' %>" class="orders-search-input" />
     <select name="status">
       <option value="">Все статусы</option>
       <% statuses.forEach(s => { %>
-        <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= s %></option>
+        <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= (statusLabels && statusLabels[s]) || s %></option>
       <% }) %>
     </select>
-    <input name="search" placeholder="№, клиент, телефон, номер" value="<%= filters.search || '' %>" />
-    <button type="submit">Найти</button>
-    <a class="btn btn-primary" href="/orders/new">Новый заказ</a>
+    <button type="submit" class="btn btn-primary btn-sm">Найти</button>
   </form>
-  <table style="margin-top:16px;">
-    <thead>
-      <tr><th>#</th><th>Дата</th><th>Тип</th><th>Авто</th><th>Клиент</th><th>Статус</th><th>Итого</th><th>Оплачено</th><th>Долг</th></tr>
-    </thead>
-    <tbody>
-      <% orders.forEach(o => { %>
-        <tr>
-          <td><a href="/orders/<%= o.id %>"><%= o.id %></a></td>
-          <td><%= o.opened_at %></td>
-          <td><%= o.work_type || '—' %></td>
-          <td><%= o.car_make || o.license_plate_raw || '—' %></td>
-          <td><%= o.client_name %> <span class="muted"><%= o.client_phone %></span></td>
-          <td><%= o.status %></td>
-          <td><%= Number(o.total_price).toFixed(2) %></td>
-          <td><%= Number(o.paid_amount).toFixed(2) %></td>
-          <td><%= Number(o.due_amount).toFixed(2) %></td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
+
+  <div class="orders-list-cards">
+    <% orders.forEach(o => { %>
+      <a href="/orders/<%= o.id %>" class="order-list-card">
+        <div class="olc-head">
+          <strong>#<%= o.id %></strong>
+          <span class="status-badge status-<%= o.status %>"><%= (statusLabels && statusLabels[o.status]) || o.status %></span>
+        </div>
+        <div class="olc-car"><%= o.car_make || o.license_plate_raw || '—' %></div>
+        <div class="olc-client"><%= o.client_name %></div>
+        <div class="olc-meta">
+          <span><%= Number(o.total_price).toFixed(0) %> ₽</span>
+          <% if (o.due_amount > 0) { %><span class="olc-due">долг <%= Number(o.due_amount).toFixed(0) %> ₽</span><% } %>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+
+  <div class="orders-list-table-wrap table-scroll">
+    <table class="orders-desktop-table">
+      <thead>
+        <tr><th>#</th><th>Авто</th><th>Клиент</th><th>Статус</th><th>Итого</th><th>Долг</th></tr>
+      </thead>
+      <tbody>
+        <% orders.forEach(o => { %>
+          <tr>
+            <td><a href="/orders/<%= o.id %>"><%= o.id %></a></td>
+            <td><%= o.car_make || o.license_plate_raw || '—' %></td>
+            <td><%= o.client_name %></td>
+            <td><%= (statusLabels && statusLabels[o.status]) || o.status %></td>
+            <td><%= Number(o.total_price).toFixed(2) %></td>
+            <td><%= Number(o.due_amount).toFixed(2) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
 </section>
 <%- include('../partials/layout-bottom') %>

@@ -1,258 +1,285 @@
 <%- include('../partials/layout-top', { title: 'Заказ #' + order.id, user, category: 'orders' }) %>
-<section class="card order-header-card">
-  <p><strong>Клиент:</strong> <a href="/clients/<%= order.client_id %>"><%= order.client_name %></a> (<%= order.client_phone %>)</p>
-  <p><strong>Авто:</strong> <%= [order.make, order.model].filter(Boolean).join(' ') %> <%= order.license_plate_raw || '' %> <%= order.vin ? 'VIN ' + order.vin : '' %></p>
-  <p><strong>Тип работ:</strong> <%= order.work_type || '—' %> · <strong>Статус:</strong> <%= order.status %></p>
+
+<section class="card order-summary-card">
+  <h1 class="order-title">#<%= order.id %> · <%= [order.make, order.model].filter(Boolean).join(' ') || 'Авто' %></h1>
+  <p class="order-subtitle"><%= order.client_name %> · <%= order.client_phone %></p>
+  <% if (order.license_plate_raw) { %><p class="muted"><%= order.license_plate_raw %></p><% } %>
+
+  <% if (order.status !== 'completed' && order.status !== 'cancelled') { %>
+  <div class="status-chips" role="group" aria-label="Статус заказа">
+    <% ['scheduled','in_progress','ready','completed'].forEach(s => { %>
+      <form method="post" action="/orders/<%= order.id %>/status" class="status-chip-form">
+        <input type="hidden" name="status" value="<%= s %>" />
+        <button type="submit" class="status-chip <%= order.status === s ? 'active' : '' %>"><%= statusLabel(s) %></button>
+      </form>
+    <% }) %>
+  </div>
+  <% } else { %>
+  <p><strong>Статус:</strong> <%= statusLabel(order.status) %></p>
+  <% } %>
+
+  <% if (typeof isOwnerView !== 'undefined' && isOwnerView && economics) { %>
+  <div class="economics-strip <%= economics.is_estimate ? 'is-estimate' : '' %>">
+    <span>Итого <strong><%= Number(economics.revenue).toFixed(0) %> ₽</strong></span>
+    <span>Расходн. <strong><%= Number(economics.materials).toFixed(0) %> ₽</strong></span>
+    <span>ЗП <strong><%= economics.is_estimate ? '≈' : '' %><%= Number(economics.payroll).toFixed(0) %> ₽</strong></span>
+    <span>Прибыль <strong><%= Number(economics.profit).toFixed(0) %> ₽</strong></span>
+  </div>
+  <% if (economics.hints && economics.hints.length) { %>
+  <ul class="economics-hints">
+    <% economics.hints.forEach(h => { %><li><%= h %></li><% }) %>
+  </ul>
+  <% } %>
+  <% } %>
+
   <p class="order-doc-links">
-    <a class="btn btn-secondary btn-sm" href="/orders/<%= order.id %>/print" target="_blank">Заказ-наряд</a>
-    <a class="btn btn-secondary btn-sm" href="/orders/<%= order.id %>/act-acceptance" target="_blank">Акт приёма-передачи</a>
-    <a class="btn btn-secondary btn-sm" href="/orders/<%= order.id %>/act-completion" target="_blank">Акт выполненных работ</a>
+    <a class="btn btn-secondary btn-sm" href="/orders/<%= order.id %>/print" target="_blank">Печать</a>
   </p>
+</section>
 
-  <form method="post" action="/orders/<%= order.id %>?_method=PUT" class="order-header-form">
-    <div class="order-form-grid">
-      <label>Тип работ
-        <select name="work_type" <%= order.status === 'completed' ? 'disabled' : '' %>>
-          <% ['Мойка','Электрика','Продажа'].forEach(t => { %>
-            <option value="<%= t %>" <%= order.work_type === t ? 'selected' : '' %>><%= t %></option>
+<details class="order-accordion card" open>
+  <summary class="order-accordion-summary">Работы<% if (typeof isMasterView !== 'undefined' && isMasterView) { %> <span class="muted">(ваши)</span><% } %></summary>
+  <div class="order-accordion-body">
+    <div class="table-scroll">
+      <table class="order-lines-table">
+        <thead><tr><th>Название</th><th>Мастер</th><th>Сумма</th><th></th></tr></thead>
+        <tbody>
+          <% works.forEach(l => { %>
+            <tr>
+              <td data-label="Название"><%= l.name %><% if (l.quantity > 1) { %> ×<%= l.quantity %><% } %></td>
+              <td data-label="Мастер"><%= l.master_name || '—' %></td>
+              <td data-label="Сумма">
+                <%= Number(l.total).toFixed(2) %> ₽
+                <% if (typeof isMasterView !== 'undefined' && isMasterView && l.payroll_estimate != null) { %>
+                  <br /><span class="muted">≈ ЗП <%= Number(l.payroll_estimate).toFixed(0) %> ₽</span>
+                <% } %>
+              </td>
+              <td>
+                <% if (order.status !== 'completed') { %>
+                <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" style="display:inline;">
+                  <button type="submit" class="btn-line-delete" aria-label="Удалить">×</button>
+                </form>
+                <% } %>
+              </td>
+            </tr>
           <% }) %>
-        </select>
-      </label>
-      <label>Статус
-        <select name="status" <%= order.status === 'completed' ? 'disabled' : '' %>>
-          <% statuses.forEach(s => { %>
-            <option value="<%= s %>" <%= order.status === s ? 'selected' : '' %>><%= s %></option>
-          <% }) %>
-        </select>
-      </label>
-      <label>Скидка тип
-        <select name="discount_type">
-          <option value="none" <%= order.discount_type === 'none' ? 'selected' : '' %>>нет</option>
-          <option value="amount" <%= order.discount_type === 'amount' ? 'selected' : '' %>>сумма</option>
-          <option value="percent" <%= order.discount_type === 'percent' ? 'selected' : '' %>>%</option>
-        </select>
-      </label>
-      <label>Значение <input name="discount_value" value="<%= order.discount_value %>" /></label>
-      <label>Область
-        <select name="discount_scope">
-          <option value="order_total" <%= order.discount_scope === 'order_total' ? 'selected' : '' %>>весь заказ</option>
-          <option value="works_only" <%= order.discount_scope === 'works_only' ? 'selected' : '' %>>только работы</option>
-          <option value="products_only" <%= order.discount_scope === 'products_only' ? 'selected' : '' %>>только товары</option>
-        </select>
-      </label>
-      <label>Дата
-        <input type="date" name="scheduled_date" value="<%= (order.scheduled_date || '').slice(0,10) %>" <%= order.status === 'completed' ? 'disabled' : '' %> />
-      </label>
-      <label>Сотрудник
-        <select name="assigned_user_id" <%= order.status === 'completed' ? 'disabled' : '' %>>
-          <option value="">— не назначен —</option>
-          <% (masters || []).forEach(m => { %>
-            <option value="<%= m.id %>" <%= Number(order.assigned_user_id) === m.id ? 'selected' : '' %>><%= m.name %></option>
-          <% }) %>
-        </select>
-      </label>
-      <label>Начало
-        <input type="time" name="start_time" value="<%= (order.start_time || '').slice(0,5) %>" <%= order.status === 'completed' ? 'disabled' : '' %> />
-      </label>
-      <label>Окончание
-        <input type="time" name="end_time" value="<%= (order.end_time || '').slice(0,5) %>" <%= order.status === 'completed' ? 'disabled' : '' %> />
-      </label>
+        </tbody>
+      </table>
     </div>
-    <label>Комментарий <textarea name="notes" rows="2"><%= order.notes || '' %></textarea></label>
     <% if (order.status !== 'completed') { %>
-      <button type="submit" class="btn-primary">Сохранить шапку</button>
-    <% } %>
-  </form>
-</section>
-
-<% if (typeof isOwnerView !== 'undefined' && isOwnerView && economics) { %>
-<section class="card order-economics-card">
-  <h2 class="card-title-sm">Экономика заказа</h2>
-  <div class="order-economics-grid">
-    <div><span class="muted">Выручка (итого)</span><br /><strong><%= Number(economics.revenue).toFixed(2) %> ₽</strong></div>
-    <div><span class="muted">Расходники</span><br /><strong><%= Number(economics.materials).toFixed(2) %> ₽</strong></div>
-    <div><span class="muted">ЗП мастеров</span><br /><strong><%= Number(economics.payroll).toFixed(2) %> ₽</strong><% if (!economics.is_completed) { %> <span class="muted">(оценка после закрытия)</span><% } %></div>
-    <div><span class="muted">Налог</span><br /><strong><%= Number(economics.tax).toFixed(2) %> ₽</strong></div>
-    <div><span class="muted">Прибыль</span><br /><strong><%= Number(economics.profit).toFixed(2) %> ₽</strong></div>
-  </div>
-</section>
-<% } %>
-
-<section class="card">
-  <h2 class="card-title-sm">Работы<% if (typeof isMasterView !== 'undefined' && isMasterView) { %> <span class="muted">(ваши)</span><% } %></h2>
-  <div class="table-scroll">
-  <table class="order-lines-table">
-    <thead><tr><th>Название</th><th>Мастер</th><th>Qty</th><th>Цена</th><th>Сумма</th><th></th></tr></thead>
-    <tbody>
-      <% works.forEach(l => { %>
-        <tr>
-          <td data-label="Название"><%= l.name %></td>
-          <td data-label="Мастер"><%= l.master_name || '—' %></td>
-          <td data-label="Qty"><%= l.quantity %></td>
-          <td data-label="Цена"><%= Number(l.unit_price).toFixed(2) %></td>
-          <td data-label="Сумма"><%= Number(l.total).toFixed(2) %></td>
-          <td>
-            <% if (order.status !== 'completed') { %>
-            <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" style="display:inline;">
-              <button type="submit" class="btn-line-delete">×</button>
-            </form>
-            <% } %>
-          </td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
-  </div>
-  <% if (order.status !== 'completed') { %>
-  <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form">
-    <input type="hidden" name="line_type" value="work" />
-    <label>Из каталога
-      <select name="catalog_item_id">
-        <option value="">— вручную —</option>
-        <% catalogWorks.forEach(c => { %>
-          <option value="<%= c.id %>"><%= c.name %> (<%= c.default_price %>)</option>
-        <% }) %>
-      </select>
-    </label>
-    <label>Название <input name="name" /></label>
-    <label>Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
-    <label>Цена <input name="unit_price" inputmode="decimal" /></label>
-    <fieldset class="master-checkboxes">
-      <legend>Мастера</legend>
-      <% if ((masters || []).length) { %>
+    <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" id="form-add-work">
+      <input type="hidden" name="line_type" value="work" />
+      <label>Из каталога
+        <select name="catalog_item_id">
+          <option value="">— вручную —</option>
+          <% catalogWorks.forEach(c => { %>
+            <option value="<%= c.id %>"><%= c.name %> (<%= c.default_price %>)</option>
+          <% }) %>
+        </select>
+      </label>
+      <label>Название <input name="name" /></label>
+      <div class="form-row-2">
+        <label>Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
+        <label>Цена <input name="unit_price" inputmode="decimal" /></label>
+      </div>
+      <fieldset class="master-checkboxes">
+        <legend>Мастера</legend>
         <div class="master-checkboxes-list">
-          <% masters.forEach(m => { %>
+          <% (masters || []).forEach(m => { %>
             <label class="master-checkbox-item">
               <input type="checkbox" name="master_ids[]" value="<%= m.id %>" />
               <span><%= m.name %></span>
             </label>
           <% }) %>
         </div>
-      <% } else { %>
-        <p class="muted">Нет активных мастеров</p>
-      <% } %>
-    </fieldset>
-    <button type="submit" class="btn-primary">Добавить работу</button>
-  </form>
-  <% } %>
-</section>
-
-<section class="card">
-  <h2 class="card-title-sm">Товары</h2>
-  <div class="table-scroll">
-  <table class="order-lines-table">
-    <thead>
-      <tr>
-        <th>Название</th>
-        <th>Qty</th>
-        <th>Цена</th>
-        <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %><th>Закупка</th><% } %>
-        <th>Сумма</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody>
-      <% products.forEach(l => { %>
-        <tr>
-          <td data-label="Название"><%= l.name %></td>
-          <td data-label="Qty"><%= l.quantity %></td>
-          <td data-label="Цена"><%= Number(l.unit_price).toFixed(2) %></td>
-          <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
-          <td data-label="Закупка"><%= Number(l.cost_price || 0).toFixed(2) %></td>
-          <% } %>
-          <td data-label="Сумма"><%= Number(l.total).toFixed(2) %></td>
-          <td>
-            <% if (order.status !== 'completed') { %>
-            <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" style="display:inline;">
-              <button type="submit" class="btn-line-delete">×</button>
-            </form>
-            <% } %>
-          </td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
-  </div>
-  <% if (order.status !== 'completed') { %>
-  <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form">
-    <input type="hidden" name="line_type" value="product" />
-    <label>Из каталога
-      <select name="catalog_item_id">
-        <option value="">— вручную —</option>
-        <% catalogProducts.forEach(c => { %>
-          <option value="<%= c.id %>"><%= c.name %></option>
-        <% }) %>
-      </select>
-    </label>
-    <label>Название <input name="name" /></label>
-    <label>Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
-    <label>Цена продажи <input name="unit_price" inputmode="decimal" /></label>
-    <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
-    <label>Закупка (расходник) <input name="cost_price" value="0" inputmode="decimal" /></label>
-    <% } else { %>
-    <input type="hidden" name="cost_price" value="0" />
+      </fieldset>
+      <button type="submit" class="btn-primary">Добавить работу</button>
+    </form>
     <% } %>
-    <button type="submit" class="btn-primary">Добавить товар</button>
-  </form>
-  <% } %>
-</section>
-
-<section class="card">
-  <h2 class="card-title-sm">Фото работ</h2>
-  <% if (photos && photos.length) { %>
-  <div class="order-photos-grid">
-    <% photos.forEach(p => { %>
-      <div class="order-photo-item">
-        <a href="/orders/<%= order.id %>/photos/<%= p.id %>/file" target="_blank">
-          <img src="/orders/<%= order.id %>/photos/<%= p.id %>/file" alt="<%= p.original_name || 'фото' %>" class="order-photo-thumb" />
-        </a>
-        <form method="post" action="/orders/<%= order.id %>/photos/<%= p.id %>?_method=DELETE">
-          <button type="submit" class="btn btn-sm">Удалить</button>
-        </form>
-      </div>
-    <% }) %>
   </div>
-  <% } else { %>
-    <p class="muted">Фото пока нет.</p>
-  <% } %>
-  <form method="post" action="/orders/<%= order.id %>/photos" enctype="multipart/form-data" class="order-photo-upload">
-    <input type="file" name="photo" accept="image/*" multiple />
-    <button type="submit" class="btn btn-primary btn-sm">Загрузить</button>
-  </form>
-</section>
+</details>
 
-<section class="card">
-  <h2 class="card-title-sm">Итоги</h2>
-  <p>Работы: <strong><%= Number(order.subtotal_works).toFixed(2) %></strong> ₽</p>
-  <p>Товары: <strong><%= Number(order.subtotal_products).toFixed(2) %></strong> ₽</p>
-  <p>Скидка: <strong><%= Number(order.discount_amount).toFixed(2) %></strong> ₽</p>
-  <% if (order.tax_enabled) { %>
-    <p>Налог: <strong><%= Number(order.tax_amount).toFixed(2) %></strong> ₽</p>
-  <% } %>
-  <p>Итого: <strong><%= Number(order.total_price).toFixed(2) %></strong> ₽</p>
-  <p>Оплачено: <strong><%= Number(paid_amount).toFixed(2) %></strong> ₽ · Долг: <strong><%= Number(due_amount).toFixed(2) %></strong> ₽</p>
-</section>
+<details class="order-accordion card">
+  <summary class="order-accordion-summary">Товары</summary>
+  <div class="order-accordion-body">
+    <div class="table-scroll">
+      <table class="order-lines-table">
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Сумма</th>
+            <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %><th>Закупка</th><% } %>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% products.forEach(l => { %>
+            <tr>
+              <td data-label="Название"><%= l.name %></td>
+              <td data-label="Сумма"><%= Number(l.total).toFixed(2) %></td>
+              <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
+              <td data-label="Закупка"><%= Number(l.cost_price || 0).toFixed(2) %></td>
+              <% } %>
+              <td>
+                <% if (order.status !== 'completed') { %>
+                <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" style="display:inline;">
+                  <button type="submit" class="btn-line-delete">×</button>
+                </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% if (order.status !== 'completed') { %>
+    <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form">
+      <input type="hidden" name="line_type" value="product" />
+      <label>Из каталога
+        <select name="catalog_item_id">
+          <option value="">— вручную —</option>
+          <% catalogProducts.forEach(c => { %>
+            <option value="<%= c.id %>"><%= c.name %></option>
+          <% }) %>
+        </select>
+      </label>
+      <label>Название <input name="name" /></label>
+      <div class="form-row-2">
+        <label>Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
+        <label>Цена <input name="unit_price" inputmode="decimal" /></label>
+      </div>
+      <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
+      <label>Закупка <input name="cost_price" value="0" inputmode="decimal" /></label>
+      <% } else { %>
+      <input type="hidden" name="cost_price" value="0" />
+      <% } %>
+      <button type="submit" class="btn-primary">Добавить товар</button>
+    </form>
+    <% } %>
+  </div>
+</details>
 
-<section class="card">
-  <h2 class="card-title-sm">Оплаты</h2>
-  <ul>
-    <% payments.forEach(p => { %>
-      <li><%= p.paid_at %> — <%= p.kind %> <%= Number(p.amount).toFixed(2) %> ₽ (<%= p.method %>)</li>
-    <% }) %>
-  </ul>
-  <% if (order.status !== 'cancelled' && due_amount > 0) { %>
-  <form method="post" action="/orders/<%= order.id %>/payments" class="order-payment-form">
-    <label>Сумма <input name="amount" required inputmode="decimal" /></label>
-    <label>Способ
-      <select name="method">
-        <option value="cash">cash</option>
-        <option value="card">card</option>
-        <option value="transfer">transfer</option>
-        <option value="other">other</option>
-      </select>
-    </label>
-    <button type="submit" class="btn-primary">Принять оплату</button>
-  </form>
+<% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
+<details class="order-accordion card">
+  <summary class="order-accordion-summary">Расходники по заказу</summary>
+  <div class="order-accordion-body">
+    <% if (orderExpenses && orderExpenses.length) { %>
+    <ul class="order-expense-list">
+      <% orderExpenses.forEach(e => { %>
+        <li><%= e.expense_date %> — <%= Number(e.amount).toFixed(0) %> ₽ <%= e.note || '' %></li>
+      <% }) %>
+    </ul>
+    <% } else { %>
+    <p class="muted">Нет привязанных расходов.</p>
+    <% } %>
+    <% if (order.status !== 'completed') { %>
+    <form method="post" action="/expenses" class="order-quick-expense">
+      <input type="hidden" name="order_id" value="<%= order.id %>" />
+      <input type="hidden" name="category" value="materials" />
+      <div class="form-row-2">
+        <label>Сумма <input name="amount" required inputmode="decimal" placeholder="₽" /></label>
+        <label>Дата <input type="date" name="expense_date" value="<%= new Date().toISOString().slice(0,10) %>" /></label>
+      </div>
+      <label>Заметка <input name="note" placeholder="Масло, фильтр…" /></label>
+      <button type="submit" class="btn btn-secondary btn-sm">+ Расходник</button>
+    </form>
+    <% } %>
+  </div>
+</details>
+<% } %>
+
+<details class="order-accordion card" open>
+  <summary class="order-accordion-summary">Оплата · долг <%= Number(due_amount).toFixed(0) %> ₽</summary>
+  <div class="order-accordion-body">
+    <p>Итого: <strong><%= Number(order.total_price).toFixed(2) %> ₽</strong> · Оплачено: <strong><%= Number(paid_amount).toFixed(2) %> ₽</strong></p>
+    <ul class="payment-list">
+      <% payments.forEach(p => { %>
+        <li><%= p.paid_at %> — <%= Number(p.amount).toFixed(2) %> ₽ (<%= p.method %>)</li>
+      <% }) %>
+    </ul>
+    <% if (order.status !== 'cancelled' && due_amount > 0) { %>
+    <form method="post" action="/orders/<%= order.id %>/payments" class="order-payment-form" id="form-payment">
+      <label>Сумма <input name="amount" value="<%= Number(due_amount).toFixed(2) %>" required inputmode="decimal" /></label>
+      <label>Способ
+        <select name="method">
+          <option value="cash">Наличные</option>
+          <option value="card">Карта</option>
+          <option value="transfer">Перевод</option>
+          <option value="other">Другое</option>
+        </select>
+      </label>
+      <button type="submit" class="btn-primary">Принять оплату</button>
+    </form>
+    <% } %>
+  </div>
+</details>
+
+<details class="order-accordion card">
+  <summary class="order-accordion-summary">Фото</summary>
+  <div class="order-accordion-body">
+    <% if (photos && photos.length) { %>
+    <div class="order-photos-grid">
+      <% photos.forEach(p => { %>
+        <a href="/orders/<%= order.id %>/photos/<%= p.id %>/file" target="_blank">
+          <img src="/orders/<%= order.id %>/photos/<%= p.id %>/file" alt="" class="order-photo-thumb" />
+        </a>
+      <% }) %>
+    </div>
+    <% } %>
+    <form method="post" action="/orders/<%= order.id %>/photos" enctype="multipart/form-data" class="order-photo-upload">
+      <input type="file" name="photo" accept="image/*" multiple />
+      <button type="submit" class="btn btn-sm">Загрузить</button>
+    </form>
+  </div>
+</details>
+
+<% if (!isMasterView) { %>
+<details class="order-accordion card">
+  <summary class="order-accordion-summary">Детали заказа</summary>
+  <div class="order-accordion-body">
+    <form method="post" action="/orders/<%= order.id %>?_method=PUT" class="order-header-form">
+      <div class="order-form-grid">
+        <label>Тип работ
+          <select name="work_type" <%= order.status === 'completed' ? 'disabled' : '' %>>
+            <% ['Мойка','Электрика','Продажа'].forEach(t => { %>
+              <option value="<%= t %>" <%= order.work_type === t ? 'selected' : '' %>><%= t %></option>
+            <% }) %>
+          </select>
+        </label>
+        <label>Дата <input type="date" name="scheduled_date" value="<%= (order.scheduled_date || '').slice(0,10) %>" /></label>
+        <label>Сотрудник
+          <select name="assigned_user_id">
+            <option value="">—</option>
+            <% (masters || []).forEach(m => { %>
+              <option value="<%= m.id %>" <%= Number(order.assigned_user_id) === m.id ? 'selected' : '' %>><%= m.name %></option>
+            <% }) %>
+          </select>
+        </label>
+        <label>Скидка
+          <select name="discount_type">
+            <option value="none" <%= order.discount_type === 'none' ? 'selected' : '' %>>нет</option>
+            <option value="amount" <%= order.discount_type === 'amount' ? 'selected' : '' %>>сумма</option>
+            <option value="percent" <%= order.discount_type === 'percent' ? 'selected' : '' %>>%</option>
+          </select>
+        </label>
+        <label>Значение <input name="discount_value" value="<%= order.discount_value %>" /></label>
+      </div>
+      <label>Комментарий <textarea name="notes" rows="2"><%= order.notes || '' %></textarea></label>
+      <% if (order.status !== 'completed') { %>
+        <button type="submit" class="btn-secondary">Сохранить детали</button>
+      <% } %>
+    </form>
+  </div>
+</details>
+<% } %>
+
+<% if (order.status !== 'completed' && order.status !== 'cancelled') { %>
+<div class="order-fab-bar">
+  <a href="#form-add-work" class="order-fab">+ Работа</a>
+  <% if (due_amount > 0) { %>
+  <a href="#form-payment" class="order-fab order-fab--pay">Оплата</a>
   <% } %>
-</section>
+</div>
+<% } %>
+
 <%- include('../partials/layout-bottom') %>

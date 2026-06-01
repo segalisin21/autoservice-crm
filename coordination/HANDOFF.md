@@ -1,5 +1,22 @@
 # HANDOFF
 
+## 2026-06-02 — Финансы (логика + UX) и мобильная навигация
+
+### What changed
+- **ЗП**: `computeOrderPayrollAmount` — оценка на открытых заказах; backfill `freezeOrderEarned` на закрытых без earned; пересчёт при добавлении строки в completed.
+- **P&L**: `loadFinanceMetrics` — прибыль = выручка − расходники заказов − ЗП − прочие расходы (без двойного учёта materials в expenses).
+- **Финансы UI**: 4 KPI, водопад, карточки заказов, период Сегодня/Неделя/Месяц ([`views/admin/finance.ejs`](views/admin/finance.ejs)).
+- **Заказ mobile**: чипы статуса, аккордеон, полоска экономики, FAB, быстрый расходник ([`views/orders/show.ejs`](views/orders/show.ejs)).
+- **Нижнее меню**: [`views/partials/mobile-nav.ejs`](views/partials/mobile-nav.ejs) (мастер vs owner).
+- **Списки**: карточки заказов на узком экране; подсказка свайпа на расписании.
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-02 — Заказы: NaN fix, мастера UI, мобильная, PWA, экономика
 
 ### What changed

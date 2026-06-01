@@ -166,7 +166,8 @@
       <p class="dashboard-empty muted">Нет активных сотрудников. Добавьте их в разделе «Сотрудники».</p>
     <% } %>
 
-    <div class="garage-day-grid">
+    <p class="only-mobile schedule-scroll-hint muted">Свайп влево — другие сотрудники</p>
+    <div class="garage-day-grid schedule-day-scroll">
       <% (viewDayData.employees || []).forEach(function(emp) { %>
         <div class="garage-bay-column">
           <div class="garage-bay-header">

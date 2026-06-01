@@ -90,6 +90,28 @@ test("changing rules after close does not change earned", async (t) => {
   assert.equal(Number(line.master_earned_amount), 100);
 });
 
+test("finance net_profit subtracts payroll and materials", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const orderId = await seedOrderWithWorkLine(ctx, {
+    masterId: ctx.users.master.id,
+    catalogId: null,
+    lineTotal: 1000,
+    status: "completed"
+  });
+  await ctx.db.query(
+    `UPDATE orders SET closed_at = '2026-06-01 12:00:00', total_price = 1000, subtotal_works = 1000 WHERE id = ?`,
+    [orderId]
+  );
+  const { freezeOrderEarned } = require("../lib/payroll");
+  await freezeOrderEarned(orderId);
+
+  const metrics = await loadFinanceMetrics(ctx.db, "2026-06-01", "2026-06-15");
+  assert.ok(metrics.payroll_total > 0);
+  assert.ok(metrics.net_profit < metrics.net_revenue);
+});
+
 test("finance cash_in sums payments in period", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());

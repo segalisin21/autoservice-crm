@@ -3,11 +3,19 @@ const { sqlNow } = require("../config/sqlDialect");
 const { parseMoney } = require("../lib/money");
 const { loadTaxSettings, ensureDefaultSettings } = require("../lib/settings");
 const { recomputeOrderTotals, getPaidAmount } = require("../lib/orderTotals");
-const { onOrderStatusChange } = require("../lib/payroll");
+const {
+  onOrderStatusChange,
+  freezeOrderEarned,
+  computeEarnedForLine,
+  resolveCompRule,
+  getOrderMaterialsCost
+} = require("../lib/payroll");
+const { loadPayrollSettings } = require("../lib/settings");
 const { WORK_TYPES, normalizeWorkType, lineTypeForWorkType } = require("../lib/workTypes");
 const { normalizePlate, normalizePhone, normalizeVin } = require("../lib/normalize");
 const { relativePathFor, absolutePathFor } = require("../lib/upload");
-const { loadOrderEconomics } = require("../lib/orderEconomics");
+const { loadOrderEconomics, loadOrderLinkedExpenses } = require("../lib/orderEconomics");
+const { statusLabel, ORDER_STATUS_LABELS } = require("../lib/orderStatusLabels");
 const fs = require("node:fs");
 
 function normalizeTime(value) {
@@ -203,7 +211,9 @@ async function list(req, res) {
     orders,
     filters: { status, search },
     statuses: ORDER_STATUSES,
-    user: req.session.user
+    statusLabels: ORDER_STATUS_LABELS,
+    user: req.session.user,
+    category: "orders"
   });
 }
 
@@ -384,8 +394,28 @@ async function show(req, res) {
   }
 
   let economics = null;
+  let orderExpenses = [];
   if (isOwnerView) {
     economics = await loadOrderEconomics(db, Number(req.params.id));
+    orderExpenses = await loadOrderLinkedExpenses(db, Number(req.params.id));
+  }
+
+  if (isMasterView && req.session.user?.id) {
+    const fallback = await loadPayrollSettings(db);
+    const materials = await getOrderMaterialsCost(db, Number(req.params.id));
+    const worksTotal = works.reduce((s, l) => s + (Number(l.total) || 0), 0);
+    for (const line of works) {
+      const lineTotal = Number(line.total) || 0;
+      const allocatedMaterials = worksTotal > 0 ? materials * (lineTotal / worksTotal) : 0;
+      const rule = await resolveCompRule(
+        db,
+        line.master_id,
+        line.catalog_item_id,
+        new Date().toISOString().slice(0, 10),
+        fallback
+      );
+      line.payroll_estimate = computeEarnedForLine(line, rule, { allocatedMaterials }).earned;
+    }
   }
 
   res.render("orders/show", {
@@ -396,9 +426,12 @@ async function show(req, res) {
     masters,
     photos,
     economics,
+    orderExpenses,
     isOwnerView,
     isMasterView,
     statuses: ORDER_STATUSES,
+    statusLabels: ORDER_STATUS_LABELS,
+    statusLabel,
     user: req.session.user,
     category: "orders"
   });
@@ -550,6 +583,10 @@ async function addLine(req, res) {
   }
 
   await recomputeOrderTotals(orderId);
+  const statusRows = await db.query("SELECT status FROM orders WHERE id = ?", [orderId]);
+  if (statusRows[0]?.status === "completed") {
+    await freezeOrderEarned(orderId);
+  }
   return res.redirect(`/orders/${orderId}`);
 }
 

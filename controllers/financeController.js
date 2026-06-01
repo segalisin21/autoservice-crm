@@ -55,6 +55,9 @@ async function exportCsv(req, res) {
     `discounts_total,${metrics.discounts_total}`,
     `net_revenue,${metrics.net_revenue}`,
     `expenses_total,${metrics.expenses_total}`,
+    `expenses_general,${metrics.expenses_general}`,
+    `materials_total,${metrics.materials_total}`,
+    `payroll_total,${metrics.payroll_total}`,
     `net_profit,${metrics.net_profit}`,
     `taxes_total,${metrics.taxes_total}`,
     `receivables,${metrics.receivables}`

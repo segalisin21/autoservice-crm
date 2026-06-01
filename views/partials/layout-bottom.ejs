@@ -1,6 +1,7 @@
       </div>
     </main>
   </div>
+  <%- include('mobile-nav', { user: typeof user !== 'undefined' ? user : null, category: typeof category !== 'undefined' ? category : '' }) %>
   <div id="flash-messages"></div>
   <script src="/js/app.js"></script>
 </body>
