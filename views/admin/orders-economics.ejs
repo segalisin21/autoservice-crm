@@ -5,7 +5,7 @@
     <h1 class="finance-dashboard__title">Экономика по заказам</h1>
     <%- include('./_admin-subnav') %>
   </div>
-  <p class="muted finance-dashboard__hint">Выручка → расходники → ЗП → прибыль по каждому заказу.</p>
+  <p class="muted finance-dashboard__hint">Выручка, расходники, ЗП и прибыль по каждому заказу.</p>
 
   <form method="get" class="finance-dashboard__toolbar">
     <div class="finance-dashboard__toolbar-row">
@@ -33,7 +33,7 @@
     </div>
   </form>
 
-  <div class="finance-kpi-grid">
+  <div class="finance-kpi-grid finance-kpi-grid--compact">
     <div class="finance-kpi-card">
       <div class="finance-kpi-card__value"><%= totals.revenue.toLocaleString('ru-RU') %>&nbsp;₽</div>
       <div class="finance-kpi-card__label">Выручка</div>
@@ -55,38 +55,48 @@
   <% if (!orders.length) { %>
     <p class="finance-panel__empty muted">Нет заказов за период и фильтр.</p>
   <% } else { %>
-  <section class="order-econ-list">
-    <% orders.forEach(row => { %>
-      <a href="/orders/<%= row.order_id %>" class="order-econ-card">
-        <div class="oec-head">
-          <div>
-            <strong>#<%= row.order_id %></strong>
-            <span class="muted"> · <%= (row.closed_at || row.scheduled_date || '').toString().slice(0, 10) %></span>
-          </div>
-          <span class="status-badge status-<%= row.status %>"><%= statusLabels[row.status] || row.status %></span>
-        </div>
-        <div class="oec-sub muted"><%= row.car_label %> · <%= row.client_name %></div>
-        <div class="oec-waterfall">
-          <div class="oec-step">
-            <span class="oec-label">Выручка</span>
-            <strong><%= Number(row.revenue).toLocaleString('ru-RU') %> ₽</strong>
-          </div>
-          <div class="oec-step oec-minus">
-            <span class="oec-label">Расходники</span>
-            <span>−<%= Number(row.materials).toLocaleString('ru-RU') %> ₽</span>
-          </div>
-          <div class="oec-step oec-minus">
-            <span class="oec-label">ЗП<%= row.is_estimate ? ' ≈' : '' %></span>
-            <span>−<%= Number(row.payroll).toLocaleString('ru-RU') %> ₽</span>
-          </div>
-          <div class="oec-step oec-profit">
-            <span class="oec-label">Прибыль</span>
-            <strong><%= Number(row.profit).toLocaleString('ru-RU') %> ₽</strong>
-          </div>
-        </div>
-      </a>
-    <% }) %>
-  </section>
+  <div class="table-scroll order-econ-table-wrap">
+    <table class="data-table order-econ-table">
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>Дата</th>
+          <th>Авто / клиент</th>
+          <th>Статус</th>
+          <th class="num">Выручка</th>
+          <th class="num">Расходники</th>
+          <th class="num">ЗП</th>
+          <th class="num">Прибыль</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% orders.forEach(row => { %>
+          <tr>
+            <td><a href="/orders/<%= row.order_id %>">#<%= row.order_id %></a></td>
+            <td><%= (row.closed_at || row.scheduled_date || '').toString().slice(0, 10) %></td>
+            <td>
+              <div><%= row.car_label %></div>
+              <div class="muted table-sub"><%= row.client_name %></div>
+            </td>
+            <td><span class="status-badge status-<%= row.status %>"><%= statusLabels[row.status] || row.status %></span></td>
+            <td class="num"><%= Number(row.revenue).toLocaleString('ru-RU') %> ₽</td>
+            <td class="num muted">−<%= Number(row.materials).toLocaleString('ru-RU') %> ₽</td>
+            <td class="num muted">−<%= Number(row.payroll).toLocaleString('ru-RU') %> ₽<%= row.is_estimate ? ' ≈' : '' %></td>
+            <td class="num"><strong><%= Number(row.profit).toLocaleString('ru-RU') %> ₽</strong></td>
+          </tr>
+        <% }) %>
+      </tbody>
+      <tfoot>
+        <tr class="order-econ-totals">
+          <td colspan="4"><strong>Итого</strong></td>
+          <td class="num"><%= totals.revenue.toLocaleString('ru-RU') %> ₽</td>
+          <td class="num">−<%= totals.materials.toLocaleString('ru-RU') %> ₽</td>
+          <td class="num">−<%= totals.payroll.toLocaleString('ru-RU') %> ₽</td>
+          <td class="num"><strong><%= totals.profit.toLocaleString('ru-RU') %> ₽</strong></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
   <% } %>
 </div>
 

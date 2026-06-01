@@ -187,6 +187,18 @@ test("payroll balance shows due after partial payout", async (t) => {
   assert.equal(row.due_total, row.earned_total - 100);
 });
 
+test("payroll page shows expandable master accordion", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "owner", "owner");
+  const res = await agent.get("/admin/payroll");
+  assert.equal(res.status, 200);
+  assert.match(res.text, /payroll-accordion/);
+  assert.match(res.text, /Начисления по работам/);
+});
+
 test("admin can record payroll payout", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());

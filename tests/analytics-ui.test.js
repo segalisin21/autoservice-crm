@@ -29,6 +29,10 @@ test("GET /admin/reports renders analytics dashboard", async (t) => {
   assert.match(res.text, /admin-page--reports/);
   assert.match(res.text, /revenueChart/);
   assert.match(res.text, /Аналитика/);
+  assert.ok(!res.text.includes("orderHourChart"));
+  assert.ok(!res.text.includes("statusChart"));
+  assert.ok(!res.text.includes("paymentChart"));
+  assert.ok(!res.text.includes("Топ клиенты"));
 });
 
 test("GET /admin/reports/api/data returns overview and series", async (t) => {

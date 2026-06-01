@@ -17,41 +17,45 @@
     <button type="submit" class="btn btn-primary btn-sm">Найти</button>
   </form>
 
-  <div class="orders-list-cards">
-    <% orders.forEach(o => { %>
-      <a href="/orders/<%= o.id %>" class="order-list-card">
-        <div class="olc-head">
-          <strong>#<%= o.id %></strong>
-          <span class="status-badge status-<%= o.status %>"><%= (statusLabels && statusLabels[o.status]) || o.status %></span>
-        </div>
-        <div class="olc-car"><%= o.car_make || o.license_plate_raw || '—' %></div>
-        <div class="olc-client"><%= o.client_name %></div>
-        <div class="olc-meta">
-          <span><%= Number(o.total_price).toFixed(0) %> ₽</span>
-          <% if (o.due_amount > 0) { %><span class="olc-due">долг <%= Number(o.due_amount).toFixed(0) %> ₽</span><% } %>
-        </div>
-      </a>
-    <% }) %>
-  </div>
-
-  <div class="orders-list-table-wrap table-scroll">
-    <table class="orders-desktop-table">
+  <% if (!orders.length) { %>
+    <p class="muted" style="margin-top:12px;">Заказов не найдено.</p>
+  <% } else { %>
+  <div class="table-scroll orders-table-wrap">
+    <table class="data-table orders-table">
       <thead>
-        <tr><th>#</th><th>Авто</th><th>Клиент</th><th>Статус</th><th>Итого</th><th>Долг</th></tr>
+        <tr>
+          <th>#</th>
+          <th>Открыт</th>
+          <th>Авто</th>
+          <th>Клиент</th>
+          <th>Телефон</th>
+          <th>Статус</th>
+          <th class="num">Итого</th>
+          <th class="num">Долг</th>
+        </tr>
       </thead>
       <tbody>
         <% orders.forEach(o => { %>
-          <tr>
-            <td><a href="/orders/<%= o.id %>"><%= o.id %></a></td>
-            <td><%= o.car_make || o.license_plate_raw || '—' %></td>
+          <tr class="orders-table__row" onclick="window.location='/orders/<%= o.id %>'">
+            <td><a href="/orders/<%= o.id %>" onclick="event.stopPropagation()"><%= o.id %></a></td>
+            <td><%= (o.opened_at || '').toString().slice(0, 10) %></td>
+            <td><%= o.license_plate_raw || o.car_make || '—' %></td>
             <td><%= o.client_name %></td>
+            <td class="muted"><%= o.client_phone || '—' %></td>
             <td><span class="status-badge status-<%= o.status %>"><%= (statusLabels && statusLabels[o.status]) || o.status %></span></td>
-            <td><%= Number(o.total_price).toFixed(2) %></td>
-            <td><% if (o.due_amount > 0) { %><span class="due-badge"><%= Number(o.due_amount).toFixed(2) %> ₽</span><% } else { %>0<% } %></td>
+            <td class="num"><%= Number(o.total_price).toFixed(2) %> ₽</td>
+            <td class="num">
+              <% if (o.due_amount > 0) { %>
+                <span class="due-badge"><%= Number(o.due_amount).toFixed(2) %> ₽</span>
+              <% } else { %>
+                <span class="muted">0</span>
+              <% } %>
+            </td>
           </tr>
         <% }) %>
       </tbody>
     </table>
   </div>
+  <% } %>
 </section>
 <%- include('../partials/layout-bottom') %>

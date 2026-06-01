@@ -334,13 +334,6 @@
     aspect-ratio: 4 / 3;
   }
 
-  .orders-desktop-table {
-    display: none;
-  }
-
-  .orders-list-cards {
-    display: flex;
-  }
 }
 
 /* Order status badges (autoservice statuses) */
@@ -641,31 +634,183 @@
   background: #1e40af;
 }
 
-.orders-list-cards {
-  display: none;
-  flex-direction: column;
-  gap: 10px;
+/* Data tables (orders, economics, payroll) */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle, #e5e7eb);
+  text-align: left;
+  vertical-align: top;
+}
+
+.data-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted, #6b7280);
+  background: #f9fafb;
+  white-space: nowrap;
+}
+
+.data-table td.num,
+.data-table th.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.data-table-compact th,
+.data-table-compact td {
+  padding: 6px 8px;
+  font-size: 0.8125rem;
+}
+
+.table-sub {
+  font-size: 0.8rem;
+}
+
+.orders-table-wrap,
+.order-econ-table-wrap {
   margin-top: 12px;
 }
 
-.order-list-card {
-  display: block;
-  text-decoration: none;
-  color: inherit;
+.orders-table__row {
+  cursor: pointer;
+}
+
+.orders-table__row:hover td {
+  background: #f9fafb;
+}
+
+.order-econ-totals td {
+  background: #f0fdf4;
+  font-weight: 600;
+}
+
+.finance-kpi-grid--compact {
+  margin-bottom: 12px;
+}
+
+.charts-grid--single {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tables-grid--single {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .charts-grid--single,
+  .tables-grid--single {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Payroll accordion */
+.payroll-accordion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.payroll-accordion {
   border: 1px solid var(--border-subtle, #e5e7eb);
   border-radius: 10px;
-  padding: 0.85rem;
+  background: #fff;
+  overflow: hidden;
 }
 
-.olc-head {
-  display: flex;
-  justify-content: space-between;
+.payroll-accordion__summary {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr));
+  gap: 8px;
   align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.875rem;
 }
 
-.olc-due {
-  color: #b45309;
-  font-size: 0.85rem;
+.payroll-accordion__summary::-webkit-details-marker {
+  display: none;
+}
+
+.payroll-accordion__summary::before {
+  content: "▸";
+  margin-right: 6px;
+  color: var(--text-muted, #6b7280);
+  transition: transform 0.15s;
+}
+
+.payroll-accordion[open] .payroll-accordion__summary::before {
+  content: "▾";
+}
+
+.payroll-accordion__name {
+  font-weight: 600;
+}
+
+.payroll-accordion__body {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--border-subtle, #e5e7eb);
+}
+
+.payroll-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 12px 0;
+  font-size: 0.875rem;
+}
+
+.payroll-detail-title {
+  margin: 12px 0 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.payroll-inline-payout-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+  margin-top: 8px;
+}
+
+.payroll-inline-payout-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+
+.payroll-inline-payout-form input,
+.payroll-inline-payout-form select {
+  min-width: 120px;
+}
+
+@media (max-width: 767px) {
+  .payroll-accordion__summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .payroll-accordion__name {
+    grid-column: 1 / -1;
+  }
+
+  .payroll-kpi-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .orders-table th:nth-child(5),
+  .orders-table td:nth-child(5) {
+    display: none;
+  }
 }
 
 .schedule-day-scroll {
@@ -795,63 +940,6 @@
   }
 }
 
-@media (max-width: 1023px) {
-  .orders-list-cards {
-    display: flex;
-  }
-
-  .orders-list-table-wrap {
-    display: none;
-  }
-}
-
-/* Order economics dashboard */
-.order-econ-list {
-  display: grid;
-  gap: 12px;
-}
-
-.order-econ-card {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  background: var(--surface-elevated, #fff);
-  border: 1px solid var(--border-subtle, #e5e7eb);
-  border-radius: 12px;
-  padding: 1rem;
-}
-
-.oec-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.oec-waterfall {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.oec-step {
-  padding: 8px;
-  background: #f9fafb;
-  border-radius: 8px;
-  font-size: 0.85rem;
-}
-
-.oec-step.oec-profit {
-  background: #f0fdf4;
-  grid-column: 1 / -1;
-}
-
-.oec-label {
-  display: block;
-  font-size: 0.75rem;
-  color: var(--text-muted, #6b7280);
-}
 
 /* Line edit on order */
 .work-lines-list {

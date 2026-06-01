@@ -99,4 +99,6 @@ test("owner can open orders economics dashboard", async (t) => {
   const res = await agent.get("/admin/orders-economics?period=month&status=completed");
   assert.equal(res.status, 200);
   assert.match(res.text, /Экономика заказов/);
+  assert.match(res.text, /order-econ-table/);
+  assert.ok(!res.text.includes("order-econ-card"));
 });

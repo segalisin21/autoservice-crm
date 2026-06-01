@@ -3,7 +3,6 @@
 
   var C = {
     primary: "#1b4332",
-    primaryMid: "#2d6a4f",
     accent: "#e07a2f",
     success: "#10b981",
     purple: "#8b5cf6",
@@ -24,10 +23,7 @@
   var revenueChart;
   var monthlyChart;
   var categoryChart;
-  var statusChart;
-  var paymentChart;
   var topServicesChart;
-  var orderHourChart;
 
   var boot = window.REPORT_BOOTSTRAP || {};
 
@@ -166,36 +162,6 @@
     });
   }
 
-  function buildOrderHourChart(ctx, hourRows) {
-    return new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: hourRows.map(function (h) {
-          return String(h.hour).padStart(2, "0") + ":00";
-        }),
-        datasets: [
-          {
-            label: "Заказов",
-            data: hourRows.map(function (h) {
-              return h.count;
-            }),
-            backgroundColor: "rgba(59,130,246,0.7)",
-            borderRadius: 4
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { maxRotation: 45, maxTicksLimit: 24 } },
-          y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } }
-        }
-      }
-    });
-  }
-
   function buildCategoryDoughnut(ctx, rows) {
     var labels = [];
     var data = [];
@@ -219,68 +185,6 @@
         maintainAspectRatio: false,
         cutout: "58%",
         plugins: { legend: { position: "bottom" } }
-      }
-    });
-  }
-
-  function buildStatusDoughnut(ctx, rows) {
-    var labels = [];
-    var data = [];
-    var colors = [];
-    if (!rows || !rows.length) {
-      labels = ["Нет данных"];
-      data = [1];
-      colors = [C.muted];
-    } else {
-      rows.forEach(function (r, i) {
-        labels.push(r.label || r.status);
-        data.push(r.count);
-        colors.push(DOUGHNUT_BG[i % DOUGHNUT_BG.length]);
-      });
-    }
-    return new Chart(ctx, {
-      type: "doughnut",
-      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 2, borderColor: "#fff" }] },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: "52%",
-        plugins: { legend: { position: "bottom" } }
-      }
-    });
-  }
-
-  function buildPaymentHBar(ctx, rows) {
-    var labels = [];
-    var data = [];
-    if (!rows || !rows.length) {
-      labels = ["Нет данных"];
-      data = [0];
-    } else {
-      rows.forEach(function (r) {
-        labels.push(r.label || r.status);
-        data.push(r.revenue);
-      });
-    }
-    return new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: "Сумма заказов, ₽",
-            data: data,
-            backgroundColor: ["rgba(27,67,50,0.75)", "rgba(224,122,47,0.8)", "rgba(59,130,246,0.75)"],
-            borderRadius: 6
-          }
-        ]
-      },
-      options: {
-        indexAxis: "y",
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { x: { beginAtZero: true } }
       }
     });
   }
@@ -338,26 +242,6 @@
     chart.update();
   }
 
-  function updateDoughnutFromRows(chart, rows, labelKey) {
-    if (!chart) return;
-    if (!rows || !rows.length) {
-      chart.data.labels = ["Нет данных"];
-      chart.data.datasets[0].data = [1];
-      chart.data.datasets[0].backgroundColor = [C.muted];
-    } else {
-      chart.data.labels = rows.map(function (r) {
-        return r[labelKey] || r.status || r.category;
-      });
-      chart.data.datasets[0].data = rows.map(function (r) {
-        return labelKey === "label" && r.count != null ? r.count : r.revenue;
-      });
-      chart.data.datasets[0].backgroundColor = rows.map(function (_, i) {
-        return DOUGHNUT_BG[i % DOUGHNUT_BG.length];
-      });
-    }
-    chart.update();
-  }
-
   function fetchData() {
     var periodEl = document.querySelector("#report-period");
     var period = periodEl ? periodEl.value : "30";
@@ -411,27 +295,9 @@
           });
           categoryChart.update();
         }
-        if (statusChart && data.statusDist) {
-          statusChart.data.labels = data.statusDist.map(function (r) {
-            return r.label || r.status;
-          });
-          statusChart.data.datasets[0].data = data.statusDist.map(function (r) {
-            return r.count;
-          });
-          statusChart.update();
-        }
-
-        if (paymentChart) {
-          paymentChart.destroy();
-          paymentChart = buildPaymentHBar(document.getElementById("paymentChart"), data.paymentDist);
-        }
         if (topServicesChart) {
           topServicesChart.destroy();
           topServicesChart = buildTopServicesHBar(document.getElementById("topServicesChart"), data.topServices);
-        }
-        if (orderHourChart) {
-          orderHourChart.destroy();
-          orderHourChart = buildOrderHourChart(document.getElementById("orderHourChart"), data.orderHourDist || []);
         }
       })
       .catch(function (err) {
@@ -449,10 +315,7 @@
     revenueChart = buildRevenueDayChart(document.getElementById("revenueChart"), boot.revenueByDay || []);
     monthlyChart = buildMonthlyMixChart(document.getElementById("monthlyChart"), boot.monthlyComparison || []);
     categoryChart = buildCategoryDoughnut(document.getElementById("categoryChart"), boot.revenueByCategory || []);
-    statusChart = buildStatusDoughnut(document.getElementById("statusChart"), boot.statusDist || []);
-    paymentChart = buildPaymentHBar(document.getElementById("paymentChart"), boot.paymentDist || []);
     topServicesChart = buildTopServicesHBar(document.getElementById("topServicesChart"), boot.topServices || []);
-    orderHourChart = buildOrderHourChart(document.getElementById("orderHourChart"), boot.orderHourDist || []);
 
     var periodSel = document.getElementById("report-period");
     if (periodSel) {

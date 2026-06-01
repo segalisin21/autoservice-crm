@@ -38,7 +38,7 @@
           <input type="date" name="end_date" class="filter-input" value="<%= endDate %>" aria-label="Дата по" />
           <button type="button" class="btn btn-secondary btn-sm" id="btn-apply-range">Применить диапазон</button>
         </div>
-        <p class="report-range-hint">Операционные KPI — по дате записи заказа; выручка и касса — по закрытию и оплатам. Пресеты — скользящее окно до сегодня.</p>
+        <p class="report-range-hint">Операционные KPI — по дате записи заказа; выручка и касса — по закрытию и оплатам.</p>
       </form>
     </div>
   </div>
@@ -60,23 +60,20 @@
       <div class="stat-value"><%= overview.completedBookings %></div>
       <div class="stat-label">Завершено</div>
     </div>
-  </div>
-
-  <div class="stats-row">
     <div class="stat-card stat-analytics-retained">
       <div class="stat-value"><%= overview.cancelledBookings %></div>
-      <div class="stat-label">Отменено за период</div>
+      <div class="stat-label">Отменено</div>
     </div>
     <div class="stat-card stat-analytics-retained-sum">
       <div class="stat-value"><%= overview.cashIn.toLocaleString('ru-RU') %> ₽</div>
-      <div class="stat-label">Касса за период</div>
+      <div class="stat-label">Касса</div>
     </div>
   </div>
 
   <div class="charts-grid charts-grid--analytics">
     <div class="chart-card">
       <h4>Выручка и заказы по дням</h4>
-      <p class="chart-sub">Столбцы — выручка (₽), линия — число завершённых заказов по дате закрытия.</p>
+      <p class="chart-sub">Столбцы — выручка (₽), линия — завершённые заказы по дате закрытия.</p>
       <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
     </div>
     <div class="chart-card">
@@ -86,30 +83,10 @@
     </div>
   </div>
 
-  <div class="charts-grid charts-grid--analytics">
-    <div class="chart-card chart-card--span-wide">
-      <h4>Популярность часов начала работ</h4>
-      <p class="chart-sub">По полю «Начало» в заказах за выбранный период (дата записи)</p>
-      <div class="chart-wrap chart-wrap--hours"><canvas id="orderHourChart"></canvas></div>
-    </div>
-  </div>
-
-  <div class="charts-grid charts-grid--analytics">
+  <div class="charts-grid charts-grid--analytics charts-grid--single">
     <div class="chart-card chart-card--donut">
       <h4>Выручка по типу работ</h4>
       <div class="chart-wrap chart-wrap--donut"><canvas id="categoryChart"></canvas></div>
-    </div>
-    <div class="chart-card chart-card--donut">
-      <h4>Статусы заказов</h4>
-      <div class="chart-wrap chart-wrap--donut"><canvas id="statusChart"></canvas></div>
-    </div>
-  </div>
-
-  <div class="charts-grid charts-grid--analytics">
-    <div class="chart-card">
-      <h4>Оплата завершённых заказов</h4>
-      <p class="chart-sub">Сумма заказов в ₽ по категории оплаты</p>
-      <div class="chart-wrap chart-wrap--horizontal"><canvas id="paymentChart"></canvas></div>
     </div>
     <div class="chart-card">
       <h4>Топ услуг по выручке</h4>
@@ -117,10 +94,10 @@
     </div>
   </div>
 
-  <div class="tables-grid">
+  <div class="tables-grid tables-grid--single">
     <div class="table-card">
       <h4>По типу работ</h4>
-      <table class="mini-table">
+      <table class="mini-table data-table-compact">
         <thead><tr><th>Тип</th><th>Заказов</th><th>Выручка</th></tr></thead>
         <tbody>
           <% revenueByCategory.forEach(function(row) { %>
@@ -134,22 +111,8 @@
       </table>
     </div>
     <div class="table-card">
-      <h4>Статусы</h4>
-      <table class="mini-table">
-        <thead><tr><th>Статус</th><th>Кол-во</th></tr></thead>
-        <tbody>
-          <% statusDist.forEach(function(row) { %>
-            <tr><td><%= row.label %></td><td><%= row.count %></td></tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="tables-grid">
-    <div class="table-card">
       <h4>Топ услуги</h4>
-      <table class="mini-table">
+      <table class="mini-table data-table-compact">
         <thead><tr><th>Услуга</th><th>Кол-во</th><th>Выручка</th></tr></thead>
         <tbody>
           <% topServices.forEach(function(row) { %>
@@ -157,21 +120,6 @@
               <td><%= row.name %></td>
               <td><%= row.times_booked %></td>
               <td><%= Number(row.revenue).toLocaleString('ru-RU') %> ₽</td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
-    </div>
-    <div class="table-card">
-      <h4>Топ клиенты</h4>
-      <table class="mini-table">
-        <thead><tr><th>Клиент</th><th>Заказов</th><th>Сумма</th></tr></thead>
-        <tbody>
-          <% topClients.forEach(function(row) { %>
-            <tr>
-              <td><%= row.full_name %></td>
-              <td><%= row.total_bookings %></td>
-              <td><%= row.total_spent.toLocaleString('ru-RU') %> ₽</td>
             </tr>
           <% }) %>
         </tbody>
@@ -185,10 +133,7 @@ window.REPORT_BOOTSTRAP = {
   revenueByDay: <%- revenueByDay %>,
   monthlyComparison: <%- monthlyComparison %>,
   revenueByCategory: <%- revenueByCategoryJson %>,
-  statusDist: <%- statusDistJson %>,
-  paymentDist: <%- paymentDistJson %>,
-  topServices: <%- topServicesJson %>,
-  orderHourDist: <%- orderHourDistJson %>
+  topServices: <%- topServicesJson %>
 };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>

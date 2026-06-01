@@ -333,7 +333,20 @@ test("orders list due_only shows orders with balance", async (t) => {
   await ctx.loginAs(agent, "admin", "admin");
   const res = await agent.get("/orders?due_only=1");
   assert.equal(res.status, 200);
+  assert.match(res.text, /orders-table/);
   assert.match(res.text, new RegExp(`/orders/${dueOrderId}`));
   assert.match(res.text, /800\.00/);
   assert.doesNotMatch(res.text, new RegExp(`/orders/${paidOrderId}`));
+});
+
+test("orders list renders data table on mobile width markup", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const res = await agent.get("/orders");
+  assert.equal(res.status, 200);
+  assert.match(res.text, /class="data-table orders-table"/);
+  assert.ok(!res.text.includes("order-list-card"));
 });

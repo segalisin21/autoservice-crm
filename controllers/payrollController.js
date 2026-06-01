@@ -2,7 +2,12 @@ const { getDB } = require("../config/database");
 const { parseMoney } = require("../lib/money");
 const { parseDateRange } = require("../lib/finance");
 const { loadPayrollSettings, ensureDefaultSettings } = require("../lib/settings");
-const { loadMasterPayrollBalances, loadRecentPayouts } = require("../lib/payrollBalance");
+const {
+  loadMasterPayrollBalances,
+  loadMasterEarnedLines,
+  loadMasterPayoutsForUser,
+  loadRecentPayouts
+} = require("../lib/payrollBalance");
 
 const COMP_MODES = ["net_percent", "percent", "fixed", "hourly"];
 
@@ -29,11 +34,27 @@ async function index(req, res) {
     masters = masters.filter((m) => m.id === req.session.user.id);
   }
 
+  const summaryUserIds = filterUserId ? [filterUserId] : masters.map((m) => m.id);
   const summary = await loadMasterPayrollBalances(db, {
     start_date: range.start_date,
     end_date: range.end_date,
-    userIds: filterUserId ? [filterUserId] : masters.map((m) => m.id)
+    userIds: summaryUserIds
   });
+
+  const payrollDetails = {};
+  for (const s of summary) {
+    payrollDetails[s.id] = {
+      earnedLines: await loadMasterEarnedLines(db, s.id, {
+        start_date: range.start_date,
+        end_date: range.end_date
+      }),
+      payouts: await loadMasterPayoutsForUser(db, s.id, {
+        start_date: range.start_date,
+        end_date: range.end_date,
+        limit: 20
+      })
+    };
+  }
 
   const rules = await db.query(
     `
@@ -69,6 +90,7 @@ async function index(req, res) {
 
   res.render("admin/payroll", {
     summary,
+    payrollDetails,
     rules,
     overrides,
     works,
