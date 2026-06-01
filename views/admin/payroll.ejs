@@ -8,7 +8,12 @@
     }[m] || m;
   }
 %>
-<%- include('../partials/layout-top', { title: 'Зарплата', user, category: 'payroll' }) %>
+<%- include('../partials/layout-top', { title: 'Зарплата', user, category: 'payroll', adminSection: 'payroll' }) %>
+<div class="admin-page finance-dashboard">
+  <div class="finance-dashboard__head">
+    <h1 class="finance-dashboard__title">Зарплата</h1>
+    <%- include('./_admin-subnav') %>
+  </div>
 <section class="card">
   <form method="get" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
     <label>С <input type="date" name="start_date" value="<%= range.start_date %>" /></label>
@@ -224,4 +229,5 @@
   fillDue();
 })();
 </script>
+</div>
 <%- include('../partials/layout-bottom') %>

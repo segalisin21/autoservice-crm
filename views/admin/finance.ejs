@@ -1,89 +1,116 @@
-<%- include('../partials/layout-top', { title: 'Финансы', user, category: 'finance' }) %>
-<section class="card finance-page">
-  <p style="margin:0 0 12px;"><a href="/admin/orders-economics?period=<%= range.period || 'month' %>">Подробно по каждому заказу →</a></p>
-  <form method="get" class="finance-period-form">
-    <div class="period-chips">
-      <a class="period-chip <%= range.period === 'today' ? 'active' : '' %>" href="/admin/finance?period=today">Сегодня</a>
-      <a class="period-chip <%= range.period === 'week' ? 'active' : '' %>" href="/admin/finance?period=week">Неделя</a>
-      <a class="period-chip <%= range.period === 'month' || !range.period ? 'active' : '' %>" href="/admin/finance?period=month">Месяц</a>
-    </div>
-    <details class="finance-period-details">
-      <summary>Период вручную</summary>
-      <div class="finance-period-custom">
-        <label>С <input type="date" name="start_date" value="<%= range.start_date %>" /></label>
-        <label>По <input type="date" name="end_date" value="<%= range.end_date %>" /></label>
-        <button type="submit" class="btn btn-primary btn-sm">Показать</button>
+<%- include('../partials/layout-top', { title: 'Финансы', user, category: 'finance', adminSection: 'summary' }) %>
+
+<div class="admin-page finance-dashboard">
+  <div class="finance-dashboard__head">
+    <h1 class="finance-dashboard__title">Финансы</h1>
+    <%- include('./_admin-subnav') %>
+  </div>
+
+  <form method="get" class="finance-dashboard__toolbar">
+    <div class="finance-dashboard__toolbar-row">
+      <div class="chip-row finance-period-chips">
+        <a class="chip <%= range.period === 'today' ? 'chip--active' : '' %>" href="/admin/finance?period=today">Сегодня</a>
+        <a class="chip <%= range.period === 'week' ? 'chip--active' : '' %>" href="/admin/finance?period=week">Неделя</a>
+        <a class="chip <%= !range.period || range.period === 'month' ? 'chip--active' : '' %>" href="/admin/finance?period=month">Месяц</a>
       </div>
-    </details>
-    <a class="btn btn-secondary btn-sm" href="/admin/finance/export?start_date=<%= range.start_date %>&end_date=<%= range.end_date %>">CSV</a>
+      <div class="finance-dashboard__field">
+        <span class="finance-dashboard__field-label">Период (закрытые заказы)</span>
+        <div class="finance-dashboard__dates">
+          <label class="sr-only" for="fin-start">С</label>
+          <input id="fin-start" type="date" name="start_date" class="finance-dashboard__input" value="<%= range.start_date %>" />
+          <span class="finance-dashboard__dates-sep">—</span>
+          <label class="sr-only" for="fin-end">По</label>
+          <input id="fin-end" type="date" name="end_date" class="finance-dashboard__input" value="<%= range.end_date %>" />
+        </div>
+      </div>
+      <div class="finance-dashboard__toolbar-actions">
+        <button type="submit" class="btn btn-primary">Показать</button>
+        <div class="dropdown finance-dashboard__export">
+          <button type="button" class="btn btn-secondary" onclick="this.nextElementSibling.classList.toggle('show')">Экспорт</button>
+          <div class="dropdown-menu">
+            <a href="/admin/finance/export?start_date=<%= range.start_date %>&end_date=<%= range.end_date %>" class="dropdown-item">Сводка (CSV)</a>
+            <a href="/admin/reports/export?type=top_services&start_date=<%= range.start_date %>&end_date=<%= range.end_date %>" class="dropdown-item">Топ услуг (CSV)</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="finance-dashboard__hint">Касса — по дате оплаты; выручка и прибыль — по дате закрытия заказа (<code>completed</code>).</p>
   </form>
 
-  <div class="finance-kpi-grid">
-    <div class="finance-kpi">
-      <span class="finance-kpi-label">Касса</span>
-      <strong class="finance-kpi-value"><%= metrics.cash_in.toLocaleString('ru-RU') %> ₽</strong>
+  <div class="finance-kpi-grid" aria-label="Ключевые показатели">
+    <div class="finance-kpi-card">
+      <div class="finance-kpi-card__value"><%= metrics.cash_in.toLocaleString('ru-RU') %>&nbsp;₽</div>
+      <div class="finance-kpi-card__label">Касса</div>
     </div>
-    <div class="finance-kpi">
-      <span class="finance-kpi-label">Выручка</span>
-      <strong class="finance-kpi-value"><%= metrics.net_revenue.toLocaleString('ru-RU') %> ₽</strong>
-      <span class="muted finance-kpi-hint">закрытые заказы</span>
+    <div class="finance-kpi-card">
+      <div class="finance-kpi-card__value"><%= metrics.net_revenue.toLocaleString('ru-RU') %>&nbsp;₽</div>
+      <div class="finance-kpi-card__label">Выручка (закрытые)</div>
     </div>
-    <div class="finance-kpi">
-      <span class="finance-kpi-label">Расходы</span>
-      <strong class="finance-kpi-value"><%= metrics.expenses_total.toLocaleString('ru-RU') %> ₽</strong>
+    <div class="finance-kpi-card">
+      <div class="finance-kpi-card__value"><%= metrics.materials_total.toLocaleString('ru-RU') %>&nbsp;₽</div>
+      <div class="finance-kpi-card__label">Расходники</div>
     </div>
-    <div class="finance-kpi finance-kpi--profit">
-      <span class="finance-kpi-label">Прибыль</span>
-      <strong class="finance-kpi-value"><%= metrics.net_profit.toLocaleString('ru-RU') %> ₽</strong>
+    <div class="finance-kpi-card">
+      <div class="finance-kpi-card__value"><%= metrics.payroll_total.toLocaleString('ru-RU') %>&nbsp;₽</div>
+      <div class="finance-kpi-card__label">ЗП</div>
+    </div>
+    <div class="finance-kpi-card finance-kpi-card--accent">
+      <div class="finance-kpi-card__value"><%= metrics.net_profit.toLocaleString('ru-RU') %>&nbsp;₽</div>
+      <div class="finance-kpi-card__label">Прибыль</div>
+    </div>
+    <div class="finance-kpi-card">
+      <div class="finance-kpi-card__value"><%= metrics.receivables.toLocaleString('ru-RU') %>&nbsp;₽</div>
+      <div class="finance-kpi-card__label">Дебиторка</div>
     </div>
   </div>
 
-  <div class="finance-waterfall">
-    <span class="wf-step"><%= metrics.net_revenue.toLocaleString('ru-RU') %></span>
-    <span class="wf-arrow">− расходники <%= metrics.materials_total.toLocaleString('ru-RU') %></span>
-    <span class="wf-arrow">− ЗП <%= metrics.payroll_total.toLocaleString('ru-RU') %></span>
-    <span class="wf-arrow">− прочие <%= metrics.expenses_general.toLocaleString('ru-RU') %></span>
-    <span class="wf-result">= <%= metrics.net_profit.toLocaleString('ru-RU') %> ₽</span>
+  <div class="finance-secondary">
+    <div class="finance-secondary__card">
+      <h4 class="finance-secondary__title">Водопад прибыли</h4>
+      <p class="finance-waterfall-line">
+        <strong><%= metrics.net_revenue.toLocaleString('ru-RU') %></strong>
+        − расходники <strong><%= metrics.materials_total.toLocaleString('ru-RU') %></strong>
+        − ЗП <strong><%= metrics.payroll_total.toLocaleString('ru-RU') %></strong>
+        − прочие <strong><%= metrics.expenses_general.toLocaleString('ru-RU') %></strong>
+        = <strong class="finance-waterfall-result"><%= metrics.net_profit.toLocaleString('ru-RU') %> ₽</strong>
+      </p>
+    </div>
+    <details class="finance-secondary__card">
+      <summary>Детали</summary>
+      <div class="finance-more-grid">
+        <div><span class="muted">Закрытые (итого)</span><br /><strong><%= metrics.orders_net_by_closed_at.toLocaleString('ru-RU') %> ₽</strong></div>
+        <div><span class="muted">Скидки</span><br /><strong><%= metrics.discounts_total.toLocaleString('ru-RU') %> ₽</strong></div>
+        <div><span class="muted">Налоги</span><br /><strong><%= metrics.taxes_total.toLocaleString('ru-RU') %> ₽</strong></div>
+        <div><span class="muted">Расходы (всего)</span><br /><strong><%= metrics.expenses_total.toLocaleString('ru-RU') %> ₽</strong></div>
+      </div>
+    </details>
   </div>
 
-  <details class="finance-more-details">
-    <summary>Детали</summary>
-    <div class="finance-more-grid">
-      <div><span class="muted">Закрытые (итого)</span><br /><strong><%= metrics.orders_net_by_closed_at.toLocaleString('ru-RU') %> ₽</strong></div>
-      <div><span class="muted">Скидки</span><br /><strong><%= metrics.discounts_total.toLocaleString('ru-RU') %> ₽</strong></div>
-      <div><span class="muted">Налоги</span><br /><strong><%= metrics.taxes_total.toLocaleString('ru-RU') %> ₽</strong></div>
-      <div><span class="muted">Дебиторка</span><br /><strong><%= metrics.receivables.toLocaleString('ru-RU') %> ₽</strong></div>
-    </div>
-  </details>
-</section>
+  <section class="finance-panel finance-panel--main" aria-labelledby="fin-orders-title">
+    <h2 id="fin-orders-title" class="finance-panel__title">Заказы за период</h2>
+    <p class="muted finance-panel__hint"><a href="/admin/orders-economics?period=<%= range.period || 'month' %>">Подробно по каждому заказу →</a></p>
+    <% if (!orderEconomics || !orderEconomics.length) { %>
+      <p class="finance-panel__empty muted">Нет завершённых заказов за выбранный период.</p>
+    <% } else { %>
+      <div class="finance-order-cards">
+        <% orderEconomics.forEach(row => { %>
+          <a href="/orders/<%= row.order_id %>" class="finance-order-card">
+            <div class="foc-head">
+              <div>
+                <strong>#<%= row.order_id %></strong>
+                <span class="status-badge status-<%= row.status || 'completed' %>"><%= statusLabels[row.status] || statusLabel(row.status) %></span>
+              </div>
+              <span class="muted"><%= (row.closed_at || '').toString().slice(0, 10) %></span>
+            </div>
+            <div class="foc-row"><span>Выручка</span><strong><%= Number(row.revenue).toLocaleString('ru-RU') %> ₽</strong></div>
+            <div class="foc-row"><span>Расходники</span><span><%= Number(row.materials).toLocaleString('ru-RU') %> ₽</span></div>
+            <div class="foc-row"><span>ЗП</span><span><%= Number(row.payroll).toLocaleString('ru-RU') %> ₽</span></div>
+            <div class="foc-row foc-profit"><span>Прибыль</span><strong><%= Number(row.profit).toLocaleString('ru-RU') %> ₽</strong></div>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </section>
+</div>
 
-<section class="card">
-  <h2 class="card-title-sm">Заказы за период</h2>
-  <% if (!orderEconomics || !orderEconomics.length) { %>
-    <p class="muted">Нет завершённых заказов за выбранный период.</p>
-  <% } else { %>
-    <div class="finance-order-cards">
-      <% orderEconomics.forEach(row => { %>
-        <a href="/orders/<%= row.order_id %>" class="finance-order-card">
-          <div class="foc-head">
-            <strong>#<%= row.order_id %></strong>
-            <span class="muted"><%= (row.closed_at || '').toString().slice(0, 10) %></span>
-          </div>
-          <div class="foc-row">
-            <span>Выручка</span><strong><%= Number(row.revenue).toLocaleString('ru-RU') %> ₽</strong>
-          </div>
-          <div class="foc-row">
-            <span>Расходники</span><span><%= Number(row.materials).toLocaleString('ru-RU') %> ₽</span>
-          </div>
-          <div class="foc-row">
-            <span>ЗП</span><span><%= Number(row.payroll).toLocaleString('ru-RU') %> ₽</span>
-          </div>
-          <div class="foc-row foc-profit">
-            <span>Прибыль</span><strong><%= Number(row.profit).toLocaleString('ru-RU') %> ₽</strong>
-          </div>
-        </a>
-      <% }) %>
-    </div>
-  <% } %>
-</section>
 <%- include('../partials/layout-bottom') %>

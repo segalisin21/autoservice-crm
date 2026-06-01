@@ -29,7 +29,8 @@ async function index(req, res) {
     statusLabel,
     statusLabels: ORDER_STATUS_LABELS,
     user: req.session.user,
-    category: "finance"
+    category: "finance",
+    adminSection: "economics"
   });
 }
 

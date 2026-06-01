@@ -80,6 +80,7 @@ async function index(req, res) {
     filterUserId,
     user: req.session.user,
     category: "payroll",
+    adminSection: "payroll",
     canMutate: mutate
   });
 }

@@ -290,18 +290,13 @@ UI-входные точки в форме брони:
 
 - `/admin/finance/export?type=overview|payments|expenses|payouts&start_date=YYYY-MM-DD&end_date=YYYY-MM-DD` (overview: KPI броней, ЗП, часы, плюс `shift_accrual`, отмены с удержанием — см. [REPORT.md](REPORT.md) §6.7).
 
-### 10.1 Аналитика — `admin/reports.ejs`
+### 10.1 Аналитика — `admin/reports.ejs` (автосервис)
 
-- Шапка с фильтрами: период (7/30/90/365 дн / произвольные даты), категории (gazebos/quests/extra; в API по-прежнему допустим `lasertag` для старых данных).
-- Карточки overview: общее число броней, выручка, завершённые/отменённые, средний чек, всего клиентов.
-- Графики (Chart.js):
-  - Выручка по дням (line).
-  - Доход по категориям (bar/pie).
-  - Сравнение по месяцам (line).
-  - Распределение статусов / оплат (pie).
-- Таблицы Top-10: услуги и клиенты.
-- Кнопки экспорта в CSV: `bookings`, `clients`, `finance` — UTF-8 BOM, разделитель `;`. Эндпоинт `GET /admin/reports/export`.
-- Динамический пересбор без перезагрузки — `GET /admin/reports/api/data` (JSON).
+- Страница `/admin/reports`: KPI (заказы, выручка, средний чек, завершено, отмены, касса), Chart.js (выручка по дням, месяцы, часы начала, тип работ, статусы, оплата, топ услуг).
+- Фильтр: `period=7|30|90|custom` + даты; AJAX `GET /admin/reports/api/data`.
+- Операционные KPI — по дате записи (`scheduled_date`); выручка/касса — по `closed_at` и `payments`.
+- Общий subnav с финансами: `_admin-subnav.ejs`.
+- Экспорт CSV: `orders`, `top_services`, `finance` — `GET /admin/reports/export`.
 
 ### 10.2 Пользователи — `admin/users.ejs`, `admin/user-form.ejs`
 

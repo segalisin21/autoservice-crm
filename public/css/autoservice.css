@@ -343,7 +343,49 @@
   }
 }
 
-/* Finance page */
+/* Order status badges (autoservice statuses) */
+.status-scheduled {
+  background: rgba(59, 130, 246, 0.14);
+  color: #1d4ed8;
+}
+
+.status-in_progress {
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.status-ready {
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+}
+
+.finance-waterfall-line {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.finance-waterfall-result {
+  color: var(--primary, #1b4332);
+}
+
+.finance-panel__hint {
+  margin: 0 0 12px;
+}
+
+.finance-panel__empty {
+  padding: 1rem 0;
+}
+
+.finance-order-cards .foc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Finance page (legacy cards — prefer style.css finance-kpi-card) */
 .finance-kpi-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -687,6 +729,24 @@
 
   .content {
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
+  body.page-finance .mobile-bottom-nav,
+  body.page-reports .mobile-bottom-nav,
+  body.page-payroll .mobile-bottom-nav,
+  body.page-users .mobile-bottom-nav,
+  body.page-expenses .mobile-bottom-nav,
+  body.page-catalog .mobile-bottom-nav {
+    display: none;
+  }
+
+  body.page-finance .content,
+  body.page-reports .content,
+  body.page-payroll .content,
+  body.page-users .content,
+  body.page-expenses .content,
+  body.page-catalog .content {
+    padding-bottom: 1rem;
   }
 
   body.page-orders .content {

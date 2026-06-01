@@ -8,25 +8,17 @@ async function finance(req, res) {
   const metrics = await loadFinanceMetrics(db, range.start_date, range.end_date);
   const orderEconomics = await loadOrdersEconomicsInPeriod(db, range.start_date, range.end_date);
 
+  const { statusLabel, ORDER_STATUS_LABELS } = require("../lib/orderStatusLabels");
+
   res.render("admin/finance", {
     metrics,
     orderEconomics,
     range,
-    user: req.session.user
-  });
-}
-
-async function reports(req, res) {
-  const db = await getDB();
-  const range = parseDateRange(req.query);
-  const metrics = await loadFinanceMetrics(db, range.start_date, range.end_date);
-  const topServices = await loadTopServices(db, range.start_date, range.end_date);
-
-  res.render("admin/reports", {
-    metrics,
-    topServices,
-    range,
-    user: req.session.user
+    statusLabel,
+    statusLabels: ORDER_STATUS_LABELS,
+    user: req.session.user,
+    category: "finance",
+    adminSection: "summary"
   });
 }
 
@@ -67,4 +59,4 @@ async function exportCsv(req, res) {
   return res.send(lines.join("\n"));
 }
 
-module.exports = { finance, reports, exportCsv };
+module.exports = { finance, exportCsv };

@@ -1,5 +1,21 @@
 # HANDOFF
 
+## 2026-06-02 — UI финансов и аналитики (Belka 2,0)
+
+### What changed
+- **Навигация**: нижнее меню скрыто на admin-страницах (`page-finance`, `page-reports`, `page-payroll`, …); сайдбар «Аналитика»; активный пункт «Финансы».
+- **Subnav**: [`views/admin/_admin-subnav.ejs`](views/admin/_admin-subnav.ejs) — Сводка / Экономика / Зарплата / Аналитика.
+- **Финансы**: [`views/admin/finance.ejs`](views/admin/finance.ejs) — `finance-kpi-card`, toolbar, chips, водопад, badges статусов.
+- **Аналитика**: [`lib/analytics.js`](lib/analytics.js), [`controllers/analyticsController.js`](controllers/analyticsController.js), [`routes/admin-reports.js`](routes/admin-reports.js), [`views/admin/reports.ejs`](views/admin/reports.ejs) + Chart.js [`public/js/admin-reports.js`](public/js/admin-reports.js); API `GET /admin/reports/api/data`.
+- **Статусы**: CSS `.status-scheduled`, `.status-in_progress`, `.status-ready`.
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-02 — Экономика заказов, редактирование работ, ЗП, поиск по номеру
 
 ### What changed

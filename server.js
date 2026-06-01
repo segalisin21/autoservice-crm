@@ -16,6 +16,7 @@ const catalogRoutes = require("./routes/catalog");
 const orderRoutes = require("./routes/orders");
 const adminPayrollRoutes = require("./routes/admin-payroll");
 const adminFinanceRoutes = require("./routes/admin-finance");
+const adminReportsRoutes = require("./routes/admin-reports");
 const journalRoutes = require("./routes/journal");
 const expenseRoutes = require("./routes/expenses");
 const adminUserRoutes = require("./routes/admin-users");
@@ -69,6 +70,7 @@ app.use("/expenses", requireAuth, expenseRoutes);
 app.use("/admin/payroll", requireAuth, adminPayrollRoutes);
 app.use("/admin/users", requireAuth, adminUserRoutes);
 app.use("/admin", requireAuth, adminFinanceRoutes);
+app.use("/admin", requireAuth, adminReportsRoutes);
 
 app.use((req, res) => {
   res.status(404).send("Not found");
