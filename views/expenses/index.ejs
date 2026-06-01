@@ -1,0 +1,80 @@
+<%- include('../partials/layout-top', { title: 'Расходы', user, category: 'expenses' }) %>
+<section class="card">
+  <form method="get" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+    <label>С <input type="date" name="start_date" value="<%= range.start_date %>" /></label>
+    <label>По <input type="date" name="end_date" value="<%= range.end_date %>" /></label>
+    <label>Категория
+      <select name="category">
+        <option value="">Все</option>
+        <% categories.forEach(c => { %>
+          <option value="<%= c %>" <%= category === c ? 'selected' : '' %>><%= categoryLabels[c] %></option>
+        <% }) %>
+      </select>
+    </label>
+    <button type="submit" class="btn btn-primary btn-sm">Показать</button>
+  </form>
+  <p style="margin-top:12px;">Итого за период: <strong><%= total.toLocaleString('ru-RU') %> ₽</strong></p>
+  <% if (totals && totals.length) { %>
+    <p class="muted" style="margin-top:0;">
+      <% totals.forEach(t => { %>
+        <%= categoryLabels[t.category] || t.category %>: <%= Number(t.total).toLocaleString('ru-RU') %> ₽ &nbsp;
+      <% }) %>
+    </p>
+  <% } %>
+</section>
+
+<% if (canMutate) { %>
+<section class="card">
+  <h2 style="margin:0 0 8px 0; font-size:16px;">Новый расход</h2>
+  <form method="post" action="/expenses" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:8px;">
+    <label>Дата <input type="date" name="expense_date" value="<%= range.end_date %>" /></label>
+    <label>Сумма, ₽ <input name="amount" required /></label>
+    <label>Категория
+      <select name="category">
+        <% categories.forEach(c => { %>
+          <option value="<%= c %>"><%= categoryLabels[c] %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Способ
+      <select name="payment_method">
+        <% methods.forEach(m => { %>
+          <option value="<%= m %>"><%= m %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Получатель <input name="vendor" /></label>
+    <label>Заказ #ID (необязательно) <input name="order_id" /></label>
+    <label style="grid-column:1/-1;">Заметка <input name="note" /></label>
+    <div style="grid-column:1/-1;"><button type="submit" class="btn btn-primary">Сохранить</button></div>
+  </form>
+</section>
+<% } %>
+
+<section class="card">
+  <h2 style="margin:0 0 8px 0; font-size:16px;">Список</h2>
+  <table>
+    <thead><tr><th>Дата</th><th>Категория</th><th>Сумма</th><th>Способ</th><th>Получатель</th><th>Заказ</th><th>Заметка</th><th></th></tr></thead>
+    <tbody>
+      <% expenses.forEach(e => { %>
+        <tr>
+          <td><%= e.expense_date %></td>
+          <td><%= categoryLabels[e.category] || e.category %></td>
+          <td><%= Number(e.amount).toLocaleString('ru-RU') %> ₽</td>
+          <td><%= e.payment_method %></td>
+          <td><%= e.vendor || '' %></td>
+          <td><% if (e.order_ref) { %><a href="/orders/<%= e.order_ref %>">#<%= e.order_ref %></a><% } %></td>
+          <td><%= e.note || '' %></td>
+          <td>
+            <% if (canMutate) { %>
+            <form method="post" action="/expenses/<%= e.id %>?_method=DELETE" style="display:inline;">
+              <button type="submit">×</button>
+            </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/layout-bottom') %>

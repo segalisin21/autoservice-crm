@@ -1,0 +1,38 @@
+<%- include('../partials/layout-top', { title: 'Каталог', user }) %>
+<section class="card">
+  <form method="get" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+    <label style="margin:0;">Тип
+      <select name="type">
+        <option value="">Все</option>
+        <option value="work" <%= filters.type === 'work' ? 'selected' : '' %>>Работы</option>
+        <option value="product" <%= filters.type === 'product' ? 'selected' : '' %>>Товары</option>
+      </select>
+    </label>
+    <label style="margin:0;">Категория
+      <input name="category" value="<%= filters.category || '' %>" placeholder="категория" />
+    </label>
+    <label style="margin:0;">Поиск
+      <input name="search" value="<%= filters.search || '' %>" />
+    </label>
+    <button type="submit">Фильтр</button>
+    <a class="btn btn-primary" href="/catalog/new">Добавить</a>
+  </form>
+  <table style="margin-top:16px;">
+    <thead><tr><th>Тип</th><th>Категория</th><th>Название</th><th>Цена</th><th></th></tr></thead>
+    <tbody>
+      <% items.forEach(i => { %>
+        <tr>
+          <td><%= i.type %></td>
+          <td><%= i.category %></td>
+          <td><%= i.name %><% if (!i.is_active) { %> <span class="muted">(выкл)</span><% } %></td>
+          <td><%= Number(i.default_price).toFixed(2) %> ₽</td>
+          <td>
+            <a href="/catalog/<%= i.id %>/edit">Изм.</a>
+            <form method="post" action="/catalog/<%= i.id %>/toggle" style="display:inline;"><button type="submit">⇄</button></form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/layout-bottom') %>

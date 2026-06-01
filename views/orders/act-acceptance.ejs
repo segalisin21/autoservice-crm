@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Акт приёма-передачи · заказ #<%= order.id %></title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 24px; color: #111; max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 19px; margin: 0 0 4px 0; text-align: center; }
+    .sub { color: #555; font-size: 13px; text-align: center; margin-bottom: 16px; }
+    .meta { margin: 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; font-size: 14px; }
+    .block { margin-top: 16px; font-size: 14px; }
+    .block h3 { font-size: 15px; margin: 0 0 6px 0; }
+    .row { display: flex; gap: 8px; margin: 6px 0; align-items: flex-end; }
+    .fill { flex: 1; border-bottom: 1px solid #999; min-height: 18px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+    .signs { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; font-size: 13px; }
+    .sign-line { margin-top: 28px; border-top: 1px solid #333; padding-top: 4px; }
+    .actions { margin-bottom: 16px; }
+    @media print { .actions { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="actions"><button onclick="window.print()">Печать</button></div>
+  <h1>АКТ приёма-передачи транспортного средства</h1>
+  <div class="sub">к заказу-наряду № <%= order.id %> от <%= printDate %></div>
+
+  <div class="meta">
+    <div><strong>Заказчик:</strong> <%= order.client_name %></div>
+    <div><strong>Телефон:</strong> <%= order.client_phone %></div>
+    <div><strong>Автомобиль:</strong> <%= [order.make, order.model].filter(Boolean).join(' ') %><%= order.year ? ', ' + order.year + ' г.' : '' %></div>
+    <div><strong>Госномер:</strong> <%= order.license_plate_raw || '—' %></div>
+    <div><strong>VIN:</strong> <%= order.vin || '—' %></div>
+    <div><strong>Принял (мастер):</strong> <%= assigned_name || '—' %></div>
+  </div>
+
+  <div class="block">
+    <h3>Состояние при приёме</h3>
+    <div class="row"><span>Пробег, км:</span><span class="fill"></span></div>
+    <div class="row"><span>Уровень топлива:</span><span class="fill"></span></div>
+    <div class="row"><span>Комплектность / ценные вещи:</span><span class="fill"></span></div>
+    <div class="row"><span>Видимые повреждения:</span><span class="fill"></span></div>
+    <div class="row"><span></span><span class="fill"></span></div>
+  </div>
+
+  <div class="block">
+    <h3>Заявленные работы</h3>
+    <table>
+      <thead><tr><th>Наименование</th><th>Кол-во</th></tr></thead>
+      <tbody>
+        <% works.forEach(l => { %>
+          <tr><td><%= l.name %></td><td><%= l.quantity %></td></tr>
+        <% }) %>
+        <% if (!works.length) { %><tr><td colspan="2" style="color:#888;"><%= order.notes || '—' %></td></tr><% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="signs">
+    <div>ТС сдал (Заказчик)<div class="sign-line">подпись / ФИО</div></div>
+    <div>ТС принял (Исполнитель)<div class="sign-line">подпись / ФИО</div></div>
+  </div>
+</body>
+</html>

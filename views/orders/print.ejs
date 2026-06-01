@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Заказ-наряд #<%= order.id %></title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 24px; color: #111; max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 4px 0; }
+    .sub { color: #555; font-size: 13px; }
+    .meta { margin: 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; font-size: 14px; }
+    .meta div { padding: 2px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+    th { background: #f3f3f3; }
+    .totals { margin-top: 16px; font-size: 14px; }
+    .totals p { margin: 4px 0; }
+    .signs { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; font-size: 13px; }
+    .sign-line { margin-top: 28px; border-top: 1px solid #333; padding-top: 4px; }
+    .actions { margin-bottom: 16px; }
+    @media print { .actions { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="actions"><button onclick="window.print()">Печать</button></div>
+  <h1>Заказ-наряд № <%= order.id %></h1>
+  <div class="sub">от <%= printDate %></div>
+
+  <div class="meta">
+    <div><strong>Клиент:</strong> <%= order.client_name %></div>
+    <div><strong>Телефон:</strong> <%= order.client_phone %></div>
+    <div><strong>Автомобиль:</strong> <%= [order.make, order.model].filter(Boolean).join(' ') %><%= order.year ? ', ' + order.year + ' г.' : '' %></div>
+    <div><strong>Госномер:</strong> <%= order.license_plate_raw || '—' %></div>
+    <div><strong>VIN:</strong> <%= order.vin || '—' %></div>
+    <div><strong>Мастер:</strong> <%= assigned_name || '—' %></div>
+    <div><strong>Дата приёма:</strong> <%= (order.scheduled_date || order.opened_at || '').toString().slice(0,10) %></div>
+    <div><strong>Статус:</strong> <%= order.status %></div>
+  </div>
+
+  <h3>Работы</h3>
+  <table>
+    <thead><tr><th>Наименование</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
+    <tbody>
+      <% works.forEach(l => { %>
+        <tr><td><%= l.name %></td><td><%= l.quantity %></td><td><%= Number(l.unit_price).toFixed(2) %></td><td><%= Number(l.total).toFixed(2) %></td></tr>
+      <% }) %>
+      <% if (!works.length) { %><tr><td colspan="4" style="color:#888;">—</td></tr><% } %>
+    </tbody>
+  </table>
+
+  <h3>Запчасти и материалы</h3>
+  <table>
+    <thead><tr><th>Наименование</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
+    <tbody>
+      <% products.forEach(l => { %>
+        <tr><td><%= l.name %></td><td><%= l.quantity %></td><td><%= Number(l.unit_price).toFixed(2) %></td><td><%= Number(l.total).toFixed(2) %></td></tr>
+      <% }) %>
+      <% if (!products.length) { %><tr><td colspan="4" style="color:#888;">—</td></tr><% } %>
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <p>Работы: <%= Number(order.subtotal_works).toFixed(2) %> ₽ · Запчасти: <%= Number(order.subtotal_products).toFixed(2) %> ₽</p>
+    <p>Скидка: <%= Number(order.discount_amount).toFixed(2) %> ₽</p>
+    <p><strong>Итого к оплате: <%= Number(order.total_price).toFixed(2) %> ₽</strong></p>
+    <p>Оплачено: <%= Number(paid_amount).toFixed(2) %> ₽ · Долг: <%= Number(due_amount).toFixed(2) %> ₽</p>
+  </div>
+
+  <div class="signs">
+    <div>Исполнитель<div class="sign-line">подпись / ФИО</div></div>
+    <div>Заказчик<div class="sign-line">подпись / ФИО</div></div>
+  </div>
+</body>
+</html>

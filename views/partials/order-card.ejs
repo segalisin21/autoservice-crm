@@ -1,0 +1,13 @@
+<a href="/orders/<%= o.id %>" class="garage-order-card status-<%= o.status %>">
+  <div class="garage-order-head">
+    <span class="garage-order-id">#<%= o.id %></span>
+    <span class="garage-order-status"><%= statusLabel(o.status) %></span>
+  </div>
+  <div class="garage-order-car"><%= o.car_label || 'Авто' %><% if (o.license_plate) { %> · <%= o.license_plate %><% } %></div>
+  <div class="garage-order-client"><%= o.client_name %><% if (o.client_phone) { %> · <%= o.client_phone %><% } %></div>
+  <div class="garage-order-meta">
+    <% if (o.start_time) { %><span><%= o.start_time %><% if (o.end_time) { %>–<%= o.end_time %><% } %></span><% } %>
+    <% if (o.work_type) { %><span><%= o.work_type %></span><% } %>
+    <% if (o.total_price > 0) { %><span><%= o.total_price.toLocaleString('ru-RU') %> ₽</span><% } %>
+  </div>
+</a>

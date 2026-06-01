@@ -1,0 +1,28 @@
+<%- include('../partials/layout-top', { title: 'Клиенты', user }) %>
+<section class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+    <form method="get" action="/clients" style="display:flex; gap:8px; flex:1; min-width:200px;">
+      <input name="search" placeholder="Поиск: ФИО или телефон" value="<%= search || '' %>" />
+      <button type="submit">Найти</button>
+    </form>
+    <a class="btn btn-primary" href="/clients/new">Новый клиент</a>
+  </div>
+  <table style="margin-top:16px;">
+    <thead>
+      <tr><th>ФИО</th><th>Телефон</th><th>Email</th></tr>
+    </thead>
+    <tbody>
+      <% if (!clients.length) { %>
+        <tr><td colspan="3" class="muted">Нет клиентов</td></tr>
+      <% } %>
+      <% clients.forEach(c => { %>
+        <tr>
+          <td><a href="/clients/<%= c.id %>"><%= c.full_name %></a></td>
+          <td><%= c.phone_raw %></td>
+          <td><%= c.email || '—' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/layout-bottom') %>

@@ -1,0 +1,33 @@
+---
+description: Use when asked to push/commit/merge/PR or publish changes to remote; enforce test-first workflow and minimal diffs.
+alwaysApply: true
+---
+
+# Git workflow: test-first
+
+## Ветки (репозиторий)
+
+Основной GitHub-репозиторий проекта: **https://github.com/segalisin21/belka-crm** (`origin` в актуальных клонах). Легаси: Forrest-park-crm — remote `forrest-park-crm`, если добавлен.
+
+- **`main`** — стабильная линия под прод/релиз. Сюда вливают только то, что уже проверено на тестовой ветке.
+- **`test`** / **`test1`** — интеграция: сначала сюда попадают изменения (деплой тестового стенда при необходимости), затем merge в `main`. В **belka-crm** используется **`test1`**; в старых клонах могла быть только **`test`**.
+
+**Поток:** feature/fix → merge в тестовую ветку (**`test`** или **`test1`**) → проверка → merge в **`main`** (удобно через PR на GitHub). Локально: `git checkout main`, после merge на GitHub — `git pull` на нужной ветке.
+
+## Push policy
+When user asks "push", "publish", "upload", "merge", "PR", or when changes must be sent to remote:
+
+1) **По умолчанию** push в тестовую ветку (**`test1`** для belka-crm, иначе **`test`**):
+   - `git push origin <current-branch>:test1` или `git push origin <current-branch>:test` (или `git push origin test` / `test1`, если уже на этой ветке)
+
+2) Push в **develop** только по явному запросу (например «пуш в дев», «залей в develop»).
+
+3) Push в **main** только по явному запросу (например «deploy», «пуш в прод», «залей в main», «мерж на мейн»).
+
+## Change hygiene
+- Keep diffs minimal and task-scoped.
+- Do not mix refactors with features.
+- If large refactor is needed, split into separate PRs.
+
+## Traceability
+- Update `coordination/HANDOFF.md` with what changed + verification command.

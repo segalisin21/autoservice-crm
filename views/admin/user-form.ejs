@@ -1,0 +1,27 @@
+<%- include('../partials/layout-top', { title: 'Сотрудник: ' + target.name, user, category: 'users' }) %>
+<% if (error) { %><section class="card"><div class="error"><%= error %></div></section><% } %>
+<section class="card">
+  <form method="post" action="/admin/users/<%= target.id %>?_method=PUT" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:8px;">
+    <label>Логин <input value="<%= target.username %>" disabled /></label>
+    <label>Имя <input name="name" value="<%= target.name %>" required /></label>
+    <label>Роль
+      <select name="role">
+        <% roles.forEach(r => { %>
+          <option value="<%= r %>" <%= target.role === r ? 'selected' : '' %>><%= roleLabels[r] %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Активен
+      <select name="is_active">
+        <option value="1" <%= target.is_active ? 'selected' : '' %>>да</option>
+        <option value="" <%= target.is_active ? '' : 'selected' %>>нет</option>
+      </select>
+    </label>
+    <label>Новый пароль (если менять) <input name="password" type="text" autocomplete="new-password" /></label>
+    <div style="grid-column:1/-1; display:flex; gap:8px;">
+      <button type="submit" class="btn btn-primary">Сохранить</button>
+      <a class="btn btn-secondary" href="/admin/users">Назад</a>
+    </div>
+  </form>
+</section>
+<%- include('../partials/layout-bottom') %>

@@ -1,0 +1,33 @@
+{
+  "name": "autoservice-crm",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:prod": "node scripts/migrate.js && node scripts/import-uchet-csv.js && node scripts/seed-owner.js && node server.js",
+    "migrate": "node scripts/migrate.js",
+    "seed:owner": "node scripts/seed-owner.js",
+    "import:uchet": "node scripts/import-uchet-csv.js",
+    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
+    "postinstall": "npm rebuild better-sqlite3"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.10.0",
+    "csurf": "^1.11.0",
+    "dotenv": "^17.4.2",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-session": "^1.17.3",
+    "method-override": "^3.0.0",
+    "multer": "^2.1.1",
+    "pg": "^8.21.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.1.1"
+  }
+}

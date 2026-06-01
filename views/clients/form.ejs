@@ -1,0 +1,15 @@
+<%- include('../partials/layout-top', { title: client && client.id ? 'Редактировать клиента' : 'Новый клиент', user }) %>
+<section class="card">
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <form method="post" action="<%= client && client.id ? '/clients/' + client.id + '?_method=PUT' : '/clients' %>">
+    <label>ФИО <input name="full_name" required value="<%= client ? client.full_name : '' %>" /></label>
+    <label>Телефон <input name="phone" required value="<%= client ? client.phone_raw : '' %>" /></label>
+    <label>Email <input name="email" type="email" value="<%= client && client.email ? client.email : '' %>" /></label>
+    <label>Заметки <textarea name="notes" rows="3"><%= client && client.notes ? client.notes : '' %></textarea></label>
+    <div style="margin-top:16px; display:flex; gap:8px;">
+      <button type="submit" class="btn-primary">Сохранить</button>
+      <a class="btn" href="<%= client && client.id ? '/clients/' + client.id : '/clients' %>">Отмена</a>
+    </div>
+  </form>
+</section>
+<%- include('../partials/layout-bottom') %>

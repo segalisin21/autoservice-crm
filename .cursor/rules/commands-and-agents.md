@@ -1,0 +1,11 @@
+---
+description: Use when deciding which command or subagent to run; route work to /implement for small tasks and /orchestrate for roadmaps; keep pytest gate.
+alwaysApply: false
+---
+
+# Command routing
+
+- Use `/implement` for small scoped tasks (1–3 files, small bugfix, one endpoint).
+- Use `/orchestrate` for large tasks/roadmaps (Planner -> TASK files -> per-task quality loops).
+- Use `/test-runner` to run the only valid test command.
+- Always keep the hard gate: `pytest tests/ -v --tb=short`.

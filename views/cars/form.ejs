@@ -1,0 +1,29 @@
+<%- include('../partials/layout-top', { title: car && car.id ? 'Редактировать авто' : 'Новое авто', user }) %>
+<section class="card">
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <form method="post" action="<%= car && car.id ? '/cars/' + car.id + '?_method=PUT' : '/cars' %>">
+    <label>Клиент
+      <select name="client_id" required>
+        <option value="">— выберите —</option>
+        <% clients.forEach(cl => { %>
+          <option value="<%= cl.id %>" <%= String(car.client_id) === String(cl.id) ? 'selected' : '' %>>
+            <%= cl.full_name %> (<%= cl.phone_raw %>)
+          </option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Марка <input name="make" value="<%= car && car.make ? car.make : '' %>" /></label>
+    <label>Модель <input name="model" value="<%= car && car.model ? car.model : '' %>" /></label>
+    <label>VIN <input name="vin" value="<%= car && car.vin ? car.vin : '' %>" /></label>
+    <label>Госномер <input name="license_plate_raw" value="<%= car && car.license_plate_raw ? car.license_plate_raw : '' %>" /></label>
+    <label>Год <input name="year" type="number" value="<%= car && car.year ? car.year : '' %>" /></label>
+    <label>Цвет <input name="color" value="<%= car && car.color ? car.color : '' %>" /></label>
+    <label>Пробег <input name="mileage" type="number" value="<%= car && car.mileage ? car.mileage : '' %>" /></label>
+    <label>Заметки <textarea name="notes" rows="3"><%= car && car.notes ? car.notes : '' %></textarea></label>
+    <div style="margin-top:16px; display:flex; gap:8px;">
+      <button type="submit" class="btn-primary">Сохранить</button>
+      <a class="btn" href="<%= car && car.id ? '/cars/' + car.id : '/cars' %>">Отмена</a>
+    </div>
+  </form>
+</section>
+<%- include('../partials/layout-bottom') %>

@@ -1,0 +1,18 @@
+{
+  "name": "Автосервис CRM",
+  "short_name": "Автосервис",
+  "description": "CRM автосервиса: заказы, расписание, финансы",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#16a34a",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

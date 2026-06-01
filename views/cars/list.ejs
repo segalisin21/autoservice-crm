@@ -1,0 +1,28 @@
+<%- include('../partials/layout-top', { title: 'Автомобили', user }) %>
+<section class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+    <form method="get" action="/cars" style="display:flex; gap:8px; flex:1; min-width:200px;">
+      <input name="search" placeholder="VIN, номер, марка, телефон" value="<%= search || '' %>" />
+      <button type="submit">Найти</button>
+    </form>
+    <a class="btn btn-primary" href="/cars/new">Новое авто</a>
+  </div>
+  <table style="margin-top:16px;">
+    <thead>
+      <tr><th>Авто</th><th>Номер</th><th>Клиент</th></tr>
+    </thead>
+    <tbody>
+      <% if (!cars.length) { %>
+        <tr><td colspan="3" class="muted">Нет автомобилей</td></tr>
+      <% } %>
+      <% cars.forEach(c => { %>
+        <tr>
+          <td><a href="/cars/<%= c.id %>"><%= [c.make, c.model].filter(Boolean).join(' ') || 'Авто #' + c.id %></a></td>
+          <td><%= c.license_plate_raw || '—' %></td>
+          <td><a href="/clients/<%= c.client_id || '' %>"><%= c.client_name %></a> <span class="muted"><%= c.client_phone %></span></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/layout-bottom') %>

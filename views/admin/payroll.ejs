@@ -1,0 +1,170 @@
+<%
+  function modeLabel(m) {
+    return {
+      net_percent: '% от (работы − расходники)',
+      percent: '% от работы',
+      fixed: 'фикс. сумма',
+      hourly: 'почасово'
+    }[m] || m;
+  }
+%>
+<%- include('../partials/layout-top', { title: 'Зарплата', user, category: 'payroll' }) %>
+<section class="card">
+  <form method="get" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+    <label>С <input type="date" name="start_date" value="<%= range.start_date %>" /></label>
+    <label>По <input type="date" name="end_date" value="<%= range.end_date %>" /></label>
+    <% if (user.role !== 'master') { %>
+    <label>Мастер
+      <select name="user_id">
+        <option value="">Все</option>
+        <% masters.forEach(m => { %>
+          <option value="<%= m.id %>" <%= filterUserId === m.id ? 'selected' : '' %>><%= m.name %></option>
+        <% }) %>
+      </select>
+    </label>
+    <% } %>
+    <button type="submit" class="btn btn-primary btn-sm">Показать</button>
+  </form>
+  <table style="margin-top:16px;">
+    <thead><tr><th>Мастер</th><th>Начислено</th><th>Выплачено</th><th>К выплате</th></tr></thead>
+    <tbody>
+      <% summary.forEach(s => { %>
+        <tr>
+          <td><%= s.name %> <span class="muted">(<%= s.role %>)</span></td>
+          <td><%= s.earned.toFixed(2) %> ₽</td>
+          <td><%= s.paid.toFixed(2) %> ₽</td>
+          <td><strong><%= s.due.toFixed(2) %> ₽</strong></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+
+<% if (canMutate) { %>
+<section class="card">
+  <h2 style="margin:0 0 8px 0; font-size:16px;">Формула по умолчанию</h2>
+  <p class="muted" style="margin-top:0;">Применяется, если у мастера нет своего правила. По умолчанию: 50% от (работы − расходники).</p>
+  <form method="post" action="/admin/payroll/default" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+    <label>Режим
+      <select name="mode">
+        <% modes.forEach(m => { %>
+          <option value="<%= m %>" <%= payrollDefault.mode === m ? 'selected' : '' %>><%= modeLabel(m) %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Значение <input name="value" value="<%= payrollDefault.value %>" /></label>
+    <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2 style="margin:0 0 8px 0; font-size:16px;">Правило по мастеру (деактивирует предыдущее)</h2>
+  <form method="post" action="/admin/payroll/rules">
+    <label>Мастер
+      <select name="user_id" required>
+        <% masters.forEach(m => { %>
+          <option value="<%= m.id %>"><%= m.name %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Режим
+      <select name="mode">
+        <% modes.forEach(m => { %>
+          <option value="<%= m %>"><%= modeLabel(m) %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Значение <input name="value" required /></label>
+    <label>С даты <input type="date" name="effective_from" value="<%= range.start_date %>" /></label>
+    <button type="submit" class="btn btn-primary" style="margin-top:12px;">Сохранить правило</button>
+  </form>
+  <% if (rules && rules.length) { %>
+  <table style="margin-top:16px;">
+    <thead><tr><th>Мастер</th><th>Режим</th><th>Значение</th><th>С даты</th></tr></thead>
+    <tbody>
+      <% rules.forEach(r => { %>
+        <tr>
+          <td><%= r.user_name %></td>
+          <td><%= modeLabel(r.mode) %></td>
+          <td><%= Number(r.value) %></td>
+          <td><%= r.effective_from %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</section>
+
+<section class="card">
+  <h2 style="margin:0 0 8px 0; font-size:16px;">Оплата за конкретную работу (фикс/процент)</h2>
+  <form method="post" action="/admin/payroll/overrides">
+    <label>Мастер
+      <select name="user_id" required>
+        <% masters.forEach(m => { %>
+          <option value="<%= m.id %>"><%= m.name %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Работа
+      <select name="catalog_item_id" required>
+        <% works.forEach(w => { %>
+          <option value="<%= w.id %>"><%= w.name %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Режим
+      <select name="mode">
+        <% modes.forEach(m => { %>
+          <option value="<%= m %>"><%= modeLabel(m) %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Значение <input name="value" required /></label>
+    <button type="submit" class="btn btn-primary" style="margin-top:12px;">Сохранить переопределение</button>
+  </form>
+  <% if (overrides && overrides.length) { %>
+  <table style="margin-top:16px;">
+    <thead><tr><th>Мастер</th><th>Работа</th><th>Режим</th><th>Значение</th><th></th></tr></thead>
+    <tbody>
+      <% overrides.forEach(o => { %>
+        <tr>
+          <td><%= o.user_name %></td>
+          <td><%= o.item_name %></td>
+          <td><%= modeLabel(o.mode) %></td>
+          <td><%= Number(o.value) %></td>
+          <td>
+            <form method="post" action="/admin/payroll/overrides/<%= o.id %>?_method=DELETE" style="display:inline;">
+              <button type="submit">×</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</section>
+
+<section class="card">
+  <h2 style="margin:0 0 8px 0; font-size:16px;">Выплата</h2>
+  <form method="post" action="/admin/payroll/payouts">
+    <label>Мастер
+      <select name="user_id" required>
+        <% masters.forEach(m => { %>
+          <option value="<%= m.id %>"><%= m.name %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Сумма <input name="amount" required /></label>
+    <label>Способ
+      <select name="method">
+        <option value="cash">cash</option>
+        <option value="transfer">transfer</option>
+        <option value="other">other</option>
+      </select>
+    </label>
+    <label>Комментарий <input name="note" /></label>
+    <button type="submit" class="btn btn-primary" style="margin-top:12px;">Записать выплату</button>
+  </form>
+</section>
+<% } %>
+<%- include('../partials/layout-bottom') %>

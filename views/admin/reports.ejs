@@ -1,0 +1,25 @@
+<%- include('../partials/layout-top', { title: 'Отчёты', user, category: 'reports' }) %>
+<section class="card">
+  <form method="get" style="display:flex; gap:8px; flex-wrap:wrap;">
+    <label>С <input type="date" name="start_date" value="<%= range.start_date %>" /></label>
+    <label>По <input type="date" name="end_date" value="<%= range.end_date %>" /></label>
+    <button type="submit">Показать</button>
+    <a class="btn" href="/admin/finance/export?type=top_services&start_date=<%= range.start_date %>&end_date=<%= range.end_date %>">CSV услуги</a>
+  </form>
+</section>
+<section class="card">
+  <h2 style="margin:0 0 8px 0; font-size:16px;">Топ услуг</h2>
+  <table>
+    <thead><tr><th>Услуга</th><th>Кол-во</th><th>Выручка</th></tr></thead>
+    <tbody>
+      <% topServices.forEach(s => { %>
+        <tr>
+          <td><%= s.name %></td>
+          <td><%= s.cnt %></td>
+          <td><%= Number(s.revenue).toFixed(2) %> ₽</td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/layout-bottom') %>

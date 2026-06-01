@@ -1,0 +1,29 @@
+---
+description: Use for code style and architectural consistency; keep changes minimal, readable, and aligned with existing patterns. Covers both Node/Express (this repo) and Python/FastAPI (legacy).
+alwaysApply: true
+---
+
+# Code style
+
+## General
+- Prefer small, explicit functions and clear names.
+- Avoid broad formatting churn and unrelated refactors.
+
+## Node / Express / EJS (current stack of this repo)
+- Routers in `routes/` stay thin; business/DB logic lives in `controllers/`.
+- DB access goes through `config/database.js` (`getDB()`, `saveDB()`); never open a parallel `sql.js` connection.
+- ALWAYS use parameterized queries (`db.prepare(sql)` + `stmt.bind([...])` or `stmt.run([...])`). Do NOT build SQL via string concatenation/template literals with user input — see `docs/SECURITY.md` for a known offender.
+- Keep request/response shape explicit per route (validate `req.body`/`req.query` early, render an EJS error view or return JSON with a clear status).
+- Use `method-override` (`?_method=PUT|DELETE`) for HTML form mutations, consistent with existing routes.
+- New POST/PUT/DELETE endpoints must respect role guards (`requireAuth`, `requireRole('admin')`) registered in `server.js`.
+- Logging side effects (`activity_logs`) should never write secrets/passwords/tokens. See `middleware/logger.js` and `docs/SECURITY.md`.
+
+## Python / FastAPI (legacy guidance, kept for cross-repo compatibility)
+- Keep request/response schemas explicit (Pydantic models).
+- Use consistent status codes and error payload conventions.
+- Avoid blocking I/O in async endpoints.
+- Avoid raw SQL; if needed, use parameterized queries and document why.
+
+## Files and structure
+- Put business logic in `controllers/` (Node) or `services/` (Python) where the repo already follows that pattern.
+- Keep routers/routes thin; move heavy logic out of endpoints.

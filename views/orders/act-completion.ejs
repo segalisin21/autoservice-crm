@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <title>Акт выполненных работ · заказ #<%= order.id %></title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 24px; color: #111; max-width: 800px; margin: 0 auto; }
+    h1 { font-size: 19px; margin: 0 0 4px 0; text-align: center; }
+    .sub { color: #555; font-size: 13px; text-align: center; margin-bottom: 16px; }
+    .meta { margin: 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+    th { background: #f3f3f3; }
+    .totals { margin-top: 16px; font-size: 14px; }
+    .totals p { margin: 4px 0; }
+    .note { margin-top: 16px; font-size: 13px; color: #333; }
+    .signs { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; font-size: 13px; }
+    .sign-line { margin-top: 28px; border-top: 1px solid #333; padding-top: 4px; }
+    .actions { margin-bottom: 16px; }
+    @media print { .actions { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="actions"><button onclick="window.print()">Печать</button></div>
+  <h1>АКТ выполненных работ</h1>
+  <div class="sub">к заказу-наряду № <%= order.id %> от <%= printDate %></div>
+
+  <div class="meta">
+    <div><strong>Заказчик:</strong> <%= order.client_name %></div>
+    <div><strong>Телефон:</strong> <%= order.client_phone %></div>
+    <div><strong>Автомобиль:</strong> <%= [order.make, order.model].filter(Boolean).join(' ') %></div>
+    <div><strong>Госномер:</strong> <%= order.license_plate_raw || '—' %></div>
+    <div><strong>Исполнитель:</strong> <%= assigned_name || '—' %></div>
+    <div><strong>Дата закрытия:</strong> <%= (order.closed_at || '').toString().slice(0,10) || '—' %></div>
+  </div>
+
+  <h3>Выполненные работы</h3>
+  <table>
+    <thead><tr><th>№</th><th>Наименование</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
+    <tbody>
+      <% works.forEach((l, i) => { %>
+        <tr><td><%= i + 1 %></td><td><%= l.name %></td><td><%= l.quantity %></td><td><%= Number(l.unit_price).toFixed(2) %></td><td><%= Number(l.total).toFixed(2) %></td></tr>
+      <% }) %>
+      <% if (!works.length) { %><tr><td colspan="5" style="color:#888;">—</td></tr><% } %>
+    </tbody>
+  </table>
+
+  <% if (products.length) { %>
+  <h3>Использованные запчасти и материалы</h3>
+  <table>
+    <thead><tr><th>№</th><th>Наименование</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
+    <tbody>
+      <% products.forEach((l, i) => { %>
+        <tr><td><%= i + 1 %></td><td><%= l.name %></td><td><%= l.quantity %></td><td><%= Number(l.unit_price).toFixed(2) %></td><td><%= Number(l.total).toFixed(2) %></td></tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+
+  <div class="totals">
+    <p>Работы: <%= Number(order.subtotal_works).toFixed(2) %> ₽ · Запчасти: <%= Number(order.subtotal_products).toFixed(2) %> ₽</p>
+    <p>Скидка: <%= Number(order.discount_amount).toFixed(2) %> ₽</p>
+    <p><strong>Итого: <%= Number(order.total_price).toFixed(2) %> ₽</strong></p>
+  </div>
+
+  <p class="note">Работы выполнены в полном объёме и в установленный срок. Заказчик претензий по объёму, качеству и срокам оказания услуг не имеет.</p>
+
+  <div class="signs">
+    <div>Исполнитель<div class="sign-line">подпись / ФИО</div></div>
+    <div>Заказчик<div class="sign-line">подпись / ФИО</div></div>
+  </div>
+</body>
+</html>

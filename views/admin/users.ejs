@@ -1,0 +1,44 @@
+<%- include('../partials/layout-top', { title: 'Сотрудники', user, category: 'users' }) %>
+<% if (error) { %><section class="card"><div class="error"><%= error %></div></section><% } %>
+<section class="card">
+  <h2 style="margin:0 0 8px 0; font-size:16px;">Новый сотрудник</h2>
+  <form method="post" action="/admin/users" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:8px;">
+    <label>Логин <input name="username" required autocomplete="off" /></label>
+    <label>Имя <input name="name" required /></label>
+    <label>Роль
+      <select name="role">
+        <% roles.forEach(r => { %>
+          <option value="<%= r %>" <%= r === 'master' ? 'selected' : '' %>><%= roleLabels[r] %></option>
+        <% }) %>
+      </select>
+    </label>
+    <label>Пароль <input name="password" type="text" required autocomplete="new-password" /></label>
+    <div style="grid-column:1/-1;"><button type="submit" class="btn btn-primary">Создать</button></div>
+  </form>
+</section>
+
+<section class="card">
+  <h2 style="margin:0 0 8px 0; font-size:16px;">Список</h2>
+  <table>
+    <thead><tr><th>Имя</th><th>Логин</th><th>Роль</th><th>Статус</th><th></th></tr></thead>
+    <tbody>
+      <% users.forEach(u => { %>
+        <tr>
+          <td><%= u.name %></td>
+          <td><%= u.username %></td>
+          <td><%= roleLabels[u.role] || u.role %></td>
+          <td><%= u.is_active ? 'активен' : 'отключён' %></td>
+          <td style="display:flex; gap:6px;">
+            <a class="btn btn-secondary btn-sm" href="/admin/users/<%= u.id %>/edit">Изменить</a>
+            <% if (u.id !== user.id) { %>
+            <form method="post" action="/admin/users/<%= u.id %>/toggle" style="display:inline;">
+              <button type="submit" class="btn btn-sm"><%= u.is_active ? 'Отключить' : 'Включить' %></button>
+            </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/layout-bottom') %>

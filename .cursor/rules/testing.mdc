@@ -1,0 +1,25 @@
+---
+description: Use for any code change; enforce the only valid test command and CI parity for this repo (npm test on Node.js).
+alwaysApply: true
+---
+
+# Testing rules (CI parity)
+
+## Hard gate
+- The only valid test command is:
+  `npm test`
+- It runs `node --test tests/` (Node built-in test runner).
+- This command must pass before declaring work done.
+
+## When changing behavior
+- Any behavior change requires adding/updating tests under `tests/` (`*.test.js`).
+- Any bug fix requires a regression test.
+
+## Node/Express specifics
+- Use `supertest` for HTTP-level tests against the Express app.
+- Tests rely on the same `sql.js` SQLite the app uses; keep tests isolated and deterministic. Avoid touching the production DB file (`data/forest-park.db`) — use a temp DB path or reset state.
+- Prefer `node --test` style (`describe`/`test` from `node:test`, assertions from `node:assert/strict`).
+
+## What NOT to do
+- Do not introduce other test runners or commands (no `pytest`, `jest`, `mocha`, `vitest`, `pnpm`, `yarn`, Makefile-based gates).
+- Do not add flaky time-based sleeps; prefer dependency injection / mocking where needed.

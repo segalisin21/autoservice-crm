@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "hooks": {
+      "beforeShellExecution": [
+        { "command": "python .cursor/hooks/before_shell.py" }
+      ],
+      "stop": [
+        { "command": "python .cursor/hooks/quality_gate.py" }
+      ]
+    }
+  }

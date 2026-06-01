@@ -1,0 +1,39 @@
+<%- include('../partials/layout-top', { title: [car.make, car.model].filter(Boolean).join(' ') || 'Авто', user }) %>
+<section class="card">
+  <p><strong>Клиент:</strong> <a href="/clients/<%= car.client_id %>"><%= car.client_name %></a> (<%= car.client_phone %>)</p>
+  <p><strong>VIN:</strong> <%= car.vin || '—' %></p>
+  <p><strong>Номер:</strong> <%= car.license_plate_raw || '—' %> <span class="muted"><%= car.license_plate_normalized %></span></p>
+  <p><strong>Год / пробег:</strong> <%= car.year || '—' %> / <%= car.mileage || '—' %></p>
+  <% if (car.notes) { %><p><strong>Заметки:</strong> <%= car.notes %></p><% } %>
+  <div style="margin-top:12px; display:flex; gap:8px;">
+    <a class="btn" href="/cars/<%= car.id %>/edit">Редактировать</a>
+    <form method="post" action="/cars/<%= car.id %>?_method=DELETE" onsubmit="return confirm('Удалить авто?');">
+      <button type="submit">Удалить</button>
+    </form>
+  </div>
+</section>
+<section class="card">
+  <h2 style="margin:0 0 12px 0; font-size:16px;">Напоминания</h2>
+  <form method="post" action="/cars/<%= car.id %>/reminders">
+    <label>Заголовок <input name="title" required /></label>
+    <label>Дата <input name="due_date" type="date" /></label>
+    <label>Заметка <input name="notes" /></label>
+    <button type="submit" style="margin-top:12px;">Добавить</button>
+  </form>
+  <ul style="margin-top:16px; padding-left:18px;">
+    <% reminders.forEach(r => { %>
+      <li style="margin-bottom:8px;">
+        <strong><%= r.title %></strong>
+        <% if (r.due_date) { %> — <%= r.due_date %><% } %>
+        <% if (r.is_done) { %><span class="muted"> (выполнено)</span><% } %>
+        <form method="post" action="/cars/reminders/<%= r.id %>/toggle" style="display:inline;">
+          <button type="submit"><%= r.is_done ? 'Вернуть' : 'Готово' %></button>
+        </form>
+        <form method="post" action="/cars/reminders/<%= r.id %>?_method=DELETE" style="display:inline;">
+          <button type="submit">×</button>
+        </form>
+      </li>
+    <% }) %>
+  </ul>
+</section>
+<%- include('../partials/layout-bottom') %>

@@ -1,0 +1,32 @@
+<%- include('../partials/layout-top', { title: client.full_name, user }) %>
+<section class="card">
+  <p><strong>Телефон:</strong> <%= client.phone_raw %> <span class="muted">(<%= client.phone_normalized %>)</span></p>
+  <p><strong>Email:</strong> <%= client.email || '—' %></p>
+  <% if (client.notes) { %><p><strong>Заметки:</strong> <%= client.notes %></p><% } %>
+  <div style="margin-top:12px; display:flex; gap:8px;">
+    <a class="btn" href="/clients/<%= client.id %>/edit">Редактировать</a>
+    <form method="post" action="/clients/<%= client.id %>?_method=DELETE" onsubmit="return confirm('Удалить клиента?');">
+      <button type="submit">Удалить</button>
+    </form>
+  </div>
+</section>
+<section class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h2 style="margin:0; font-size:16px;">Автомобили</h2>
+    <a class="btn btn-primary" href="/cars/new?client_id=<%= client.id %>">Добавить авто</a>
+  </div>
+  <table style="margin-top:12px;">
+    <thead><tr><th>Марка/модель</th><th>Номер</th><th>Год</th></tr></thead>
+    <tbody>
+      <% if (!cars.length) { %><tr><td colspan="3" class="muted">Нет автомобилей</td></tr><% } %>
+      <% cars.forEach(car => { %>
+        <tr>
+          <td><a href="/cars/<%= car.id %>"><%= [car.make, car.model].filter(Boolean).join(' ') || 'Авто #' + car.id %></a></td>
+          <td><%= car.license_plate_raw || '—' %></td>
+          <td><%= car.year || '—' %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/layout-bottom') %>

@@ -1,0 +1,54 @@
+<%- include('../partials/layout-top', { title: 'Журнал учёта', user }) %>
+<section class="card">
+  <p class="muted" style="margin:0 0 12px 0;">Как в таблице Excel: дата, тип работ, авто, мастер, услуга, цена, оплата.</p>
+  <form method="get" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+    <label>С <input type="date" name="start_date" value="<%= filters.start_date || '' %>" /></label>
+    <label>По <input type="date" name="end_date" value="<%= filters.end_date || '' %>" /></label>
+    <label>Тип
+      <select name="work_type">
+        <option value="">Все</option>
+        <% workTypes.forEach(t => { %>
+          <option value="<%= t %>" <%= filters.work_type === t ? 'selected' : '' %>><%= t %></option>
+        <% }) %>
+      </select>
+    </label>
+    <input name="search" placeholder="авто, услуга, мастер" value="<%= filters.search || '' %>" />
+    <button type="submit">Фильтр</button>
+    <a class="btn" href="/orders/new">+ Заказ</a>
+  </form>
+  <p style="margin-top:12px;">
+    Итого по строкам: <strong><%= totals.price.toFixed(2) %></strong> ₽ ·
+    Оплаты (по заказам): <strong><%= totals.payment.toFixed(2) %></strong> ₽
+  </p>
+</section>
+<section class="card" style="overflow-x:auto;">
+  <table>
+    <thead>
+      <tr>
+        <th>Дата</th>
+        <th>Тип работ</th>
+        <th>Автомобиль</th>
+        <th>Мастер</th>
+        <th>Услуги</th>
+        <th>Цена</th>
+        <th>Оплата</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% lines.forEach(l => { %>
+        <tr>
+          <td><%= String(l.opened_at).slice(0, 10) %></td>
+          <td><%= l.work_type || '—' %></td>
+          <td><%= l.car %></td>
+          <td><%= l.master_name || '—' %></td>
+          <td><%= l.service_name %></td>
+          <td><%= Number(l.price).toFixed(0) %></td>
+          <td><%= l.show_payment && l.payment > 0 ? Number(l.payment).toFixed(0) : '' %></td>
+          <td><a href="/orders/<%= l.order_id %>">#<%= l.order_id %></a></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</section>
+<%- include('../partials/layout-bottom') %>
