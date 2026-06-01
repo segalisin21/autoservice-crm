@@ -118,16 +118,25 @@ async function savePayout(req, res) {
   const amount = parseMoney(req.body.amount);
   const method = String(req.body.method ?? "other");
   const note = String(req.body.note ?? "").trim() || null;
+  const period_start = String(req.body.period_start ?? "").slice(0, 10) || null;
+  const period_end = String(req.body.period_end ?? "").slice(0, 10) || null;
 
   if (!user_id || amount <= 0) {
     return res.redirect("/admin/payroll");
   }
 
   const db = await getDB();
-  await db.query(
-    `INSERT INTO payouts(user_id, amount, method, note, created_by) VALUES (?, ?, ?, ?, ?)`,
-    [user_id, amount, method, note, req.session.user.id]
-  );
+  try {
+    await db.query(
+      `INSERT INTO payouts(user_id, amount, method, note, period_start, period_end, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [user_id, amount, method, note, period_start, period_end, req.session.user.id]
+    );
+  } catch {
+    await db.query(
+      `INSERT INTO payouts(user_id, amount, method, note, created_by) VALUES (?, ?, ?, ?, ?)`,
+      [user_id, amount, method, note, req.session.user.id]
+    );
+  }
   return res.redirect("/admin/payroll");
 }
 

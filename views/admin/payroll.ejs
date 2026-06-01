@@ -186,6 +186,8 @@
         <option value="other">Другое</option>
       </select>
     </label>
+    <label>Период ЗП с <input type="date" name="period_start" value="<%= range.start_date %>" /></label>
+    <label>по <input type="date" name="period_end" value="<%= range.end_date %>" /></label>
     <label>Комментарий <input name="note" placeholder="Аванс, расчёт…" /></label>
     <button type="submit" class="btn btn-primary" style="margin-top:12px;">Записать выплату</button>
   </form>
@@ -196,13 +198,14 @@
   <% if (recentPayouts && recentPayouts.length) { %>
   <div class="table-scroll">
     <table>
-      <thead><tr><th>Дата</th><th>Мастер</th><th>Сумма</th><th>Способ</th><th>Комментарий</th></tr></thead>
+      <thead><tr><th>Дата</th><th>Мастер</th><th>Сумма</th><th>Период ЗП</th><th>Способ</th><th>Комментарий</th></tr></thead>
       <tbody>
         <% recentPayouts.forEach(p => { %>
           <tr>
             <td><%= (p.paid_at || '').toString().slice(0, 16) %></td>
             <td><%= p.user_name %></td>
             <td><%= Number(p.amount).toFixed(2) %> ₽</td>
+            <td class="muted"><% if (p.period_start && p.period_end) { %><%= p.period_start %> — <%= p.period_end %><% } else { %>—<% } %></td>
             <td><%= p.method %></td>
             <td><%= p.note || '—' %></td>
           </tr>

@@ -954,6 +954,39 @@
   margin-top: 12px;
 }
 
+.plate-search-bar--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.plate-search-bar--inline .plate-search-bar__label {
+  font-weight: 600;
+  margin: 0;
+}
+
+.order-due-alert {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.due-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 @media (min-width: 640px) {
   .oec-waterfall {
     grid-template-columns: repeat(4, minmax(0, 1fr));

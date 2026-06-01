@@ -1,5 +1,32 @@
 # HANDOFF
 
+## 2026-06-02 — фаза 2+3 UX/данные + полная миграция Postgres
+
+### What changed
+- **Фаза 2**: поиск по госномеру (дашборд, список заказов), фильтр «С долгом», баннер долга на карточке заказа; вкладка **Расходы** в admin subnav; CSS `due-badge`, `order-due-alert`, inline plate search.
+- **Фаза 3**: миграции `009_activity_logs`, `010_payout_period`; `lib/activityLog.js` (аудит правки строк в **completed**); CSV export `masters`, `work_types`, `receivables`; период выплат в payroll.
+- **Импорт**: `import-uchet-csv.js --dry-run`; `scripts/verify-uchet-import.js`.
+- **Postgres**: [`docs/MIGRATE_POSTGRES_FULL.sql`](docs/MIGRATE_POSTGRES_FULL.sql) (001–010 + registry); пересборка: `node scripts/build-postgres-full-migration.js`.
+
+### Key files
+- `views/partials/plate-search-bar.ejs`, `views/orders/list.ejs`, `controllers/orderController.js`
+- `migrations/postgres/009_activity_logs.sql`, `010_payout_period.sql`
+- `lib/activityLog.js`, `lib/analytics.js`, `controllers/analyticsController.js`
+- `docs/MIGRATE_POSTGRES_FULL.sql`, `scripts/build-postgres-full-migration.js`
+
+### Verify
+```bash
+npm test
+node scripts/import-uchet-csv.js --dry-run path/to/file.csv
+node scripts/verify-uchet-import.js
+```
+
+### Risks
+- Фильтр `due_only` отсекает долг после выборки страницы (N+1 оплат) — на больших списках может понадобиться SQL-агрегация.
+- Telegram-уведомления не входили в scope.
+
+---
+
 ## 2026-06-02 — fix(analytics): PostgreSQL monthly chart (no strftime)
 
 ### What changed

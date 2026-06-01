@@ -1,13 +1,19 @@
 <%- include('../partials/layout-top', { title: 'Заказы', user, category: 'orders' }) %>
+<section class="card plate-search-card">
+  <%- include('../partials/plate-search-bar', { plateSearchAction: '/orders/new' }) %>
+</section>
 <section class="card">
   <form method="get" class="orders-filter-form">
-    <input name="search" placeholder="№, клиент, телефон, номер" value="<%= filters.search || '' %>" class="orders-search-input" />
+    <input name="search" placeholder="№, клиент, телефон, госномер" value="<%= filters.search || '' %>" class="orders-search-input" />
     <select name="status">
       <option value="">Все статусы</option>
       <% statuses.forEach(s => { %>
         <option value="<%= s %>" <%= filters.status === s ? 'selected' : '' %>><%= (statusLabels && statusLabels[s]) || s %></option>
       <% }) %>
     </select>
+    <label class="orders-filter-due">
+      <input type="checkbox" name="due_only" value="1" <%= filters.due_only ? 'checked' : '' %> /> С долгом
+    </label>
     <button type="submit" class="btn btn-primary btn-sm">Найти</button>
   </form>
 
@@ -41,7 +47,7 @@
             <td><%= o.client_name %></td>
             <td><span class="status-badge status-<%= o.status %>"><%= (statusLabels && statusLabels[o.status]) || o.status %></span></td>
             <td><%= Number(o.total_price).toFixed(2) %></td>
-            <td><%= Number(o.due_amount).toFixed(2) %></td>
+            <td><% if (o.due_amount > 0) { %><span class="due-badge"><%= Number(o.due_amount).toFixed(2) %> ₽</span><% } else { %>0<% } %></td>
           </tr>
         <% }) %>
       </tbody>

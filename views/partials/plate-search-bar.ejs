@@ -1,0 +1,13 @@
+<% var plateAction = typeof plateSearchAction !== 'undefined' ? plateSearchAction : '/orders/new'; %>
+<form method="get" action="<%= plateAction %>" class="plate-search-bar plate-search-bar--inline">
+  <label class="plate-search-bar__label">Госномер</label>
+  <input
+    name="plate"
+    class="plate-search-input"
+    value="<%= typeof plateQuery !== 'undefined' ? plateQuery : '' %>"
+    placeholder="А123ВС777"
+    autocomplete="off"
+    inputmode="text"
+  />
+  <button type="submit" class="btn btn-primary btn-sm">Найти</button>
+</form>

@@ -33,6 +33,11 @@
       Не удалось загрузить календарь: <%= loadError %>. Выполните <code>npm run migrate</code> и перезапустите сервер.
     </div>
   <% } %>
+  <section class="card plate-search-card dashboard-plate-search">
+    <%- include('partials/plate-search-bar', { plateSearchAction: '/orders/new' }) %>
+    <p class="muted" style="margin:8px 0 0;font-size:0.85rem;">Быстрый поиск авто в базе или создание заказа</p>
+  </section>
+
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-icon bookings">

@@ -1,4 +1,11 @@
-<%- include('../partials/layout-top', { title: 'Расходы', user, category: 'expenses' }) %>
+<%- include('../partials/layout-top', { title: 'Расходы', user, category: 'expenses', adminSection: typeof adminSection !== 'undefined' ? adminSection : 'expenses' }) %>
+<% if (typeof showFinanceSubnav !== 'undefined' && showFinanceSubnav) { %>
+<div class="admin-page finance-dashboard">
+  <div class="finance-dashboard__head">
+    <h1 class="finance-dashboard__title">Расходы</h1>
+    <%- include('../admin/_admin-subnav', { adminSection: 'expenses' }) %>
+  </div>
+<% } %>
 <section class="card">
   <form method="get" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
     <label>С <input type="date" name="start_date" value="<%= range.start_date %>" /></label>
@@ -77,4 +84,5 @@
     </tbody>
   </table>
 </section>
+<% if (typeof showFinanceSubnav !== 'undefined' && showFinanceSubnav) { %></div><% } %>
 <%- include('../partials/layout-bottom') %>

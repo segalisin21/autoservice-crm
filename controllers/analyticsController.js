@@ -99,6 +99,55 @@ async function exportCsv(req, res) {
     return res.send(bom + lines.join("\n"));
   }
 
+  if (type === "masters" && dateRangeOk) {
+    const { getMasterRevenue } = require("../lib/analytics");
+    const rows = await getMasterRevenue(db, startDate, endDate, 100);
+    const lines = [["Мастер", "Строк работ", "Выручка работ", "Начислено ЗП"].join(sep)];
+    for (const r of rows) {
+      lines.push(
+        [`"${String(r.master_name).replace(/"/g, '""')}"`, r.lines_count, r.revenue, r.payroll].join(sep)
+      );
+    }
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename=masters-${startDate}.csv`);
+    return res.send(bom + lines.join("\n"));
+  }
+
+  if (type === "work_types" && dateRangeOk) {
+    const { getRevenueByWorkType } = require("../lib/analytics");
+    const rows = await getRevenueByWorkType(db, startDate, endDate);
+    const lines = [["Тип работ", "Заказов", "Выручка"].join(sep)];
+    for (const r of rows) {
+      lines.push([r.category, r.bookings_count, r.revenue].join(sep));
+    }
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename=work-types-${startDate}.csv`);
+    return res.send(bom + lines.join("\n"));
+  }
+
+  if (type === "receivables") {
+    const { getOrdersWithReceivables } = require("../lib/analytics");
+    const rows = await getOrdersWithReceivables(db, 500);
+    const lines = [["Заказ", "Клиент", "Госномер", "Статус", "Дата", "Итого", "Оплачено", "Долг"].join(sep)];
+    for (const r of rows) {
+      lines.push(
+        [
+          r.order_id,
+          `"${String(r.client_name).replace(/"/g, '""')}"`,
+          r.license_plate_raw || "",
+          r.status,
+          r.scheduled_date || "",
+          r.total_price,
+          r.paid,
+          r.due
+        ].join(sep)
+      );
+    }
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", "attachment; filename=receivables.csv");
+    return res.send(bom + lines.join("\n"));
+  }
+
   if (type === "finance" && dateRangeOk) {
     const { loadFinanceMetrics } = require("../lib/finance");
     const m = await loadFinanceMetrics(db, startDate, endDate);

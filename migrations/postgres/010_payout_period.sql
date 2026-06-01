@@ -1,0 +1,2 @@
+ALTER TABLE payouts ADD COLUMN IF NOT EXISTS period_start TEXT;
+ALTER TABLE payouts ADD COLUMN IF NOT EXISTS period_end TEXT;

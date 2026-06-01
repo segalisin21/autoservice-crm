@@ -83,13 +83,44 @@ async function findCatalogId(db, workType, serviceName) {
 
 async function main() {
   const fs = require("node:fs");
+  const dryRun = process.argv.includes("--dry-run");
   const csvPath =
-    process.argv[2] || process.env.IMPORT_CSV || path.join(__dirname, "..", "Учет - Лист1 (1).csv");
+    process.argv.find((a) => a.endsWith(".csv")) ||
+    process.env.IMPORT_CSV ||
+    path.join(__dirname, "..", "Учет - Лист1 (1).csv");
 
   const db = await getDB();
   await applyMigrations(db);
   await seedDefaultPermissions(db);
   await ensureDefaultSettings(db);
+
+  if (dryRun) {
+    if (!fs.existsSync(csvPath)) {
+      // eslint-disable-next-line no-console
+      console.warn(`CSV not found: ${csvPath}`);
+      await db.close();
+      return;
+    }
+    const rows = readUchetCsv(csvPath);
+    const groups = buildOrderGroups(rows);
+    await db.close();
+    // eslint-disable-next-line no-console
+    console.log(
+      JSON.stringify(
+        {
+          dryRun: true,
+          csvPath,
+          rows: rows.length,
+          order_groups: groups.length,
+          catalog_items: collectCatalogItems(rows).length,
+          masters: collectMasters(rows).length
+        },
+        null,
+        2
+      )
+    );
+    return;
+  }
 
   // Idempotency guard: do not duplicate on re-runs (safe for prod boot).
   const existing = await db.query("SELECT COUNT(*) AS c FROM orders");

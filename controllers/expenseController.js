@@ -54,7 +54,8 @@ async function list(req, res) {
     categoryLabels: EXPENSE_CATEGORY_LABELS,
     methods: PAYMENT_METHODS,
     user: req.session.user,
-    category_nav: "expenses",
+    adminSection: "expenses",
+    showFinanceSubnav: ["owner", "admin"].includes(req.session.user.role),
     canMutate: ["owner", "admin"].includes(req.session.user.role)
   });
 }

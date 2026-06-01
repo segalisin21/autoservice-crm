@@ -270,3 +270,70 @@ test("update work line changes master and price", async (t) => {
   assert.equal(line.master_id, otherMasterId);
   assert.equal(Number(line.total), 3000);
 });
+
+test("completed order line edit writes activity_logs", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+  const { agent, orderId, catId } = await seedOrderWithAgent(ctx);
+
+  await agent.post(`/orders/${orderId}/lines`).type("form").send({
+    line_type: "work",
+    catalog_item_id: String(catId),
+    quantity: "1",
+    unit_price: "1000",
+    master_id: String(ctx.users.master.id)
+  });
+  const lineId = (
+    await ctx.db.query("SELECT id FROM order_lines WHERE order_id = ? AND line_type = 'work' LIMIT 1", [orderId])
+  )[0].id;
+  await ctx.db.query(`UPDATE orders SET status = 'completed', closed_at = datetime('now') WHERE id = ?`, [orderId]);
+
+  await agent
+    .post(`/orders/lines/${lineId}?_method=PUT`)
+    .type("form")
+    .send({ quantity: "1", unit_price: "1100", master_id: String(ctx.users.master.id) });
+
+  const logs = await ctx.db.query(
+    "SELECT action, entity_type, entity_id FROM activity_logs WHERE entity_type = 'order_line' AND entity_id = ?",
+    [lineId]
+  );
+  assert.equal(logs.length, 1);
+  assert.equal(logs[0].action, "update");
+});
+
+test("orders list due_only shows orders with balance", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('A', '1', '79990000031')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id) VALUES (?)`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, total_price) VALUES (?, 'completed', 1000)`,
+    [carId]
+  );
+  const dueOrderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO payments(order_id, amount, method, kind, paid_at) VALUES (?, 200, 'cash', 'payment', datetime('now'))`,
+    [dueOrderId]
+  );
+
+  await ctx.db.query(`INSERT INTO orders(car_id, status, total_price) VALUES (?, 'completed', 500)`, [carId]);
+  const paidOrderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO payments(order_id, amount, method, kind, paid_at) VALUES (?, 500, 'cash', 'payment', datetime('now'))`,
+    [paidOrderId]
+  );
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const res = await agent.get("/orders?due_only=1");
+  assert.equal(res.status, 200);
+  assert.match(res.text, new RegExp(`/orders/${dueOrderId}`));
+  assert.match(res.text, /800\.00/);
+  assert.doesNotMatch(res.text, new RegExp(`/orders/${paidOrderId}`));
+});

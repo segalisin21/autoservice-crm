@@ -169,6 +169,7 @@ async function list(req, res) {
   const db = await getDB();
   const status = String(req.query.status ?? "").trim();
   const search = String(req.query.search ?? "").trim();
+  const due_only = req.query.due_only === "1" || req.query.due_only === "true";
   const page = Math.max(1, Number(req.query.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
@@ -179,16 +180,29 @@ async function list(req, res) {
     params.push(status);
   }
   if (search) {
-    where.push(
-      "(cl.full_name LIKE ? OR cl.phone_normalized LIKE ? OR c.license_plate_normalized LIKE ? OR CAST(o.id AS TEXT) LIKE ?)"
-    );
-    const like = `%${search}%`;
-    const digits = search.replace(/\D/g, "");
-    params.push(like, `%${digits || search}%`, `%${search.toUpperCase().replace(/[\s-]/g, "")}%`, like);
+    const plateNorm = normalizePlate(search).license_plate_normalized;
+    if (plateNorm) {
+      where.push(
+        "(c.license_plate_normalized LIKE ? OR cl.full_name LIKE ? OR cl.phone_normalized LIKE ? OR CAST(o.id AS TEXT) LIKE ?)"
+      );
+      const like = `%${search}%`;
+      const digits = search.replace(/\D/g, "");
+      params.push(`%${plateNorm}%`, like, `%${digits || search}%`, like);
+    } else {
+      where.push(
+        "(cl.full_name LIKE ? OR cl.phone_normalized LIKE ? OR c.license_plate_normalized LIKE ? OR CAST(o.id AS TEXT) LIKE ?)"
+      );
+      const like = `%${search}%`;
+      const digits = search.replace(/\D/g, "");
+      params.push(like, `%${digits || search}%`, `%${search.toUpperCase().replace(/[\s-]/g, "")}%`, like);
+    }
+  }
+  if (due_only) {
+    where.push("o.status NOT IN ('cancelled')");
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
-  const orders = await db.query(
+  let orders = await db.query(
     `
     SELECT o.id, o.opened_at, o.status, o.work_type, o.total_price,
            c.license_plate_raw, c.make AS car_make, cl.full_name AS client_name, cl.phone_raw AS client_phone
@@ -206,10 +220,13 @@ async function list(req, res) {
     o.paid_amount = await getPaidAmount(db, o.id);
     o.due_amount = Math.max(0, parseMoney(o.total_price) - o.paid_amount);
   }
+  if (due_only) {
+    orders = orders.filter((o) => o.due_amount > 0);
+  }
 
   res.render("orders/list", {
     orders,
-    filters: { status, search },
+    filters: { status, search, due_only },
     statuses: ORDER_STATUSES,
     statusLabels: ORDER_STATUS_LABELS,
     user: req.session.user,
@@ -673,6 +690,25 @@ async function updateLine(req, res) {
   await recomputeOrderTotals(line.order_id);
   if (orderStatus === "completed") {
     await freezeOrderEarned(line.order_id);
+    try {
+      const { logActivity } = require("../lib/activityLog");
+      await logActivity(db, {
+        user_id: req.session.user?.id,
+        action: "update",
+        entity_type: "order_line",
+        entity_id: lineId,
+        details: {
+          order_id: line.order_id,
+          order_status: orderStatus,
+          quantity,
+          unit_price,
+          master_id: line.line_type === "work" ? master_id : line.master_id,
+          line_type: line.line_type
+        }
+      });
+    } catch {
+      // activity_logs table may be missing before migration 009
+    }
   }
   return res.redirect(`/orders/${line.order_id}`);
 }

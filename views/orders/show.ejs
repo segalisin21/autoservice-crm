@@ -5,6 +5,13 @@
   <p class="order-subtitle"><%= order.client_name %> · <%= order.client_phone %></p>
   <% if (order.license_plate_raw) { %><p class="muted"><%= order.license_plate_raw %></p><% } %>
 
+  <% if (typeof due_amount !== 'undefined' && due_amount > 0 && order.status !== 'cancelled') { %>
+  <div class="order-due-alert" role="status">
+    <strong>Долг по заказу: <%= Number(due_amount).toLocaleString('ru-RU') %> ₽</strong>
+    <span class="muted"> · оплачено <%= Number(paid_amount).toFixed(0) %> из <%= Number(order.total_price).toFixed(0) %> ₽</span>
+  </div>
+  <% } %>
+
   <% if (order.status !== 'completed' && order.status !== 'cancelled') { %>
   <div class="status-chips" role="group" aria-label="Статус заказа">
     <% ['scheduled','in_progress','ready','completed'].forEach(s => { %>
