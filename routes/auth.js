@@ -34,7 +34,12 @@ router.post("/login", async (req, res) => {
     return res.status(403).render("login", { error: "Пользователь отключён" });
   }
   req.session.user = { id: user.id, username: user.username, name: user.name, role: user.role };
-  return res.redirect("/");
+  return req.session.save((err) => {
+    if (err) {
+      return res.status(500).render("login", { error: "Не удалось сохранить сессию. Попробуйте снова." });
+    }
+    return res.redirect("/");
+  });
 });
 
 router.post("/logout", (req, res) => {

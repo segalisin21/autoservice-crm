@@ -153,7 +153,25 @@ npm test
 
 ---
 
-## 2026-05-27 — RBAC + клиенты/авто
+## 2026-06-02 — Railway login session fix
+
+### What changed
+- `trust proxy` + `proxy: true` для session cookie за HTTPS-прокси Railway.
+- Явный `req.session.save()` перед redirect после логина.
+- Подсказка на странице входа: `vitalik` / `master` или `OWNER_USERNAME`.
+- Регрессионный тест сессии в production за прокси.
+
+### Key files
+- `server.js`, `routes/auth.js`, `views/login.ejs`, `tests/smoke.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+### Risks / limitations
+- На Railway нужны `NODE_ENV=production`, `SESSION_SECRET`, `OWNER_USERNAME`/`OWNER_PASSWORD` (или логин `vitalik`/`master` после импорта CSV).
+
 
 ### What changed
 - RBAC: `config/permissions.js`, `requirePermission` в `middleware/auth.js`, сид матрицы при логине.

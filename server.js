@@ -21,6 +21,9 @@ const adminUserRoutes = require("./routes/admin-users");
 
 const app = express();
 
+// Railway/Heroku terminate TLS at the edge; required for secure session cookies.
+app.set("trust proxy", 1);
+
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
@@ -35,6 +38,7 @@ app.use(
     secret: process.env.SESSION_SECRET || "dev-insecure-secret",
     resave: false,
     saveUninitialized: false,
+    proxy: process.env.NODE_ENV === "production",
     cookie: {
       httpOnly: true,
       sameSite: "lax",
