@@ -1,4 +1,5 @@
 const { getDB } = require("../config/database");
+const { sqlNow } = require("../config/sqlDialect");
 const { hashPassword } = require("../lib/password");
 const { clearPermissionCache } = require("../config/permissions");
 
@@ -91,8 +92,9 @@ async function update(req, res) {
 
   if (!name) return res.redirect(`/admin/users/${id}/edit`);
 
+  const now = sqlNow(db.dialect);
   await db.query(
-    `UPDATE users SET name = ?, role = ?, is_active = ?, updated_at = datetime('now') WHERE id = ?`,
+    `UPDATE users SET name = ?, role = ?, is_active = ?, updated_at = ${now} WHERE id = ?`,
     [name, role, is_active, id]
   );
   if (password && password.length >= 4) {
@@ -108,7 +110,8 @@ async function toggleActive(req, res) {
   if (id === req.session.user.id) return res.redirect("/admin/users");
   const rows = await db.query("SELECT is_active FROM users WHERE id = ?", [id]);
   if (!rows.length) return res.status(404).send("Not found");
-  await db.query("UPDATE users SET is_active = ?, updated_at = datetime('now') WHERE id = ?", [
+  const now = sqlNow(db.dialect);
+  await db.query(`UPDATE users SET is_active = ?, updated_at = ${now} WHERE id = ?`, [
     rows[0].is_active ? 0 : 1,
     id
   ]);

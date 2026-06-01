@@ -1,4 +1,5 @@
 const { getDB } = require("../config/database");
+const { sqlNow } = require("../config/sqlDialect");
 const { normalizePhone } = require("../lib/normalize");
 
 const PAGE_SIZE = 50;
@@ -70,15 +71,14 @@ async function create(req, res) {
   }
 
   const db = await getDB();
-  await db.query(
+  const id = await db.insertReturning(
     `
     INSERT INTO clients(full_name, phone_raw, phone_normalized, email, notes)
     VALUES (?, ?, ?, ?, ?)
   `,
     [data.full_name, data.phone_raw, data.phone_normalized, data.email, data.notes]
   );
-  const created = await db.query("SELECT id FROM clients ORDER BY id DESC LIMIT 1");
-  return res.redirect(`/clients/${created[0].id}`);
+  return res.redirect(`/clients/${id}`);
 }
 
 async function show(req, res) {
@@ -114,11 +114,12 @@ async function update(req, res) {
   }
 
   const db = await getDB();
+  const now = sqlNow(db.dialect);
   await db.query(
     `
     UPDATE clients SET
       full_name = ?, phone_raw = ?, phone_normalized = ?, email = ?, notes = ?,
-      updated_at = datetime('now')
+      updated_at = ${now}
     WHERE id = ?
   `,
     [data.full_name, data.phone_raw, data.phone_normalized, data.email, data.notes, id]

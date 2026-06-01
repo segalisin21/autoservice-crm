@@ -1,4 +1,5 @@
 const { getDB } = require("../config/database");
+const { sqlNow } = require("../config/sqlDialect");
 const { parseMoney } = require("../lib/money");
 const { loadTaxSettings, ensureDefaultSettings } = require("../lib/settings");
 const { recomputeOrderTotals, getPaidAmount } = require("../lib/orderTotals");
@@ -186,21 +187,19 @@ async function resolveOrCreateCar(db, body) {
     return { error: "Для нового авто укажите ФИО владельца и телефон" };
   }
 
-  await db.query(
+  const clientId = await db.insertReturning(
     `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES (?, ?, ?)`,
     [ownerName, phone_raw, phone_normalized]
   );
-  const client = (await db.query("SELECT id FROM clients ORDER BY id DESC LIMIT 1"))[0];
 
-  await db.query(
+  const carId = await db.insertReturning(
     `
     INSERT INTO cars(client_id, make, model, vin, license_plate_raw, license_plate_normalized, year)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `,
-    [client.id, make, model, vin, plate.license_plate_raw, plate.license_plate_normalized, year]
+    [clientId, make, model, vin, plate.license_plate_raw, plate.license_plate_normalized, year]
   );
-  const car = (await db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1"))[0];
-  return car.id;
+  return carId;
 }
 
 async function create(req, res) {
@@ -241,7 +240,7 @@ async function create(req, res) {
   await ensureDefaultSettings(db);
   const tax = await loadTaxSettings(db);
 
-  await db.query(
+  const orderId = await db.insertReturning(
     `
     INSERT INTO orders(
       car_id, status, work_type, notes, created_by,
@@ -264,8 +263,7 @@ async function create(req, res) {
       end_time
     ]
   );
-  const created = await db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1");
-  return res.redirect(`/orders/${created[0].id}`);
+  return res.redirect(`/orders/${orderId}`);
 }
 
 async function show(req, res) {
@@ -326,13 +324,14 @@ async function update(req, res) {
     closed_at = new Date().toISOString().slice(0, 19).replace("T", " ");
   }
 
+  const now = sqlNow(db.dialect);
   await db.query(
     `
     UPDATE orders SET
       discount_type = ?, discount_value = ?, discount_scope = ?,
       work_type = ?, notes = ?, status = ?, closed_at = ?,
       scheduled_date = ?, assigned_user_id = ?, start_time = ?, end_time = ?,
-      updated_at = datetime('now')
+      updated_at = ${now}
     WHERE id = ?
   `,
     [
@@ -370,8 +369,9 @@ async function changeStatus(req, res) {
   if (status === "completed") {
     closed_at = new Date().toISOString().slice(0, 19).replace("T", " ");
   }
+  const now = sqlNow(db.dialect);
   await db.query(
-    "UPDATE orders SET status = ?, closed_at = COALESCE(closed_at, ?), updated_at = datetime('now') WHERE id = ?",
+    `UPDATE orders SET status = ?, closed_at = COALESCE(closed_at, ?), updated_at = ${now} WHERE id = ?`,
     [status, closed_at, id]
   );
   await onOrderStatusChange(id, previousStatus, status);

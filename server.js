@@ -7,6 +7,7 @@ const session = require("express-session");
 const methodOverride = require("method-override");
 
 const { requireAuth } = require("./middleware/auth");
+const { isProbablyPostgresUrl } = require("./config/database");
 const authRoutes = require("./routes/auth");
 const dashboardRoutes = require("./routes/dashboard");
 const clientRoutes = require("./routes/clients");
@@ -33,20 +34,29 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(methodOverride("_method"));
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "dev-insecure-secret",
-    resave: false,
-    saveUninitialized: false,
-    proxy: process.env.NODE_ENV === "production",
-    cookie: {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    }
-  })
-);
+const sessionOptions = {
+  secret: process.env.SESSION_SECRET || "dev-insecure-secret",
+  resave: false,
+  saveUninitialized: false,
+  proxy: process.env.NODE_ENV === "production",
+  cookie: {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 7 * 24 * 60 * 60 * 1000
+  }
+};
+
+if (isProbablyPostgresUrl(process.env.DATABASE_URL)) {
+  const pgSession = require("connect-pg-simple")(session);
+  sessionOptions.store = new pgSession({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: true,
+    ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false }
+  });
+}
+
+app.use(session(sessionOptions));
 
 app.use(authRoutes);
 app.use("/", requireAuth, dashboardRoutes);

@@ -132,7 +132,7 @@ async function main() {
       ? masterIds[group.primaryMaster.toLowerCase()] || null
       : null;
 
-    await db.query(
+    const orderId = await db.insertReturning(
       `
       INSERT INTO orders(
         car_id, opened_at, closed_at, scheduled_date, assigned_user_id,
@@ -142,8 +142,6 @@ async function main() {
     `,
       [carId, openedAt, openedAt, group.date, assignedUserId, group.workType, group.note]
     );
-    const orderRow = await db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1");
-    const orderId = orderRow[0].id;
     ordersCount += 1;
 
     for (const line of group.lines) {

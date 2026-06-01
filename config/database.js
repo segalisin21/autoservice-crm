@@ -2,15 +2,13 @@ const path = require("node:path");
 const fs = require("node:fs");
 
 const Database = require("better-sqlite3");
-const { Client } = require("pg");
+const { Pool } = require("pg");
 
 function isProbablyPostgresUrl(url) {
   return typeof url === "string" && (url.startsWith("postgres://") || url.startsWith("postgresql://"));
 }
 
 function convertQMarksToPg(sql) {
-  // Minimal converter: replaces each `?` outside of quotes with $1..$n.
-  // Good enough for this project as long as we don't embed `?` in SQL strings.
   let out = "";
   let idx = 0;
   let inSingle = false;
@@ -37,24 +35,39 @@ function convertQMarksToPg(sql) {
   return out;
 }
 
+function returnsRows(sql) {
+  const head = sql.trimStart().slice(0, 6).toUpperCase();
+  return head === "SELECT" || head === "WITH  " || head === "PRAGMA" || /\bRETURNING\b/i.test(sql);
+}
+
 async function createDb() {
   const url = process.env.DATABASE_URL;
 
   if (isProbablyPostgresUrl(url)) {
-    const client = new Client({ connectionString: url });
-    await client.connect();
+    const pool = new Pool({
+      connectionString: url,
+      ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false }
+    });
+
     return {
       dialect: "postgres",
       async exec(sql) {
-        await client.query(sql);
+        await pool.query(sql);
       },
       async query(sql, params = []) {
         const pgSql = convertQMarksToPg(sql);
-        const res = await client.query(pgSql, params);
+        const res = await pool.query(pgSql, params);
         return res.rows;
       },
+      async insertReturning(sql, params = []) {
+        const trimmed = sql.trim().replace(/;\s*$/, "");
+        const withReturning = /\bRETURNING\b/i.test(trimmed) ? trimmed : `${trimmed} RETURNING id`;
+        const pgSql = convertQMarksToPg(withReturning);
+        const res = await pool.query(pgSql, params);
+        return res.rows[0]?.id ?? null;
+      },
       async close() {
-        await client.end();
+        await pool.end();
       }
     };
   }
@@ -72,13 +85,18 @@ async function createDb() {
     },
     async query(sql, params = []) {
       const stmt = sqlite.prepare(sql);
-      // Heuristic: treat SELECT/WITH/PRAGMA as returning rows, otherwise run.
-      const head = sql.trimStart().slice(0, 6).toUpperCase();
-      if (head === "SELECT" || head === "WITH  " || head === "PRAGMA") {
+      if (returnsRows(sql)) {
         return stmt.all(params);
       }
       stmt.run(params);
       return [];
+    },
+    async insertReturning(sql, params = []) {
+      const trimmed = sql.trim().replace(/;\s*$/, "");
+      const withReturning = /\bRETURNING\b/i.test(trimmed) ? trimmed : `${trimmed} RETURNING id`;
+      const stmt = sqlite.prepare(withReturning);
+      const row = stmt.get(params);
+      return row?.id ?? null;
     },
     async close() {
       sqlite.close();
@@ -96,5 +114,4 @@ function resetDB() {
   _dbPromise = null;
 }
 
-module.exports = { getDB, resetDB };
-
+module.exports = { getDB, resetDB, isProbablyPostgresUrl };

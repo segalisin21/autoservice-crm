@@ -2,6 +2,7 @@ const { getDB } = require("../config/database");
 const { applyMigrations } = require("../config/migrations");
 const { seedDefaultPermissions } = require("../config/permissions");
 const { hashPassword } = require("../lib/password");
+const { sqlNow } = require("../config/sqlDialect");
 
 function getArg(flag) {
   const idx = process.argv.indexOf(flag);
@@ -28,6 +29,7 @@ async function main() {
   await seedDefaultPermissions(db);
 
   const passwordHash = hashPassword(password);
+  const now = sqlNow(db.dialect);
   await db.query(
     `
     INSERT INTO users(username, password_hash, name, role, is_active)
@@ -37,7 +39,7 @@ async function main() {
       name=excluded.name,
       role='owner',
       is_active=1,
-      updated_at=(datetime('now'))
+      updated_at=${now}
   `,
     [username, passwordHash, name]
   );

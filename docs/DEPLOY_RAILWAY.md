@@ -1,11 +1,10 @@
 # Деплой на Railway + первичный импорт данных
 
-Приложение — Node.js + Express + EJS. Хранилище — **SQLite** (`better-sqlite3`).
-Для прод-стенда используем SQLite на **постоянном томе (Volume)** Railway.
+Приложение — Node.js + Express + EJS.
 
-> Важно про Postgres: в коде есть ветка `DATABASE_URL` (pg), но SQL и миграции используют
-> SQLite-функции (`datetime('now')`, `date('now')`). Поэтому **на Railway запускаем на SQLite + Volume**.
-> Полноценный переход на Postgres потребует переписать дефолты/функции в `migrations/*.sql` и части запросов — это отдельная задача.
+**Хранилище на проде:**
+- **PostgreSQL** (рекомендуется) — задайте `DATABASE_URL` из Railway Postgres plugin.
+- **SQLite + Volume** — если `DATABASE_URL` не задан, используется `SQLITE_PATH` (нужен постоянный том).
 
 ---
 
@@ -48,7 +47,26 @@ railway up             # задеплоить текущую папку
 
 ---
 
-## 3. Постоянный том для БД (Volume)
+## 3. PostgreSQL (рекомендуется)
+
+1. В проекте Railway: **+ New → Database → PostgreSQL**.
+2. В сервисе **autoservice-crm** → **Variables** → **Add Reference** → `DATABASE_URL` из Postgres.
+3. Удалите `SQLITE_PATH`, если был — для Postgres он не нужен.
+4. Сессии сохраняются в таблице `session` (создаётся автоматически через `connect-pg-simple`).
+
+| Переменная | Значение |
+|---|---|
+| `DATABASE_URL` | reference `${{Postgres.DATABASE_URL}}` |
+| `SESSION_SECRET` | длинная случайная строка |
+| `NODE_ENV` | `production` |
+| `OWNER_USERNAME` | напр. `owner` |
+| `OWNER_PASSWORD` | надёжный пароль |
+
+Volume **не нужен**.
+
+---
+
+## 4. SQLite + Volume (альтернатива)
 
 SQLite-файл должен жить на томе, иначе данные сотрутся при каждом редеплое.
 
@@ -58,7 +76,7 @@ SQLite-файл должен жить на томе, иначе данные с�
 
 ---
 
-## 4. Переменные окружения (Variables)
+## 5. Переменные окружения (SQLite)
 
 Добавь в сервисе (Variables):
 
@@ -77,7 +95,7 @@ SQLite-файл должен жить на томе, иначе данные с�
 
 ---
 
-## 5. Первый запуск = автоматическое создание БД и импорт
+## 6. Первый запуск
 
 При старте `npm run start:prod` выполнит по порядку:
 1. `migrate` — создаст схему на томе (`/data/app.sqlite3`);

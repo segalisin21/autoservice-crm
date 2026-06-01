@@ -1,9 +1,11 @@
 const { getDB } = require("../config/database");
+const { sqlDateOf } = require("../config/sqlDialect");
 const { getPaidAmount } = require("../lib/orderTotals");
 const { WORK_TYPES } = require("../lib/workTypes");
 
 async function index(req, res) {
   const db = await getDB();
+  const openedDate = sqlDateOf(db.dialect, "o.opened_at");
   const start = String(req.query.start_date ?? "").slice(0, 10);
   const end = String(req.query.end_date ?? "").slice(0, 10);
   const work_type = String(req.query.work_type ?? "").trim();
@@ -12,11 +14,11 @@ async function index(req, res) {
   const where = [];
   const params = [];
   if (start) {
-    where.push("date(o.opened_at) >= ?");
+    where.push(`${openedDate} >= ?`);
     params.push(start);
   }
   if (end) {
-    where.push("date(o.opened_at) <= ?");
+    where.push(`${openedDate} <= ?`);
     params.push(end);
   }
   if (work_type) {

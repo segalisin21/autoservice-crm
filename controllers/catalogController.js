@@ -1,4 +1,5 @@
 const { getDB } = require("../config/database");
+const { sqlNow } = require("../config/sqlDialect");
 const { parseMoney } = require("../lib/money");
 
 const PAGE_SIZE = 50;
@@ -111,11 +112,12 @@ async function update(req, res) {
   }
 
   const db = await getDB();
+  const now = sqlNow(db.dialect);
   await db.query(
     `
     UPDATE catalog_items SET
       type = ?, category = ?, name = ?, default_price = ?, unit = ?,
-      is_active = ?, sort_order = ?, updated_at = datetime('now')
+      is_active = ?, sort_order = ?, updated_at = ${now}
     WHERE id = ?
   `,
     [data.type, data.category, data.name, data.default_price, data.unit, data.is_active, data.sort_order, id]

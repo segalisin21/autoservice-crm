@@ -12,14 +12,24 @@ npm start
 
 Откройте http://localhost:3000
 
-## Продакшен (Railway / Postgres)
+## Продакшен (Railway)
 
-1. Создайте PostgreSQL и подключите `DATABASE_URL`.
-2. Задайте переменные окружения:
+### Вариант A — PostgreSQL (рекомендуется)
+
+1. В Railway: **New → Database → PostgreSQL**.
+2. В сервисе приложения → **Variables** → добавить:
+   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (reference из Postgres-сервиса)
    - `SESSION_SECRET` — длинная случайная строка
    - `NODE_ENV=production`
-   - `OWNER_USERNAME`, `OWNER_PASSWORD`, `OWNER_NAME` — первый владелец
-3. Старт: `npm run start:prod` (миграции, импорт CSV, seed владельца, сервер).
+   - `OWNER_USERNAME`, `OWNER_PASSWORD`, `OWNER_NAME`
+3. Volume для SQLite **не нужен**.
+4. Старт: `npm run start:prod` — миграции Postgres, импорт CSV, seed владельца.
+
+### Вариант B — SQLite на Volume
+
+1. Volume mount path: `/data`
+2. `SQLITE_PATH=/data/app.sqlite3`
+3. Остальные переменные как выше (без `DATABASE_URL`)
 
 Конфиг Railway: `railway.json`.
 

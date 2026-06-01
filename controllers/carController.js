@@ -1,4 +1,5 @@
 const { getDB } = require("../config/database");
+const { sqlNow } = require("../config/sqlDialect");
 const { normalizePlate, normalizeVin } = require("../lib/normalize");
 
 const PAGE_SIZE = 50;
@@ -103,7 +104,7 @@ async function create(req, res) {
     return res.status(400).render("cars/form", { car: data, clients, error, user: req.session.user });
   }
 
-  await db.query(
+  const id = await db.insertReturning(
     `
     INSERT INTO cars(
       client_id, make, model, vin, license_plate_raw, license_plate_normalized,
@@ -123,8 +124,7 @@ async function create(req, res) {
       data.notes
     ]
   );
-  const created = await db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1");
-  return res.redirect(`/cars/${created[0].id}`);
+  return res.redirect(`/cars/${id}`);
 }
 
 async function show(req, res) {
@@ -170,13 +170,14 @@ async function update(req, res) {
     return res.status(400).render("cars/form", { car: { ...data, id }, clients, error, user: req.session.user });
   }
 
+  const now = sqlNow(db.dialect);
   await db.query(
     `
     UPDATE cars SET
       client_id = ?, make = ?, model = ?, vin = ?,
       license_plate_raw = ?, license_plate_normalized = ?,
       year = ?, color = ?, mileage = ?, notes = ?,
-      updated_at = datetime('now')
+      updated_at = ${now}
     WHERE id = ?
   `,
     [

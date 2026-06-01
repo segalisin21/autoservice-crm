@@ -153,7 +153,29 @@ npm test
 
 ---
 
-## 2026-06-02 — Railway login session fix
+## 2026-06-02 — PostgreSQL support for Railway
+
+### What changed
+- Postgres migrations in `migrations/postgres/`, dialect-aware runner.
+- `config/sqlDialect.js`, `insertReturning`, SSL pool in `database.js`.
+- Runtime SQL updated for both SQLite and Postgres.
+- Sessions stored in Postgres via `connect-pg-simple` when `DATABASE_URL` is set.
+
+### Key files
+- `config/database.js`, `config/sqlDialect.js`, `config/migrations.js`
+- `migrations/postgres/*.sql`, `server.js`, controllers/lib/scripts
+
+### Verify
+```bash
+npm test
+```
+
+### Railway Postgres setup
+1. Add PostgreSQL plugin → reference `DATABASE_URL` in app service.
+2. Set `SESSION_SECRET`, `NODE_ENV=production`, `OWNER_USERNAME`/`OWNER_PASSWORD`.
+3. Redeploy — no Volume needed.
+
+---
 
 ### What changed
 - `trust proxy` + `proxy: true` для session cookie за HTTPS-прокси Railway.
