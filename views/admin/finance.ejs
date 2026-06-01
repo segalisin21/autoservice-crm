@@ -1,5 +1,6 @@
 <%- include('../partials/layout-top', { title: 'Финансы', user, category: 'finance' }) %>
 <section class="card finance-page">
+  <p style="margin:0 0 12px;"><a href="/admin/orders-economics?period=<%= range.period || 'month' %>">Подробно по каждому заказу →</a></p>
   <form method="get" class="finance-period-form">
     <div class="period-chips">
       <a class="period-chip <%= range.period === 'today' ? 'active' : '' %>" href="/admin/finance?period=today">Сегодня</a>

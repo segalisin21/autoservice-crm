@@ -25,19 +25,34 @@
     <% } %>
     <button type="submit" class="btn btn-primary btn-sm">Показать</button>
   </form>
-  <table style="margin-top:16px;">
-    <thead><tr><th>Мастер</th><th>Начислено</th><th>Выплачено</th><th>К выплате</th></tr></thead>
-    <tbody>
-      <% summary.forEach(s => { %>
+  <div class="table-scroll">
+    <table class="payroll-summary-table" style="margin-top:16px;">
+      <thead>
         <tr>
-          <td><%= s.name %> <span class="muted">(<%= s.role %>)</span></td>
-          <td><%= s.earned.toFixed(2) %> ₽</td>
-          <td><%= s.paid.toFixed(2) %> ₽</td>
-          <td><strong><%= s.due.toFixed(2) %> ₽</strong></td>
+          <th>Мастер</th>
+          <th>Начислено (период)</th>
+          <th>Выплачено (период)</th>
+          <th>К выплате (период)</th>
+          <th>Начислено (всего)</th>
+          <th>Выплачено (всего)</th>
+          <th>Остаток</th>
         </tr>
-      <% }) %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% summary.forEach(s => { %>
+          <tr>
+            <td data-label="Мастер"><%= s.name %></td>
+            <td data-label="Начислено (период)"><%= (s.earned_period || 0).toFixed(2) %> ₽</td>
+            <td data-label="Выплачено (период)"><%= (s.paid_period || 0).toFixed(2) %> ₽</td>
+            <td data-label="Период"><strong><%= (s.due_period || 0).toFixed(2) %> ₽</strong></td>
+            <td data-label="Всего начислено"><%= s.earned_total.toFixed(2) %> ₽</td>
+            <td data-label="Всего выплачено"><%= s.paid_total.toFixed(2) %> ₽</td>
+            <td data-label="Остаток"><strong class="<%= s.due_total > 0 ? 'text-due' : '' %>"><%= s.due_total.toFixed(2) %> ₽</strong></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
 </section>
 
 <% if (canMutate) { %>
@@ -145,26 +160,68 @@
 </section>
 
 <section class="card">
-  <h2 style="margin:0 0 8px 0; font-size:16px;">Выплата</h2>
-  <form method="post" action="/admin/payroll/payouts">
+  <h2 style="margin:0 0 8px 0; font-size:16px;">Записать выплату</h2>
+  <form method="post" action="/admin/payroll/payouts" class="payout-form">
     <label>Мастер
-      <select name="user_id" required>
-        <% masters.forEach(m => { %>
-          <option value="<%= m.id %>"><%= m.name %></option>
+      <select name="user_id" required id="payout-user-select">
+        <% summary.forEach(s => { %>
+          <option value="<%= s.id %>" data-due="<%= s.due_total %>"><%= s.name %> (остаток <%= s.due_total.toFixed(0) %> ₽)</option>
         <% }) %>
+        <% if (!summary.length) { masters.forEach(m => { %>
+          <option value="<%= m.id %>"><%= m.name %></option>
+        <% }) } %>
       </select>
     </label>
-    <label>Сумма <input name="amount" required /></label>
+    <label>Сумма <input name="amount" id="payout-amount" required inputmode="decimal" /></label>
     <label>Способ
       <select name="method">
-        <option value="cash">cash</option>
-        <option value="transfer">transfer</option>
-        <option value="other">other</option>
+        <option value="cash">Наличные</option>
+        <option value="transfer">Перевод</option>
+        <option value="card">Карта</option>
+        <option value="other">Другое</option>
       </select>
     </label>
-    <label>Комментарий <input name="note" /></label>
+    <label>Комментарий <input name="note" placeholder="Аванс, расчёт…" /></label>
     <button type="submit" class="btn btn-primary" style="margin-top:12px;">Записать выплату</button>
   </form>
 </section>
+
+<section class="card">
+  <h2 style="margin:0 0 8px 0; font-size:16px;">История выплат</h2>
+  <% if (recentPayouts && recentPayouts.length) { %>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Дата</th><th>Мастер</th><th>Сумма</th><th>Способ</th><th>Комментарий</th></tr></thead>
+      <tbody>
+        <% recentPayouts.forEach(p => { %>
+          <tr>
+            <td><%= (p.paid_at || '').toString().slice(0, 16) %></td>
+            <td><%= p.user_name %></td>
+            <td><%= Number(p.amount).toFixed(2) %> ₽</td>
+            <td><%= p.method %></td>
+            <td><%= p.note || '—' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } else { %>
+  <p class="muted">Выплат пока нет.</p>
+  <% } %>
+</section>
 <% } %>
+<script>
+(function () {
+  var sel = document.getElementById("payout-user-select");
+  var amt = document.getElementById("payout-amount");
+  if (!sel || !amt) return;
+  function fillDue() {
+    var opt = sel.options[sel.selectedIndex];
+    var due = opt && opt.getAttribute("data-due");
+    if (due && !amt.value) amt.value = due;
+  }
+  sel.addEventListener("change", function () { amt.value = ""; fillDue(); });
+  fillDue();
+})();
+</script>
 <%- include('../partials/layout-bottom') %>

@@ -714,3 +714,193 @@
     display: none;
   }
 }
+
+/* Order economics dashboard */
+.order-econ-list {
+  display: grid;
+  gap: 12px;
+}
+
+.order-econ-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: var(--surface-elevated, #fff);
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.oec-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.oec-waterfall {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.oec-step {
+  padding: 8px;
+  background: #f9fafb;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.oec-step.oec-profit {
+  background: #f0fdf4;
+  grid-column: 1 / -1;
+}
+
+.oec-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted, #6b7280);
+}
+
+/* Line edit on order */
+.work-lines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.line-edit-card {
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.line-edit-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.line-edit-form {
+  display: grid;
+  gap: 8px;
+}
+
+.line-delete-form {
+  margin-top: 6px;
+}
+
+.text-due {
+  color: #b45309;
+}
+
+/* Plate search */
+.plate-search-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.plate-search-input {
+  flex: 1;
+  font-size: 1.1rem;
+  min-height: 48px;
+  padding: 0.65rem 0.85rem;
+}
+
+.plate-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.plate-result-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: 10px;
+  padding: 0.85rem;
+  background: #f9fafb;
+}
+
+.plate-result-card:hover {
+  border-color: #16a34a;
+}
+
+.prc-plate {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.prc-action {
+  font-size: 0.85rem;
+  color: #16a34a;
+  margin-top: 4px;
+  display: inline-block;
+}
+
+.plate-not-found {
+  margin-top: 12px;
+  padding: 0.75rem;
+  background: #fffbeb;
+  border-radius: 8px;
+  color: #92400e;
+}
+
+.selected-car-banner {
+  padding: 0.75rem;
+  background: #f0fdf4;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.order-accordion-inline summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+@media (min-width: 640px) {
+  .oec-waterfall {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .oec-step.oec-profit {
+    grid-column: auto;
+  }
+}
+
+.payroll-summary-table td[data-label]::before {
+  content: attr(data-label) ": ";
+  font-weight: 600;
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .payroll-summary-table thead {
+    display: none;
+  }
+
+  .payroll-summary-table tr {
+    display: block;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-subtle, #e5e7eb);
+    border-radius: 10px;
+    padding: 8px;
+  }
+
+  .payroll-summary-table td {
+    display: block;
+    text-align: right;
+    padding: 4px 0;
+  }
+
+  .payroll-summary-table td[data-label]::before {
+    display: inline;
+    float: left;
+  }
+}

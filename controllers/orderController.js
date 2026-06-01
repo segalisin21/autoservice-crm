@@ -241,10 +241,10 @@ async function showNew(req, res) {
 
   const plateQuery = String(req.query.plate ?? "").trim();
   let plateMatches = [];
-  let selectedCarId = req.query.car_id || "";
+  let selectedCarId = req.query.car_id ? String(req.query.car_id) : "";
   if (plateQuery) {
     plateMatches = await findCarsByPlate(db, plateQuery);
-    if (plateMatches.length === 1) selectedCarId = String(plateMatches[0].id);
+    if (plateMatches.length === 1 && !req.query.car_id) selectedCarId = String(plateMatches[0].id);
   }
 
   const cars = await loadCarsForSelect(db);
@@ -256,7 +256,8 @@ async function showNew(req, res) {
       scheduled_date: req.query.scheduled_date || today,
       assigned_user_id: req.query.assigned_user_id || "",
       start_time: req.query.start_time || "",
-      end_time: req.query.end_time || ""
+      end_time: req.query.end_time || "",
+      new_plate: plateQuery || ""
     },
     cars,
     masters,
@@ -590,6 +591,41 @@ async function addLine(req, res) {
   return res.redirect(`/orders/${orderId}`);
 }
 
+async function syncLinePayrollRow(db, lineId, master_id) {
+  try {
+    await db.query("DELETE FROM order_line_payroll WHERE order_line_id = ?", [lineId]);
+    if (master_id) {
+      await db.query(
+        `INSERT INTO order_line_payroll(order_line_id, user_id, share_percent) VALUES (?, ?, 100)`,
+        [lineId, master_id]
+      );
+    }
+  } catch {
+    // table optional before migration
+  }
+}
+
+async function clearLinePayrollFrozen(db, lineId) {
+  await db.query(
+    `
+    UPDATE order_lines SET
+      master_comp_mode = NULL,
+      master_comp_value = NULL,
+      master_earned_amount = NULL
+    WHERE id = ?
+  `,
+    [lineId]
+  );
+  try {
+    await db.query(
+      `UPDATE order_line_payroll SET earned_amount = NULL, master_comp_mode = NULL, master_comp_value = NULL WHERE order_line_id = ?`,
+      [lineId]
+    );
+  } catch {
+    // ignore
+  }
+}
+
 async function updateLine(req, res) {
   const lineId = Number(req.params.lineId);
   const db = await getDB();
@@ -598,15 +634,22 @@ async function updateLine(req, res) {
   if (!line) return res.status(404).send("Not found");
 
   const orders = await db.query("SELECT status FROM orders WHERE id = ?", [line.order_id]);
-  if (orders[0]?.status === "completed") return res.redirect(`/orders/${line.order_id}`);
+  const orderStatus = orders[0]?.status;
+  if (orderStatus === "cancelled") return res.redirect(`/orders/${line.order_id}`);
 
   const quantity = parseMoney(req.body.quantity) || 1;
   const unit_price = parseMoney(req.body.unit_price);
-  const master_id = parseOptionalId(req.body.master_id);
+  const master_id =
+    line.line_type === "work" ? parseOptionalId(req.body.master_id) : parseOptionalId(line.master_id);
   const work_status = String(req.body.work_status ?? line.work_status ?? "pending");
   const labor_minutes = parseOptionalInt(req.body.labor_minutes);
   const cost_price =
     req.body.cost_price != null ? parseMoney(req.body.cost_price) : Number(line.cost_price) || 0;
+
+  if (line.line_type === "work") {
+    await clearLinePayrollFrozen(db, lineId);
+    await syncLinePayrollRow(db, lineId, master_id);
+  }
 
   await db.query(
     `
@@ -615,10 +658,22 @@ async function updateLine(req, res) {
       master_id = ?, work_status = ?, labor_minutes = ?, cost_price = ?
     WHERE id = ?
   `,
-    [quantity, unit_price, parseMoney(quantity * unit_price), master_id, work_status, labor_minutes, cost_price, lineId]
+    [
+      quantity,
+      unit_price,
+      parseMoney(quantity * unit_price),
+      line.line_type === "work" ? master_id : line.master_id,
+      work_status,
+      labor_minutes,
+      cost_price,
+      lineId
+    ]
   );
 
   await recomputeOrderTotals(line.order_id);
+  if (orderStatus === "completed") {
+    await freezeOrderEarned(line.order_id);
+  }
   return res.redirect(`/orders/${line.order_id}`);
 }
 

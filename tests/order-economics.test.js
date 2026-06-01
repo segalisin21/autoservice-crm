@@ -89,3 +89,14 @@ test("master order page hides economics block", async (t) => {
   assert.equal(res.status, 200);
   assert.ok(!res.text.includes("economics-strip"));
 });
+
+test("owner can open orders economics dashboard", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "owner", "owner");
+  const res = await agent.get("/admin/orders-economics?period=month&status=completed");
+  assert.equal(res.status, 200);
+  assert.match(res.text, /Экономика заказов/);
+});

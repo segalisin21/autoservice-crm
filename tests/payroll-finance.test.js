@@ -152,3 +152,57 @@ test("master can view own payroll summary", async (t) => {
   assert.equal(res.status, 200);
   assert.match(res.text, /Зарплата/);
 });
+
+test("payroll balance shows due after partial payout", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  const orderId = await seedOrderWithWorkLine(ctx, {
+    masterId,
+    catalogId: null,
+    lineTotal: 1000,
+    status: "completed"
+  });
+  await ctx.db.query(
+    `UPDATE orders SET closed_at = '2026-06-01 12:00:00', total_price = 1000, subtotal_works = 1000 WHERE id = ?`,
+    [orderId]
+  );
+  const { freezeOrderEarned } = require("../lib/payroll");
+  await freezeOrderEarned(orderId);
+
+  const { loadMasterPayrollBalances } = require("../lib/payrollBalance");
+  let balances = await loadMasterPayrollBalances(ctx.db, {});
+  let row = balances.find((b) => b.id === masterId);
+  assert.ok(row.earned_total > 0);
+  assert.equal(row.due_total, row.earned_total);
+
+  await ctx.db.query(
+    `INSERT INTO payouts(user_id, amount, paid_at, note) VALUES (?, 100, '2026-06-02 10:00:00', 'test')`,
+    [masterId]
+  );
+  balances = await loadMasterPayrollBalances(ctx.db, {});
+  row = balances.find((b) => b.id === masterId);
+  assert.equal(row.paid_total, 100);
+  assert.equal(row.due_total, row.earned_total - 100);
+});
+
+test("admin can record payroll payout", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const res = await agent.post("/admin/payroll/payouts").type("form").send({
+    user_id: String(ctx.users.master.id),
+    amount: "50",
+    paid_at: "2026-06-02",
+    note: "advance"
+  });
+  assert.equal(res.status, 302);
+
+  const paid = await ctx.db.query("SELECT SUM(amount) AS s FROM payouts WHERE user_id = ?", [
+    ctx.users.master.id
+  ]);
+  assert.equal(Number(paid[0].s), 50);
+});

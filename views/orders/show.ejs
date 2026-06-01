@@ -40,33 +40,44 @@
 <details class="order-accordion card" open>
   <summary class="order-accordion-summary">Работы<% if (typeof isMasterView !== 'undefined' && isMasterView) { %> <span class="muted">(ваши)</span><% } %></summary>
   <div class="order-accordion-body">
-    <div class="table-scroll">
-      <table class="order-lines-table">
-        <thead><tr><th>Название</th><th>Мастер</th><th>Сумма</th><th></th></tr></thead>
-        <tbody>
-          <% works.forEach(l => { %>
-            <tr>
-              <td data-label="Название"><%= l.name %><% if (l.quantity > 1) { %> ×<%= l.quantity %><% } %></td>
-              <td data-label="Мастер"><%= l.master_name || '—' %></td>
-              <td data-label="Сумма">
-                <%= Number(l.total).toFixed(2) %> ₽
-                <% if (typeof isMasterView !== 'undefined' && isMasterView && l.payroll_estimate != null) { %>
-                  <br /><span class="muted">≈ ЗП <%= Number(l.payroll_estimate).toFixed(0) %> ₽</span>
-                <% } %>
-              </td>
-              <td>
-                <% if (order.status !== 'completed') { %>
-                <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" style="display:inline;">
-                  <button type="submit" class="btn-line-delete" aria-label="Удалить">×</button>
-                </form>
-                <% } %>
-              </td>
-            </tr>
-          <% }) %>
-        </tbody>
-      </table>
+    <% const canEditLines = order.status !== 'cancelled' && !(typeof isMasterView !== 'undefined' && isMasterView); %>
+    <div class="work-lines-list">
+      <% works.forEach(l => { %>
+        <div class="line-edit-card">
+          <div class="line-edit-head">
+            <strong><%= l.name %></strong>
+            <span><%= Number(l.total).toFixed(2) %> ₽</span>
+          </div>
+          <% if (typeof isMasterView !== 'undefined' && isMasterView && l.payroll_estimate != null) { %>
+            <p class="muted" style="margin:4px 0;">≈ ЗП <%= Number(l.payroll_estimate).toFixed(0) %> ₽</p>
+          <% } %>
+          <% if (canEditLines) { %>
+          <form method="post" action="/orders/lines/<%= l.id %>?_method=PUT" class="line-edit-form">
+            <div class="form-row-2">
+              <label>Кол-во <input name="quantity" value="<%= l.quantity %>" inputmode="decimal" /></label>
+              <label>Цена <input name="unit_price" value="<%= l.unit_price %>" inputmode="decimal" /></label>
+            </div>
+            <label>Мастер
+              <select name="master_id">
+                <option value="">— не назначен —</option>
+                <% (masters || []).forEach(m => { %>
+                  <option value="<%= m.id %>" <%= Number(l.master_id) === m.id ? 'selected' : '' %>><%= m.name %></option>
+                <% }) %>
+              </select>
+            </label>
+            <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
+          </form>
+          <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" class="line-delete-form">
+            <button type="submit" class="btn btn-sm">Удалить</button>
+          </form>
+          <% } else { %>
+            <p class="muted" style="margin:4px 0;">Мастер: <%= l.master_name || '—' %></p>
+          <% } %>
+        </div>
+      <% }) %>
+      <% if (!works.length) { %><p class="muted">Работ пока нет.</p><% } %>
     </div>
-    <% if (order.status !== 'completed') { %>
+    <% if (order.status !== 'completed' && order.status !== 'cancelled') { %>
     <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" id="form-add-work">
       <input type="hidden" name="line_type" value="work" />
       <label>Из каталога

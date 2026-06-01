@@ -35,8 +35,11 @@ const DEFAULT_MATRIX = {
     "catalog:view",
     "catalog:manage",
     "payments:view",
+    "payroll:view",
+    "payroll:mutate",
     "expenses:view",
-    "expenses:mutate"
+    "expenses:mutate",
+    "admin:reports"
   ]),
   master: new Set(["dashboard:view", "orders:view", "payroll:view"])
 };

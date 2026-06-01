@@ -216,3 +216,36 @@ test("add work line with two masters splits total across lines", async (t) => {
   const order = (await ctx.db.query("SELECT subtotal_works FROM orders WHERE id = ?", [orderId]))[0];
   assert.equal(Number(order.subtotal_works), 3000);
 });
+
+test("update work line changes master and price", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+  const { agent, orderId, catId } = await seedOrderWithAgent(ctx);
+
+  await agent.post(`/orders/${orderId}/lines`).type("form").send({
+    line_type: "work",
+    catalog_item_id: String(catId),
+    quantity: "1",
+    unit_price: "3000",
+    master_id: String(ctx.users.master.id)
+  });
+
+  const lineId = (
+    await ctx.db.query("SELECT id FROM order_lines WHERE order_id = ? AND line_type = 'work' LIMIT 1", [orderId])
+  )[0].id;
+
+  await ctx.db.query(
+    `INSERT INTO users(username, password_hash, name, role, is_active) VALUES ('m3', 'x', 'Other Master', 'master', 1)`
+  );
+  const otherMasterId = (await ctx.db.query("SELECT id FROM users WHERE username = 'm3'"))[0].id;
+
+  const res = await agent
+    .post(`/orders/lines/${lineId}?_method=PUT`)
+    .type("form")
+    .send({ quantity: "2", unit_price: "1500", master_id: String(otherMasterId) });
+  assert.equal(res.status, 302);
+
+  const line = (await ctx.db.query("SELECT master_id, total FROM order_lines WHERE id = ?", [lineId]))[0];
+  assert.equal(line.master_id, otherMasterId);
+  assert.equal(Number(line.total), 3000);
+});

@@ -1,0 +1,77 @@
+<%- include('../partials/layout-top', { title: 'Экономика заказов', user, category: 'finance' }) %>
+<section class="card finance-page">
+  <h1 class="card-title-sm" style="font-size:18px;">Экономика по заказам</h1>
+  <p class="muted" style="margin-top:0;">Выручка → расходники → ЗП → прибыль по каждому заказу</p>
+
+  <form method="get" class="finance-period-form">
+    <div class="period-chips">
+      <a class="period-chip <%= range.period === 'today' ? 'active' : '' %>" href="/admin/orders-economics?period=today&status=<%= status %>">Сегодня</a>
+      <a class="period-chip <%= range.period === 'week' ? 'active' : '' %>" href="/admin/orders-economics?period=week&status=<%= status %>">Неделя</a>
+      <a class="period-chip <%= !range.period || range.period === 'month' ? 'active' : '' %>" href="/admin/orders-economics?period=month&status=<%= status %>">Месяц</a>
+    </div>
+    <label>Статус
+      <select name="status" onchange="this.form.submit()">
+        <option value="completed" <%= status === 'completed' ? 'selected' : '' %>>Завершённые</option>
+        <option value="in_progress" <%= status === 'in_progress' ? 'selected' : '' %>>В работе</option>
+        <option value="scheduled" <%= status === 'scheduled' ? 'selected' : '' %>>Запись</option>
+        <option value="ready" <%= status === 'ready' ? 'selected' : '' %>>Готов</option>
+        <option value="all" <%= status === 'all' ? 'selected' : '' %>>Все активные</option>
+      </select>
+    </label>
+    <details class="finance-period-details">
+      <summary>Период вручную</summary>
+      <div class="finance-period-custom">
+        <input type="hidden" name="status" value="<%= status %>" />
+        <label>С <input type="date" name="start_date" value="<%= range.start_date %>" /></label>
+        <label>По <input type="date" name="end_date" value="<%= range.end_date %>" /></label>
+        <button type="submit" class="btn btn-primary btn-sm">Показать</button>
+      </div>
+    </details>
+    <a class="btn btn-secondary btn-sm" href="/admin/finance?period=<%= range.period || 'month' %>">Сводка финансов</a>
+  </form>
+
+  <div class="finance-kpi-grid" style="margin-top:16px;">
+    <div class="finance-kpi"><span class="finance-kpi-label">Выручка</span><strong class="finance-kpi-value"><%= totals.revenue.toLocaleString('ru-RU') %> ₽</strong></div>
+    <div class="finance-kpi"><span class="finance-kpi-label">Расходники</span><strong class="finance-kpi-value"><%= totals.materials.toLocaleString('ru-RU') %> ₽</strong></div>
+    <div class="finance-kpi"><span class="finance-kpi-label">ЗП</span><strong class="finance-kpi-value"><%= totals.payroll.toLocaleString('ru-RU') %> ₽</strong></div>
+    <div class="finance-kpi finance-kpi--profit"><span class="finance-kpi-label">Прибыль</span><strong class="finance-kpi-value"><%= totals.profit.toLocaleString('ru-RU') %> ₽</strong></div>
+  </div>
+</section>
+
+<% if (!orders.length) { %>
+<section class="card"><p class="muted">Нет заказов за период и фильтр.</p></section>
+<% } else { %>
+<section class="order-econ-list">
+  <% orders.forEach(row => { %>
+    <a href="/orders/<%= row.order_id %>" class="order-econ-card">
+      <div class="oec-head">
+        <div>
+          <strong>#<%= row.order_id %></strong>
+          <span class="muted"> · <%= (row.closed_at || '').toString().slice(0, 10) %></span>
+        </div>
+        <span class="status-badge status-<%= row.status %>"><%= statusLabels[row.status] || row.status %></span>
+      </div>
+      <div class="oec-sub muted"><%= row.car_label %> · <%= row.client_name %></div>
+      <div class="oec-waterfall">
+        <div class="oec-step">
+          <span class="oec-label">Выручка</span>
+          <strong><%= Number(row.revenue).toLocaleString('ru-RU') %> ₽</strong>
+        </div>
+        <div class="oec-step oec-minus">
+          <span class="oec-label">Расходники</span>
+          <span>−<%= Number(row.materials).toLocaleString('ru-RU') %> ₽</span>
+        </div>
+        <div class="oec-step oec-minus">
+          <span class="oec-label">ЗП<%= row.is_estimate ? ' ≈' : '' %></span>
+          <span>−<%= Number(row.payroll).toLocaleString('ru-RU') %> ₽</span>
+        </div>
+        <div class="oec-step oec-profit">
+          <span class="oec-label">Прибыль</span>
+          <strong><%= Number(row.profit).toLocaleString('ru-RU') %> ₽</strong>
+        </div>
+      </div>
+    </a>
+  <% }) %>
+</section>
+<% } %>
+<%- include('../partials/layout-bottom') %>

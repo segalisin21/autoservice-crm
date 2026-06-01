@@ -2,6 +2,7 @@ const { getDB } = require("../config/database");
 const { parseMoney } = require("../lib/money");
 const { parseDateRange } = require("../lib/finance");
 const { loadPayrollSettings, ensureDefaultSettings } = require("../lib/settings");
+const { loadMasterPayrollBalances, loadRecentPayouts } = require("../lib/payrollBalance");
 
 const COMP_MODES = ["net_percent", "percent", "fixed", "hourly"];
 
@@ -11,33 +12,11 @@ async function loadMasters(db) {
   );
 }
 
-async function earnedInPeriod(db, userId, start_date, end_date) {
-  const endExclusive = `${end_date}T23:59:59`;
-  const rows = await db.query(
-    `
-    SELECT COALESCE(SUM(ol.master_earned_amount), 0) AS earned
-    FROM order_lines ol
-    JOIN orders o ON o.id = ol.order_id
-    WHERE ol.line_type = 'work' AND ol.master_id = ?
-      AND o.status = 'completed'
-      AND o.closed_at >= ? AND o.closed_at <= ?
-  `,
-    [userId, `${start_date} 00:00:00`, endExclusive]
-  );
-  return parseMoney(rows[0]?.earned);
-}
-
-async function payoutsInPeriod(db, userId, start_date, end_date) {
-  const endExclusive = `${end_date}T23:59:59`;
-  const rows = await db.query(
-    `
-    SELECT COALESCE(SUM(amount), 0) AS paid
-    FROM payouts
-    WHERE user_id = ? AND paid_at >= ? AND paid_at <= ?
-  `,
-    [userId, `${start_date} 00:00:00`, endExclusive]
-  );
-  return parseMoney(rows[0]?.paid);
+async function canMutatePayroll(req) {
+  if (req.session.user.role === "owner") return true;
+  const db = await getDB();
+  const { roleHasPermission } = require("../config/permissions");
+  return roleHasPermission(db, req.session.user.role, "payroll:mutate");
 }
 
 async function index(req, res) {
@@ -48,21 +27,13 @@ async function index(req, res) {
   let masters = await loadMasters(db);
   if (req.session.user.role === "master") {
     masters = masters.filter((m) => m.id === req.session.user.id);
-  } else if (filterUserId) {
-    masters = masters.filter((m) => m.id === filterUserId);
   }
 
-  const summary = [];
-  for (const m of masters) {
-    const earned = await earnedInPeriod(db, m.id, range.start_date, range.end_date);
-    const paid = await payoutsInPeriod(db, m.id, range.start_date, range.end_date);
-    summary.push({
-      ...m,
-      earned,
-      paid,
-      due: parseMoney(earned - paid)
-    });
-  }
+  const summary = await loadMasterPayrollBalances(db, {
+    start_date: range.start_date,
+    end_date: range.end_date,
+    userIds: filterUserId ? [filterUserId] : masters.map((m) => m.id)
+  });
 
   const rules = await db.query(
     `
@@ -93,6 +64,8 @@ async function index(req, res) {
   const allMasters = await loadMasters(db);
   await ensureDefaultSettings(db);
   const payrollDefault = await loadPayrollSettings(db);
+  const recentPayouts = await loadRecentPayouts(db, 25);
+  const mutate = await canMutatePayroll(req);
 
   res.render("admin/payroll", {
     summary,
@@ -100,18 +73,19 @@ async function index(req, res) {
     overrides,
     works,
     payrollDefault,
+    recentPayouts,
     modes: COMP_MODES,
     masters: allMasters,
     range,
     filterUserId,
     user: req.session.user,
     category: "payroll",
-    canMutate: req.session.user.role === "owner"
+    canMutate: mutate
   });
 }
 
 async function saveRule(req, res) {
-  if (req.session.user.role !== "owner") {
+  if (!(await canMutatePayroll(req))) {
     return res.status(403).send("Forbidden");
   }
   const user_id = Number(req.body.user_id);
@@ -136,7 +110,7 @@ async function saveRule(req, res) {
 }
 
 async function savePayout(req, res) {
-  if (req.session.user.role !== "owner") {
+  if (!(await canMutatePayroll(req))) {
     return res.status(403).send("Forbidden");
   }
   const user_id = Number(req.body.user_id);
@@ -157,7 +131,7 @@ async function savePayout(req, res) {
 }
 
 async function saveOverride(req, res) {
-  if (req.session.user.role !== "owner") {
+  if (!(await canMutatePayroll(req))) {
     return res.status(403).send("Forbidden");
   }
   const user_id = Number(req.body.user_id);
@@ -182,7 +156,7 @@ async function saveOverride(req, res) {
 }
 
 async function deleteOverride(req, res) {
-  if (req.session.user.role !== "owner") {
+  if (!(await canMutatePayroll(req))) {
     return res.status(403).send("Forbidden");
   }
   const db = await getDB();
@@ -191,7 +165,7 @@ async function deleteOverride(req, res) {
 }
 
 async function saveDefault(req, res) {
-  if (req.session.user.role !== "owner") {
+  if (!(await canMutatePayroll(req))) {
     return res.status(403).send("Forbidden");
   }
   const mode = String(req.body.mode ?? "net_percent");

@@ -1,5 +1,31 @@
 # HANDOFF
 
+## 2026-06-02 — Экономика заказов, редактирование работ, ЗП, поиск по номеру
+
+### What changed
+- **Дашборд** [`/admin/orders-economics`](views/admin/orders-economics.ejs): водопад по заказу (выручка → расходники → ЗП → прибыль), фильтры период/статус; ссылка из финансов и меню.
+- **Редактирование работ**: `PUT /orders/lines/:id` — кол-во, цена, мастер без удаления; на completed сброс/перезаморозка ЗП; [`views/orders/show.ejs`](views/orders/show.ejs) карточки строк.
+- **ЗП выплаты**: [`lib/payrollBalance.js`](lib/payrollBalance.js) — начислено/выплачено/остаток (период + всего); [`views/admin/payroll.ejs`](views/admin/payroll.ejs) история; admin с `payroll:mutate`.
+- **Права admin**: `payroll:view`, `payroll:mutate`, `admin:reports` в [`config/permissions.js`](config/permissions.js).
+- **Новый заказ**: поиск по госномеру (карточки результатов, баннер выбранного авто, блок «новый клиент»); [`views/orders/form.ejs`](views/orders/form.ejs).
+
+### Key files
+- `controllers/orderEconomicsController.js`, `controllers/orderController.js`, `controllers/payrollController.js`
+- `lib/orderEconomics.js`, `lib/payrollBalance.js`
+- `tests/order-economics.test.js`, `tests/orders.test.js`, `tests/payroll-finance.test.js`
+
+### Verify
+```bash
+npm rebuild better-sqlite3   # при NODE_MODULE_VERSION mismatch
+npm test
+```
+
+### Risks
+- Редактирование закрытого заказа пересчитывает frozen ЗП — нужен аудит в проде.
+- Остаток ЗП = начислено по completed − все payouts (без привязки payout к заказу).
+
+---
+
 ## 2026-06-02 — Финансы (логика + UX) и мобильная навигация
 
 ### What changed
