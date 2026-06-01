@@ -157,3 +157,4 @@ node scripts/seed-owner.js --username owner --password owner
 - `/journal` — построчный журнал (как в таблице).
 - `/admin/finance` — касса/выручка/расходы/прибыль.
 - `/expenses`, `/admin/payroll`, `/admin/users` — расходы, ЗП, сотрудники.
+- Добавление на телефон (PWA): см. [docs/PWA_INSTALL.md](PWA_INSTALL.md).

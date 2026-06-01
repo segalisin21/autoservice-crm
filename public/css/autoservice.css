@@ -181,3 +181,156 @@
   border: 1px solid #fecaca;
   color: #b91c1c;
 }
+
+.card-title-sm {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+}
+
+.order-doc-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.order-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.order-header-form {
+  margin-top: 12px;
+}
+
+.order-economics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.master-checkboxes {
+  border: 1px solid var(--border-subtle, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.master-checkboxes legend {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0 0.25rem;
+}
+
+.master-checkboxes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.master-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 0 !important;
+  min-height: 44px;
+  padding: 0.25rem 0;
+  cursor: pointer;
+}
+
+.master-checkbox-item input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.order-add-line-form,
+.order-payment-form {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.order-photos-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.order-photo-thumb {
+  width: 140px;
+  height: 105px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle, #e5e7eb);
+}
+
+.order-photo-upload {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.content .btn-primary,
+.content button[type="submit"].btn-primary {
+  min-height: 44px;
+}
+
+.btn-line-delete {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (max-width: 639px) {
+  .order-form-grid,
+  .order-economics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .order-lines-table thead {
+    display: none;
+  }
+
+  .order-lines-table tr {
+    display: block;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border-subtle, #e5e7eb);
+    border-radius: 8px;
+    padding: 0.5rem 0.65rem;
+  }
+
+  .order-lines-table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: none;
+    padding: 0.35rem 0;
+  }
+
+  .order-lines-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted, #6b7280);
+  }
+
+  .order-lines-table td:last-child {
+    justify-content: flex-end;
+  }
+
+  .order-photo-thumb {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    aspect-ratio: 4 / 3;
+  }
+}

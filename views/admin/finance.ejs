@@ -18,4 +18,36 @@
     <div><span class="muted">Дебиторка</span><br /><strong><%= metrics.receivables.toFixed(2) %> ₽</strong></div>
   </div>
 </section>
+
+<% if (orderEconomics && orderEconomics.length) { %>
+<section class="card">
+  <h2 style="margin:0 0 12px 0; font-size:16px;">Экономика по заказам (закрытые)</h2>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Заказ</th>
+          <th>Закрыт</th>
+          <th>Выручка</th>
+          <th>Расходники</th>
+          <th>ЗП</th>
+          <th>Прибыль</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% orderEconomics.forEach(row => { %>
+          <tr>
+            <td data-label="Заказ"><a href="/orders/<%= row.order_id %>">#<%= row.order_id %></a></td>
+            <td data-label="Закрыт"><%= (row.closed_at || '').toString().slice(0, 10) %></td>
+            <td data-label="Выручка"><%= Number(row.revenue).toFixed(2) %></td>
+            <td data-label="Расходники"><%= Number(row.materials).toFixed(2) %></td>
+            <td data-label="ЗП"><%= Number(row.payroll).toFixed(2) %></td>
+            <td data-label="Прибыль"><%= Number(row.profit).toFixed(2) %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<% } %>
 <%- include('../partials/layout-bottom') %>

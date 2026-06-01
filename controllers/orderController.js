@@ -7,6 +7,7 @@ const { onOrderStatusChange } = require("../lib/payroll");
 const { WORK_TYPES, normalizeWorkType, lineTypeForWorkType } = require("../lib/workTypes");
 const { normalizePlate, normalizePhone, normalizeVin } = require("../lib/normalize");
 const { relativePathFor, absolutePathFor } = require("../lib/upload");
+const { loadOrderEconomics } = require("../lib/orderEconomics");
 const fs = require("node:fs");
 
 function normalizeTime(value) {
@@ -16,9 +17,90 @@ function normalizeTime(value) {
   return null;
 }
 
-function normalizeUserId(value) {
+function parseOptionalId(value) {
   const n = Number(value);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null;
+}
+
+function normalizeUserId(value) {
+  return parseOptionalId(value);
+}
+
+function parseOptionalInt(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.trunc(n) : null;
+}
+
+function parseMasterIds(body) {
+  let raw = body.master_ids;
+  if (raw == null) raw = body["master_ids[]"];
+  if (raw == null && body.master_id != null && body.master_id !== "") raw = body.master_id;
+  if (raw == null) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  const ids = [];
+  const seen = new Set();
+  for (const v of arr) {
+    const id = parseOptionalId(v);
+    if (id && !seen.has(id)) {
+      seen.add(id);
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
+async function insertOrderLine(db, payload) {
+  const params = [
+    payload.orderId,
+    payload.line_type,
+    payload.catalogId,
+    payload.name,
+    payload.quantity,
+    payload.unit_price,
+    payload.lineTotal,
+    payload.master_id,
+    payload.work_status,
+    payload.labor_minutes,
+    payload.cost_price
+  ];
+  let lineId = null;
+  if (typeof db.insertReturning === "function") {
+    lineId = await db.insertReturning(
+      `
+      INSERT INTO order_lines(
+        order_id, line_type, catalog_item_id, name, quantity, unit_price, total,
+        master_id, work_status, labor_minutes, cost_price
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+      params
+    );
+  } else {
+    await db.query(
+      `
+      INSERT INTO order_lines(
+        order_id, line_type, catalog_item_id, name, quantity, unit_price, total,
+        master_id, work_status, labor_minutes, cost_price
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `,
+      params
+    );
+    const rows = await db.query("SELECT id FROM order_lines WHERE order_id = ? ORDER BY id DESC LIMIT 1", [
+      payload.orderId
+    ]);
+    lineId = rows[0]?.id;
+  }
+  if (lineId && payload.line_type === "work" && payload.master_id) {
+    try {
+      await db.query(
+        `INSERT INTO order_line_payroll(order_line_id, user_id, share_percent) VALUES (?, ?, 100)`,
+        [lineId, payload.master_id]
+      );
+    } catch {
+      // table may not exist before migration
+    }
+  }
+  return lineId;
 }
 
 const PAGE_SIZE = 50;
@@ -57,7 +139,16 @@ async function getOrderContext(db, orderId) {
   );
   if (!rows.length) return null;
   const order = rows[0];
-  const lines = await db.query("SELECT * FROM order_lines WHERE order_id = ? ORDER BY id", [orderId]);
+  const lines = await db.query(
+    `
+    SELECT ol.*, u.name AS master_name
+    FROM order_lines ol
+    LEFT JOIN users u ON u.id = ol.master_id
+    WHERE ol.order_id = ?
+    ORDER BY ol.id
+  `,
+    [orderId]
+  );
   const works = lines.filter((l) => l.line_type === "work");
   const products = lines.filter((l) => l.line_type === "product");
   const paid_amount = await getPaidAmount(db, orderId);
@@ -284,12 +375,29 @@ async function show(req, res) {
     [Number(req.params.id)]
   );
 
+  const role = req.session.user?.role;
+  const isOwnerView = role === "owner" || role === "admin";
+  const isMasterView = role === "master";
+  let works = ctx.works;
+  if (isMasterView && req.session.user?.id) {
+    works = works.filter((l) => Number(l.master_id) === Number(req.session.user.id));
+  }
+
+  let economics = null;
+  if (isOwnerView) {
+    economics = await loadOrderEconomics(db, Number(req.params.id));
+  }
+
   res.render("orders/show", {
     ...ctx,
+    works,
     catalogWorks,
     catalogProducts,
     masters,
     photos,
+    economics,
+    isOwnerView,
+    isMasterView,
     statuses: ORDER_STATUSES,
     user: req.session.user,
     category: "orders"
@@ -385,7 +493,7 @@ async function addLine(req, res) {
   const defaultLineType = lineTypeForWorkType(orders[0]?.work_type);
   let line_type = String(req.body.line_type ?? defaultLineType);
 
-  const catalogId = req.body.catalog_item_id ? Number(req.body.catalog_item_id) : null;
+  const catalogId = parseOptionalId(req.body.catalog_item_id);
   let name = String(req.body.name ?? "").trim();
   let unit_price = parseMoney(req.body.unit_price);
   const quantity = parseMoney(req.body.quantity) || 1;
@@ -400,19 +508,33 @@ async function addLine(req, res) {
   }
   if (!name) return res.redirect(`/orders/${orderId}`);
 
-  const master_id = req.body.master_id ? Number(req.body.master_id) : null;
-  const labor_minutes = req.body.labor_minutes ? Number(req.body.labor_minutes) : null;
+  const labor_minutes = parseOptionalInt(req.body.labor_minutes);
   const cost_price = line_type === "product" ? parseMoney(req.body.cost_price) : 0;
   const lineTotal = parseMoney(quantity * unit_price);
 
-  await db.query(
-    `
-    INSERT INTO order_lines(
-      order_id, line_type, catalog_item_id, name, quantity, unit_price, total,
-      master_id, work_status, labor_minutes, cost_price
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `,
-    [
+  if (line_type === "work") {
+    const masterIds = parseMasterIds(req.body);
+    const n = masterIds.length || 1;
+    const splitUnit = parseMoney(unit_price / n);
+    const splitTotal = parseMoney(lineTotal / n);
+    const targets = masterIds.length ? masterIds : [null];
+    for (const master_id of targets) {
+      await insertOrderLine(db, {
+        orderId,
+        line_type,
+        catalogId,
+        name,
+        quantity,
+        unit_price: splitUnit,
+        lineTotal: splitTotal,
+        master_id,
+        work_status: "pending",
+        labor_minutes,
+        cost_price: 0
+      });
+    }
+  } else {
+    await insertOrderLine(db, {
       orderId,
       line_type,
       catalogId,
@@ -420,12 +542,12 @@ async function addLine(req, res) {
       quantity,
       unit_price,
       lineTotal,
-      line_type === "work" ? master_id : null,
-      line_type === "work" ? "pending" : null,
-      line_type === "work" ? labor_minutes : null,
+      master_id: null,
+      work_status: null,
+      labor_minutes: null,
       cost_price
-    ]
-  );
+    });
+  }
 
   await recomputeOrderTotals(orderId);
   return res.redirect(`/orders/${orderId}`);
@@ -443,9 +565,9 @@ async function updateLine(req, res) {
 
   const quantity = parseMoney(req.body.quantity) || 1;
   const unit_price = parseMoney(req.body.unit_price);
-  const master_id = req.body.master_id ? Number(req.body.master_id) : null;
+  const master_id = parseOptionalId(req.body.master_id);
   const work_status = String(req.body.work_status ?? line.work_status ?? "pending");
-  const labor_minutes = req.body.labor_minutes ? Number(req.body.labor_minutes) : null;
+  const labor_minutes = parseOptionalInt(req.body.labor_minutes);
   const cost_price =
     req.body.cost_price != null ? parseMoney(req.body.cost_price) : Number(line.cost_price) || 0;
 

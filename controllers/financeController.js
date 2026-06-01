@@ -1,13 +1,16 @@
 const { getDB } = require("../config/database");
 const { parseDateRange, loadFinanceMetrics, loadTopServices } = require("../lib/finance");
+const { loadOrdersEconomicsInPeriod } = require("../lib/orderEconomics");
 
 async function finance(req, res) {
   const db = await getDB();
   const range = parseDateRange(req.query);
   const metrics = await loadFinanceMetrics(db, range.start_date, range.end_date);
+  const orderEconomics = await loadOrdersEconomicsInPeriod(db, range.start_date, range.end_date);
 
   res.render("admin/finance", {
     metrics,
+    orderEconomics,
     range,
     user: req.session.user
   });

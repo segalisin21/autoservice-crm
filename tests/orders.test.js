@@ -126,3 +126,93 @@ test("payment reduces due amount", async (t) => {
   const paid = await getPaidAmount(ctx.db, orderId);
   assert.equal(paid, 400);
 });
+
+async function seedOrderWithAgent(ctx) {
+  await ctx.db.query(
+    `INSERT INTO catalog_items(type, category, name, default_price, unit) VALUES ('work', 'ТО', 'Работа', 3000, 'шт')`
+  );
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('Test', '+7', '79990000010')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, make, model) VALUES (?, 'VW', 'Polo')`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  await agent.post("/orders").type("form").send({ car_id: String(carId), notes: "" });
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+  const catId = (await ctx.db.query("SELECT id FROM catalog_items LIMIT 1"))[0].id;
+  return { agent, orderId, catId };
+}
+
+test("add work line with empty master_id does not fail", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+  const { agent, orderId, catId } = await seedOrderWithAgent(ctx);
+
+  const res = await agent.post(`/orders/${orderId}/lines`).type("form").send({
+    line_type: "work",
+    catalog_item_id: String(catId),
+    quantity: "1",
+    master_id: ""
+  });
+  assert.equal(res.status, 302);
+
+  const lines = await ctx.db.query(
+    "SELECT master_id FROM order_lines WHERE order_id = ? AND line_type = 'work'",
+    [orderId]
+  );
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0].master_id, null);
+});
+
+test("add work line with invalid master_id stores null not NaN", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+  const { agent, orderId, catId } = await seedOrderWithAgent(ctx);
+
+  const res = await agent.post(`/orders/${orderId}/lines`).type("form").send({
+    line_type: "work",
+    catalog_item_id: String(catId),
+    quantity: "1",
+    master_id: "abc"
+  });
+  assert.equal(res.status, 302);
+
+  const lines = await ctx.db.query(
+    "SELECT master_id FROM order_lines WHERE order_id = ? AND line_type = 'work'",
+    [orderId]
+  );
+  assert.equal(lines.length, 1);
+  assert.equal(lines[0].master_id, null);
+});
+
+test("add work line with two masters splits total across lines", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+  const { agent, orderId, catId } = await seedOrderWithAgent(ctx);
+  await ctx.db.query(
+    `INSERT INTO users(username, password_hash, name, role, is_active) VALUES ('m2', 'x', 'Master Two', 'master', 1)`
+  );
+  const master2Id = (await ctx.db.query("SELECT id FROM users WHERE username = 'm2'"))[0].id;
+
+  const res = await agent.post(`/orders/${orderId}/lines`).type("form").send({
+    line_type: "work",
+    catalog_item_id: String(catId),
+    quantity: "1",
+    unit_price: "3000",
+    master_ids: [String(ctx.users.master.id), String(master2Id)]
+  });
+  assert.equal(res.status, 302);
+
+  const lines = await ctx.db.query(
+    "SELECT master_id, total FROM order_lines WHERE order_id = ? AND line_type = 'work' ORDER BY id",
+    [orderId]
+  );
+  assert.equal(lines.length, 2);
+  const sum = lines.reduce((s, l) => s + Number(l.total), 0);
+  assert.equal(sum, 3000);
+
+  const order = (await ctx.db.query("SELECT subtotal_works FROM orders WHERE id = ?", [orderId]))[0];
+  assert.equal(Number(order.subtotal_works), 3000);
+});

@@ -1,5 +1,29 @@
 # HANDOFF
 
+## 2026-06-02 — Заказы: NaN fix, мастера UI, мобильная, PWA, экономика
+
+### What changed
+- **fix(addLine)**: `parseOptionalId` / `parseMasterIds` — PostgreSQL больше не получает `NaN` в `INTEGER` (`catalog_item_id`, `master_id`, `labor_minutes`).
+- **Мастера на работе**: чекбоксы в [`views/orders/show.ejs`](views/orders/show.ejs); при N мастерах — N строк с делением суммы; имена в таблице; записи в `order_line_payroll`.
+- **Миграция** `008_order_line_payroll.sql` (sqlite + postgres); [`lib/payroll.js`](lib/payroll.js) начисляет ЗП по строкам payroll.
+- **Экономика заказа**: [`lib/orderEconomics.js`](lib/orderEconomics.js) — блок на заказе для owner/admin; таблица на [`/admin/finance`](views/admin/finance.ejs).
+- **Роли**: мастер не видит «Экономику», закупку товаров; только свои работы в списке.
+- **Мобильная**: `.table-scroll`, card-таблицы, touch-friendly чекбоксы в [`public/css/autoservice.css`](public/css/autoservice.css).
+- **PWA**: [`public/sw.js`](public/sw.js) (кэш `autoservice-v2`), PNG иконки (`node scripts/generate-pwa-icons.js`), meta iOS, [`docs/PWA_INSTALL.md`](docs/PWA_INSTALL.md).
+
+### Verify
+```bash
+npm rebuild better-sqlite3   # при смене Node
+npm test
+node scripts/generate-pwa-icons.js
+```
+
+### Risks
+- Прибыль на заказе — упрощённая формула (выручка − расходники − ЗП), налог показан отдельно.
+- Старые строки без `order_line_payroll` — расчёт ЗП по `order_lines.master_id` как раньше.
+
+---
+
 ## 2026-06-02 — Первичный импорт из Google-таблицы + деплой Railway
 
 ### What changed

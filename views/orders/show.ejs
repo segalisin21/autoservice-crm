@@ -1,16 +1,16 @@
 <%- include('../partials/layout-top', { title: 'Заказ #' + order.id, user, category: 'orders' }) %>
-<section class="card">
+<section class="card order-header-card">
   <p><strong>Клиент:</strong> <a href="/clients/<%= order.client_id %>"><%= order.client_name %></a> (<%= order.client_phone %>)</p>
   <p><strong>Авто:</strong> <%= [order.make, order.model].filter(Boolean).join(' ') %> <%= order.license_plate_raw || '' %> <%= order.vin ? 'VIN ' + order.vin : '' %></p>
   <p><strong>Тип работ:</strong> <%= order.work_type || '—' %> · <strong>Статус:</strong> <%= order.status %></p>
-  <p style="display:flex; gap:8px; flex-wrap:wrap;">
+  <p class="order-doc-links">
     <a class="btn btn-secondary btn-sm" href="/orders/<%= order.id %>/print" target="_blank">Заказ-наряд</a>
     <a class="btn btn-secondary btn-sm" href="/orders/<%= order.id %>/act-acceptance" target="_blank">Акт приёма-передачи</a>
     <a class="btn btn-secondary btn-sm" href="/orders/<%= order.id %>/act-completion" target="_blank">Акт выполненных работ</a>
   </p>
 
-  <form method="post" action="/orders/<%= order.id %>?_method=PUT" style="margin-top:12px;">
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:8px;">
+  <form method="post" action="/orders/<%= order.id %>?_method=PUT" class="order-header-form">
+    <div class="order-form-grid">
       <label>Тип работ
         <select name="work_type" <%= order.status === 'completed' ? 'disabled' : '' %>>
           <% ['Мойка','Электрика','Продажа'].forEach(t => { %>
@@ -65,22 +65,36 @@
   </form>
 </section>
 
+<% if (typeof isOwnerView !== 'undefined' && isOwnerView && economics) { %>
+<section class="card order-economics-card">
+  <h2 class="card-title-sm">Экономика заказа</h2>
+  <div class="order-economics-grid">
+    <div><span class="muted">Выручка (итого)</span><br /><strong><%= Number(economics.revenue).toFixed(2) %> ₽</strong></div>
+    <div><span class="muted">Расходники</span><br /><strong><%= Number(economics.materials).toFixed(2) %> ₽</strong></div>
+    <div><span class="muted">ЗП мастеров</span><br /><strong><%= Number(economics.payroll).toFixed(2) %> ₽</strong><% if (!economics.is_completed) { %> <span class="muted">(оценка после закрытия)</span><% } %></div>
+    <div><span class="muted">Налог</span><br /><strong><%= Number(economics.tax).toFixed(2) %> ₽</strong></div>
+    <div><span class="muted">Прибыль</span><br /><strong><%= Number(economics.profit).toFixed(2) %> ₽</strong></div>
+  </div>
+</section>
+<% } %>
+
 <section class="card">
-  <h2 style="margin:0 0 8px 0; font-size:16px;">Работы</h2>
-  <table>
+  <h2 class="card-title-sm">Работы<% if (typeof isMasterView !== 'undefined' && isMasterView) { %> <span class="muted">(ваши)</span><% } %></h2>
+  <div class="table-scroll">
+  <table class="order-lines-table">
     <thead><tr><th>Название</th><th>Мастер</th><th>Qty</th><th>Цена</th><th>Сумма</th><th></th></tr></thead>
     <tbody>
       <% works.forEach(l => { %>
         <tr>
-          <td><%= l.name %></td>
-          <td><%= l.master_id || '—' %></td>
-          <td><%= l.quantity %></td>
-          <td><%= Number(l.unit_price).toFixed(2) %></td>
-          <td><%= Number(l.total).toFixed(2) %></td>
+          <td data-label="Название"><%= l.name %></td>
+          <td data-label="Мастер"><%= l.master_name || '—' %></td>
+          <td data-label="Qty"><%= l.quantity %></td>
+          <td data-label="Цена"><%= Number(l.unit_price).toFixed(2) %></td>
+          <td data-label="Сумма"><%= Number(l.total).toFixed(2) %></td>
           <td>
             <% if (order.status !== 'completed') { %>
             <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" style="display:inline;">
-              <button type="submit">×</button>
+              <button type="submit" class="btn-line-delete">×</button>
             </form>
             <% } %>
           </td>
@@ -88,8 +102,9 @@
       <% }) %>
     </tbody>
   </table>
+  </div>
   <% if (order.status !== 'completed') { %>
-  <form method="post" action="/orders/<%= order.id %>/lines" style="margin-top:12px; display:grid; gap:8px;">
+  <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form">
     <input type="hidden" name="line_type" value="work" />
     <label>Из каталога
       <select name="catalog_item_id">
@@ -100,30 +115,56 @@
       </select>
     </label>
     <label>Название <input name="name" /></label>
-    <label>Кол-во <input name="quantity" value="1" /></label>
-    <label>Цена <input name="unit_price" /></label>
-    <label>Мастер ID <input name="master_id" /></label>
-    <button type="submit">Добавить работу</button>
+    <label>Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
+    <label>Цена <input name="unit_price" inputmode="decimal" /></label>
+    <fieldset class="master-checkboxes">
+      <legend>Мастера</legend>
+      <% if ((masters || []).length) { %>
+        <div class="master-checkboxes-list">
+          <% masters.forEach(m => { %>
+            <label class="master-checkbox-item">
+              <input type="checkbox" name="master_ids[]" value="<%= m.id %>" />
+              <span><%= m.name %></span>
+            </label>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <p class="muted">Нет активных мастеров</p>
+      <% } %>
+    </fieldset>
+    <button type="submit" class="btn-primary">Добавить работу</button>
   </form>
   <% } %>
 </section>
 
 <section class="card">
-  <h2 style="margin:0 0 8px 0; font-size:16px;">Товары</h2>
-  <table>
-    <thead><tr><th>Название</th><th>Qty</th><th>Цена</th><th>Закупка</th><th>Сумма</th><th></th></tr></thead>
+  <h2 class="card-title-sm">Товары</h2>
+  <div class="table-scroll">
+  <table class="order-lines-table">
+    <thead>
+      <tr>
+        <th>Название</th>
+        <th>Qty</th>
+        <th>Цена</th>
+        <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %><th>Закупка</th><% } %>
+        <th>Сумма</th>
+        <th></th>
+      </tr>
+    </thead>
     <tbody>
       <% products.forEach(l => { %>
         <tr>
-          <td><%= l.name %></td>
-          <td><%= l.quantity %></td>
-          <td><%= Number(l.unit_price).toFixed(2) %></td>
-          <td><%= Number(l.cost_price || 0).toFixed(2) %></td>
-          <td><%= Number(l.total).toFixed(2) %></td>
+          <td data-label="Название"><%= l.name %></td>
+          <td data-label="Qty"><%= l.quantity %></td>
+          <td data-label="Цена"><%= Number(l.unit_price).toFixed(2) %></td>
+          <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
+          <td data-label="Закупка"><%= Number(l.cost_price || 0).toFixed(2) %></td>
+          <% } %>
+          <td data-label="Сумма"><%= Number(l.total).toFixed(2) %></td>
           <td>
             <% if (order.status !== 'completed') { %>
             <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" style="display:inline;">
-              <button type="submit">×</button>
+              <button type="submit" class="btn-line-delete">×</button>
             </form>
             <% } %>
           </td>
@@ -131,8 +172,9 @@
       <% }) %>
     </tbody>
   </table>
+  </div>
   <% if (order.status !== 'completed') { %>
-  <form method="post" action="/orders/<%= order.id %>/lines" style="margin-top:12px;">
+  <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form">
     <input type="hidden" name="line_type" value="product" />
     <label>Из каталога
       <select name="catalog_item_id">
@@ -143,25 +185,28 @@
       </select>
     </label>
     <label>Название <input name="name" /></label>
-    <label>Кол-во <input name="quantity" value="1" /></label>
-    <label>Цена продажи <input name="unit_price" /></label>
-    <label>Закупка (расходник) <input name="cost_price" value="0" /></label>
-    <button type="submit">Добавить товар</button>
+    <label>Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
+    <label>Цена продажи <input name="unit_price" inputmode="decimal" /></label>
+    <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
+    <label>Закупка (расходник) <input name="cost_price" value="0" inputmode="decimal" /></label>
+    <% } else { %>
+    <input type="hidden" name="cost_price" value="0" />
+    <% } %>
+    <button type="submit" class="btn-primary">Добавить товар</button>
   </form>
   <% } %>
 </section>
 
 <section class="card">
-  <h2 style="margin:0 0 8px 0; font-size:16px;">Фото работ</h2>
+  <h2 class="card-title-sm">Фото работ</h2>
   <% if (photos && photos.length) { %>
-  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+  <div class="order-photos-grid">
     <% photos.forEach(p => { %>
-      <div style="width:140px;">
+      <div class="order-photo-item">
         <a href="/orders/<%= order.id %>/photos/<%= p.id %>/file" target="_blank">
-          <img src="/orders/<%= order.id %>/photos/<%= p.id %>/file" alt="<%= p.original_name || 'фото' %>"
-               style="width:140px; height:105px; object-fit:cover; border-radius:8px; border:1px solid var(--border-subtle,#e5e7eb);" />
+          <img src="/orders/<%= order.id %>/photos/<%= p.id %>/file" alt="<%= p.original_name || 'фото' %>" class="order-photo-thumb" />
         </a>
-        <form method="post" action="/orders/<%= order.id %>/photos/<%= p.id %>?_method=DELETE" style="margin-top:4px;">
+        <form method="post" action="/orders/<%= order.id %>/photos/<%= p.id %>?_method=DELETE">
           <button type="submit" class="btn btn-sm">Удалить</button>
         </form>
       </div>
@@ -170,14 +215,14 @@
   <% } else { %>
     <p class="muted">Фото пока нет.</p>
   <% } %>
-  <form method="post" action="/orders/<%= order.id %>/photos" enctype="multipart/form-data" style="margin-top:12px;">
+  <form method="post" action="/orders/<%= order.id %>/photos" enctype="multipart/form-data" class="order-photo-upload">
     <input type="file" name="photo" accept="image/*" multiple />
     <button type="submit" class="btn btn-primary btn-sm">Загрузить</button>
   </form>
 </section>
 
 <section class="card">
-  <h2 style="margin:0 0 8px 0; font-size:16px;">Итоги</h2>
+  <h2 class="card-title-sm">Итоги</h2>
   <p>Работы: <strong><%= Number(order.subtotal_works).toFixed(2) %></strong> ₽</p>
   <p>Товары: <strong><%= Number(order.subtotal_products).toFixed(2) %></strong> ₽</p>
   <p>Скидка: <strong><%= Number(order.discount_amount).toFixed(2) %></strong> ₽</p>
@@ -189,15 +234,15 @@
 </section>
 
 <section class="card">
-  <h2 style="margin:0 0 8px 0; font-size:16px;">Оплаты</h2>
+  <h2 class="card-title-sm">Оплаты</h2>
   <ul>
     <% payments.forEach(p => { %>
       <li><%= p.paid_at %> — <%= p.kind %> <%= Number(p.amount).toFixed(2) %> ₽ (<%= p.method %>)</li>
     <% }) %>
   </ul>
   <% if (order.status !== 'cancelled' && due_amount > 0) { %>
-  <form method="post" action="/orders/<%= order.id %>/payments">
-    <label>Сумма <input name="amount" required /></label>
+  <form method="post" action="/orders/<%= order.id %>/payments" class="order-payment-form">
+    <label>Сумма <input name="amount" required inputmode="decimal" /></label>
     <label>Способ
       <select name="method">
         <option value="cash">cash</option>
@@ -206,7 +251,7 @@
         <option value="other">other</option>
       </select>
     </label>
-    <button type="submit">Принять оплату</button>
+    <button type="submit" class="btn-primary">Принять оплату</button>
   </form>
   <% } %>
 </section>
