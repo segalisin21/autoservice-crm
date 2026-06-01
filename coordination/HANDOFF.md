@@ -1,5 +1,18 @@
 # HANDOFF
 
+## 2026-06-02 — fix(analytics): PostgreSQL monthly chart (no strftime)
+
+### What changed
+- `getMonthlyComparison` всегда выполнял SQLite `strftime` до ветки postgres → 500 на Railway.
+- Добавлен `sqlMonthYmd` в [`config/sqlDialect.js`](config/sqlDialect.js); один запрос по `db.dialect`.
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-02 — UX статусов, дашборд KPI, аналитика оплат
 
 ### What changed

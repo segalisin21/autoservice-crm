@@ -94,6 +94,26 @@ test("getPaymentDistribution buckets paid partial unpaid", async (t) => {
   assert.equal(partial.count, 1);
 });
 
+test("getMonthlyComparison works on sqlite without strftime in postgres path", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('M', '1', '79990000088')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id) VALUES (?)`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, closed_at, total_price) VALUES (?, 'completed', '2026-06-10 12:00:00', 100)`,
+    [carId]
+  );
+
+  const { getMonthlyComparison } = require("../lib/analytics");
+  const months = await getMonthlyComparison(ctx.db, 12);
+  assert.ok(months.some((m) => String(m.month).includes("2026-06")));
+});
+
 test("loadAnalyticsBundle returns numeric overview", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());

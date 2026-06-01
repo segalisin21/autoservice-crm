@@ -17,4 +17,12 @@ function orderDateSql(dialect) {
   return "COALESCE(o.scheduled_date, date(o.opened_at))";
 }
 
-module.exports = { sqlNow, sqlDateOf, orderDateSql };
+/** Year-month bucket for analytics (e.g. closed_at → '2026-06'). */
+function sqlMonthYmd(dialect, columnSql) {
+  if (dialect === "postgres") {
+    return `to_char(${columnSql}::timestamp, 'YYYY-MM')`;
+  }
+  return `strftime('%Y-%m', ${columnSql})`;
+}
+
+module.exports = { sqlNow, sqlDateOf, orderDateSql, sqlMonthYmd };
