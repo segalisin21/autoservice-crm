@@ -39,7 +39,7 @@
             <td><a href="/orders/<%= o.id %>"><%= o.id %></a></td>
             <td><%= o.car_make || o.license_plate_raw || '—' %></td>
             <td><%= o.client_name %></td>
-            <td><%= (statusLabels && statusLabels[o.status]) || o.status %></td>
+            <td><span class="status-badge status-<%= o.status %>"><%= (statusLabels && statusLabels[o.status]) || o.status %></span></td>
             <td><%= Number(o.total_price).toFixed(2) %></td>
             <td><%= Number(o.due_amount).toFixed(2) %></td>
           </tr>

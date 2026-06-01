@@ -70,16 +70,34 @@
   </div>
 
   <% if (viewShowMoney && viewFinance) { %>
-  <div class="dashboard-panel" style="padding:1rem; margin-bottom:1rem;">
-    <h3 style="margin:0 0 0.5rem 0; font-size:15px;">Финансы за месяц</h3>
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px;">
-      <div><span class="muted">Касса</span><br /><strong><%= Math.round(viewFinance.cash_in).toLocaleString('ru-RU') %> ₽</strong></div>
-      <div><span class="muted">Выручка</span><br /><strong><%= Math.round(viewFinance.net_revenue).toLocaleString('ru-RU') %> ₽</strong></div>
-      <div><span class="muted">Расходы</span><br /><strong><%= Math.round(viewFinance.expenses_total).toLocaleString('ru-RU') %> ₽</strong></div>
-      <div><span class="muted">Прибыль</span><br /><strong><%= Math.round(viewFinance.net_profit).toLocaleString('ru-RU') %> ₽</strong></div>
-      <div><span class="muted">Дебиторка</span><br /><strong><%= Math.round(viewFinance.receivables).toLocaleString('ru-RU') %> ₽</strong></div>
+  <section class="dashboard-finance-panel dashboard-panel" aria-label="Финансы за месяц">
+    <div class="dashboard-finance-head">
+      <h3>Финансы за месяц</h3>
+      <a href="/admin/finance?period=month" class="btn btn-secondary btn-sm">Подробнее →</a>
     </div>
-  </div>
+    <div class="finance-kpi-grid finance-kpi-grid--compact">
+      <div class="finance-kpi-card">
+        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.cash_in).toLocaleString('ru-RU') %>&nbsp;₽</div>
+        <div class="finance-kpi-card__label">Касса</div>
+      </div>
+      <div class="finance-kpi-card">
+        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.net_revenue).toLocaleString('ru-RU') %>&nbsp;₽</div>
+        <div class="finance-kpi-card__label">Выручка</div>
+      </div>
+      <div class="finance-kpi-card">
+        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.expenses_total).toLocaleString('ru-RU') %>&nbsp;₽</div>
+        <div class="finance-kpi-card__label">Расходы</div>
+      </div>
+      <div class="finance-kpi-card finance-kpi-card--accent">
+        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.net_profit).toLocaleString('ru-RU') %>&nbsp;₽</div>
+        <div class="finance-kpi-card__label">Прибыль</div>
+      </div>
+      <div class="finance-kpi-card">
+        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.receivables).toLocaleString('ru-RU') %>&nbsp;₽</div>
+        <div class="finance-kpi-card__label">Дебиторка</div>
+      </div>
+    </div>
+  </section>
   <% } %>
 
   <% if (!isDayView) { %>

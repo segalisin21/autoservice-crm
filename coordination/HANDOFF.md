@@ -1,5 +1,20 @@
 # HANDOFF
 
+## 2026-06-02 — UX статусов, дашборд KPI, аналитика оплат
+
+### What changed
+- Заказ `completed`/`cancelled`: **status-badge** вместо текста; список заказов — badge в таблице.
+- Главная (owner/admin): блок «Финансы за месяц» на `finance-kpi-card` + ссылка `/admin/finance`.
+- `getPaymentDistribution`: один SQL с JOIN (без N+1 по заказам).
+- Тесты: payment buckets, badge на закрытом заказе.
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-02 — UI финансов и аналитики (Belka 2,0)
 
 ### What changed

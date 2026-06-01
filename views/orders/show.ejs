@@ -15,7 +15,9 @@
     <% }) %>
   </div>
   <% } else { %>
-  <p><strong>Статус:</strong> <%= statusLabel(order.status) %></p>
+  <p class="order-status-display">
+    <span class="status-badge status-<%= order.status %>"><%= statusLabel(order.status) %></span>
+  </p>
   <% } %>
 
   <% if (typeof isOwnerView !== 'undefined' && isOwnerView && economics) { %>

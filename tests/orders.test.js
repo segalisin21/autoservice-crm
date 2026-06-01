@@ -217,6 +217,27 @@ test("add work line with two masters splits total across lines", async (t) => {
   assert.equal(Number(order.subtotal_works), 3000);
 });
 
+test("completed order page shows status badge not chips", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('T', '1', '79990000012')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id) VALUES (?)`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO orders(car_id, status, total_price) VALUES (?, 'completed', 100)`, [carId]);
+  const orderId = (await ctx.db.query("SELECT id FROM orders LIMIT 1"))[0].id;
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const res = await agent.get(`/orders/${orderId}`);
+  assert.equal(res.status, 200);
+  assert.match(res.text, /status-badge status-completed/);
+  assert.ok(!res.text.includes('status-chip-form'));
+});
+
 test("update work line changes master and price", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());

@@ -377,6 +377,36 @@
   padding: 1rem 0;
 }
 
+.order-status-display {
+  margin: 8px 0 0;
+}
+
+.dashboard-finance-panel {
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dashboard-finance-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.dashboard-finance-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.finance-kpi-grid--compact .finance-kpi-card {
+  padding: 0.65rem 0.85rem;
+}
+
+.finance-kpi-grid--compact .finance-kpi-card__value {
+  font-size: 1rem;
+}
+
 .finance-order-cards .foc-head {
   display: flex;
   justify-content: space-between;
