@@ -1,7 +1,9 @@
 <%- include('../partials/layout-top', { title: 'Каталог', user, category: 'catalog' }) %>
 <section class="card">
   <% if (typeof synced !== 'undefined' && synced) { %>
-    <div class="success-banner" style="margin-bottom:12px;">Справочник авто обновлён.</div>
+    <div class="success-banner" style="margin-bottom:12px;">
+      Справочник авто обновлён<% if (typeof syncSource !== 'undefined' && syncSource === 'seed') { %> (из локальной базы — Auto.ru с сервера недоступен)<% } %>.
+    </div>
   <% } %>
   <div class="catalog-toolbar">
     <form method="get" class="catalog-toolbar__filters">

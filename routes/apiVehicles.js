@@ -69,7 +69,7 @@ router.post("/sync", requirePermission("catalog:manage"), async (req, res, next)
     if (req.headers.accept && req.headers.accept.includes("application/json")) {
       return res.json({ ok: true, stats });
     }
-    return res.redirect(`/catalog?synced=1&marks=${stats.marks}&models=${stats.models}`);
+    return res.redirect(`/catalog?synced=1&marks=${stats.marks}&models=${stats.models}&source=${stats.source || "autoru"}`);
   } catch (err) {
     next(err);
   }

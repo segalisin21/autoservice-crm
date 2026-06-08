@@ -68,6 +68,7 @@ async function list(req, res) {
     categories,
     filters: { type, category, search, view },
     synced: req.query.synced === "1",
+    syncSource: req.query.source || "",
     user: req.session.user
   });
 }
