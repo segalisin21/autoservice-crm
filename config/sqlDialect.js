@@ -5,6 +5,11 @@ function sqlNow(dialect) {
   return dialect === "postgres" ? PG_NOW : SQLITE_NOW;
 }
 
+/** Timestamp for INSERT/UPDATE into TIMESTAMPTZ / datetime columns */
+function sqlTimestamp(dialect) {
+  return dialect === "postgres" ? "NOW()" : SQLITE_NOW;
+}
+
 function sqlDateOf(dialect, columnSql) {
   if (dialect === "postgres") return `(${columnSql}::timestamp)::date`;
   return `date(${columnSql})`;
@@ -25,4 +30,4 @@ function sqlMonthYmd(dialect, columnSql) {
   return `strftime('%Y-%m', ${columnSql})`;
 }
 
-module.exports = { sqlNow, sqlDateOf, orderDateSql, sqlMonthYmd };
+module.exports = { sqlNow, sqlTimestamp, sqlDateOf, orderDateSql, sqlMonthYmd };
