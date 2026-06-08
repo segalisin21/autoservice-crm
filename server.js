@@ -22,6 +22,7 @@ const apiCatalogRoutes = require("./routes/apiCatalog");
 const journalRoutes = require("./routes/journal");
 const expenseRoutes = require("./routes/expenses");
 const adminUserRoutes = require("./routes/admin-users");
+const { bootstrapVehicleCatalog } = require("./lib/vehicleCatalogBootstrap");
 
 const app = express();
 
@@ -61,6 +62,10 @@ if (isProbablyPostgresUrl(process.env.DATABASE_URL)) {
 
 app.use(session(sessionOptions));
 
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 app.use(authRoutes);
 app.use("/", requireAuth, dashboardRoutes);
 app.use("/clients", requireAuth, clientRoutes);
@@ -87,6 +92,9 @@ if (require.main === module) {
   app.listen(port, () => {
     // eslint-disable-next-line no-console
     console.log(`Listening on http://localhost:${port}`);
+    if (process.env.SKIP_VEHICLE_CATALOG !== "1") {
+      bootstrapVehicleCatalog();
+    }
   });
 }
 

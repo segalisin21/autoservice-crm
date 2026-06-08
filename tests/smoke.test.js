@@ -4,6 +4,15 @@ const request = require("supertest");
 
 const { createTestApp } = require("./helpers/testApp");
 
+test("GET /health returns 200", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const res = await request(ctx.app).get("/health");
+  assert.equal(res.status, 200);
+  assert.deepEqual(res.body, { status: "ok" });
+});
+
 test("GET /login returns 200", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
