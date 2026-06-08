@@ -4,14 +4,21 @@
   <form method="post" action="<%= item.id ? '/catalog/' + item.id + '?_method=PUT' : '/catalog' %>">
     <label>Тип
       <select name="type">
-        <option value="work" <%= item.type === 'work' ? 'selected' : '' %>>work</option>
-        <option value="product" <%= item.type === 'product' ? 'selected' : '' %>>product</option>
+        <option value="work" <%= item.type === 'work' ? 'selected' : '' %>>Работа</option>
+        <option value="product" <%= item.type === 'product' ? 'selected' : '' %>>Товар</option>
       </select>
     </label>
-    <label>Категория <input name="category" required value="<%= item.category || '' %>" /></label>
+    <label>Категория
+      <input name="category" required value="<%= item.category || '' %>" placeholder="Мойка, Электрика, Продажа" list="work-type-hints" />
+      <datalist id="work-type-hints">
+        <option value="Мойка"></option>
+        <option value="Электрика"></option>
+        <option value="Продажа"></option>
+      </datalist>
+    </label>
     <label>Название <input name="name" required value="<%= item.name || '' %>" /></label>
-    <label>Цена по умолчанию <input name="default_price" value="<%= item.default_price != null ? item.default_price : '' %>" /></label>
-    <label>Ед. <input name="unit" value="<%= item.unit || '' %>" /></label>
+    <label>Цена по умолчанию <input name="default_price" value="<%= item.default_price != null ? item.default_price : '' %>" inputmode="decimal" /></label>
+    <label>Ед. <input name="unit" value="<%= item.unit || '' %>" placeholder="шт, усл." /></label>
     <label>Сортировка <input name="sort_order" type="number" value="<%= item.sort_order || 0 %>" /></label>
     <label>Активна
       <select name="is_active">

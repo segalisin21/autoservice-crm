@@ -11,9 +11,9 @@ test("normalizePhone RU rules", () => {
   assert.deepEqual(normalizePhone("9991112233").phone_normalized, "79991112233");
 });
 
-test("normalizePlate uppercases and strips spaces", () => {
+test("normalizePlate uppercases and formats plate", () => {
   assert.deepEqual(normalizePlate("а 123 вс 77"), {
-    license_plate_raw: "а 123 вс 77",
+    license_plate_raw: "А123ВС77",
     license_plate_normalized: "А123ВС77"
   });
 });

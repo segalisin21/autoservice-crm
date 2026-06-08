@@ -23,7 +23,6 @@
     : 0;
   const isDayView = viewMode === 'day';
   const empTotal = viewDayStats.employees_total || 0;
-  const loadPct = empTotal > 0 ? Math.min(100, Math.round((viewDayStats.employees_busy || 0) / empTotal * 100)) : 0;
 %>
 <%- include('partials/layout-top', { title: pageTitle, category: 'dashboard', user }) %>
 
@@ -33,80 +32,9 @@
       Не удалось загрузить календарь: <%= loadError %>. Выполните <code>npm run migrate</code> и перезапустите сервер.
     </div>
   <% } %>
-  <section class="card plate-search-card dashboard-plate-search">
-    <%- include('partials/plate-search-bar', { plateSearchAction: '/orders/new' }) %>
-    <p class="muted" style="margin:8px 0 0;font-size:0.85rem;">Быстрый поиск авто в базе или создание заказа</p>
-  </section>
-
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon bookings">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-        </svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-value"><%= viewDayStats.count %></div>
-        <div class="stat-label">Заказов за день</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon revenue">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-value"><%= Math.round(viewDayStats.revenue).toLocaleString('ru-RU') %> ₽</div>
-        <div class="stat-label">Сумма за день</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon active">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-      </div>
-      <div class="stat-content">
-        <div class="stat-value"><%= viewDayStats.employees_busy %>/<%= empTotal %></div>
-        <div class="stat-label">Сотрудников занято</div>
-      </div>
-    </div>
-  </div>
-
-  <% if (viewShowMoney && viewFinance) { %>
-  <section class="dashboard-finance-panel dashboard-panel" aria-label="Финансы за месяц">
-    <div class="dashboard-finance-head">
-      <h3>Финансы за месяц</h3>
-      <a href="/admin/finance?period=month" class="btn btn-secondary btn-sm">Подробнее →</a>
-    </div>
-    <div class="finance-kpi-grid finance-kpi-grid--compact">
-      <div class="finance-kpi-card">
-        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.cash_in).toLocaleString('ru-RU') %>&nbsp;₽</div>
-        <div class="finance-kpi-card__label">Касса</div>
-      </div>
-      <div class="finance-kpi-card">
-        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.net_revenue).toLocaleString('ru-RU') %>&nbsp;₽</div>
-        <div class="finance-kpi-card__label">Выручка</div>
-      </div>
-      <div class="finance-kpi-card">
-        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.expenses_total).toLocaleString('ru-RU') %>&nbsp;₽</div>
-        <div class="finance-kpi-card__label">Расходы</div>
-      </div>
-      <div class="finance-kpi-card finance-kpi-card--accent">
-        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.net_profit).toLocaleString('ru-RU') %>&nbsp;₽</div>
-        <div class="finance-kpi-card__label">Прибыль</div>
-      </div>
-      <div class="finance-kpi-card">
-        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.receivables).toLocaleString('ru-RU') %>&nbsp;₽</div>
-        <div class="finance-kpi-card__label">Дебиторка</div>
-      </div>
-    </div>
-  </section>
-  <% } %>
 
   <% if (!isDayView) { %>
-  <div class="calendar-overview dashboard-panel" aria-label="Календарь">
+  <div class="calendar-overview dashboard-panel dashboard-panel--primary" aria-label="Календарь">
     <div class="calendar-header">
       <div class="calendar-title">
         <h3><%= viewCalendar ? formatMonthTitle(viewCalendar.year, viewCalendar.month) : '' %></h3>
@@ -146,7 +74,7 @@
   <% } %>
 
   <% if (isDayView && viewDayData) { %>
-  <div class="schedule-section dashboard-panel">
+  <div class="schedule-section dashboard-panel dashboard-panel--primary">
     <div class="schedule-header">
       <div class="date-nav">
         <a href="/?mode=day&date=<%= viewNav.prevDay || viewToday %>" class="date-nav-btn" title="Предыдущий день">
@@ -210,6 +138,78 @@
     </div>
   </div>
   <% } %>
+
+  <div class="stats-grid stats-grid--compact dashboard-kpi-row">
+    <div class="stat-card stat-card--compact">
+      <div class="stat-icon bookings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-value"><%= viewDayStats.count %></div>
+        <div class="stat-label">Заказов за день</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--compact">
+      <div class="stat-icon revenue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-value"><%= Math.round(viewDayStats.revenue).toLocaleString('ru-RU') %> ₽</div>
+        <div class="stat-label">Сумма за день</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--compact">
+      <div class="stat-icon active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <div class="stat-value"><%= viewDayStats.employees_busy %>/<%= empTotal %></div>
+        <div class="stat-label">Сотрудников занято</div>
+      </div>
+    </div>
+  </div>
+
+  <% if (viewShowMoney && viewFinance) { %>
+  <section class="dashboard-finance-panel dashboard-panel" aria-label="Финансы за месяц">
+    <div class="dashboard-finance-head">
+      <h3>Финансы за месяц</h3>
+      <a href="/admin/finance?period=month" class="btn btn-secondary btn-sm">Подробнее →</a>
+    </div>
+    <div class="finance-kpi-grid finance-kpi-grid--compact">
+      <div class="finance-kpi-card">
+        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.cash_in).toLocaleString('ru-RU') %>&nbsp;₽</div>
+        <div class="finance-kpi-card__label">Касса</div>
+      </div>
+      <div class="finance-kpi-card">
+        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.net_revenue).toLocaleString('ru-RU') %>&nbsp;₽</div>
+        <div class="finance-kpi-card__label">Выручка</div>
+      </div>
+      <div class="finance-kpi-card">
+        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.expenses_total).toLocaleString('ru-RU') %>&nbsp;₽</div>
+        <div class="finance-kpi-card__label">Расходы</div>
+      </div>
+      <div class="finance-kpi-card finance-kpi-card--accent">
+        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.net_profit).toLocaleString('ru-RU') %>&nbsp;₽</div>
+        <div class="finance-kpi-card__label">Прибыль</div>
+      </div>
+      <div class="finance-kpi-card">
+        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.receivables).toLocaleString('ru-RU') %>&nbsp;₽</div>
+        <div class="finance-kpi-card__label">Дебиторка</div>
+      </div>
+    </div>
+  </section>
+  <% } %>
+
+  <section class="card plate-search-card dashboard-plate-search dashboard-plate-search--secondary">
+    <%- include('partials/plate-search-bar', { plateSearchAction: '/orders/new' }) %>
+    <p class="muted dashboard-plate-hint">Быстрый поиск авто в базе или создание заказа</p>
+  </section>
 </div>
 
 <%- include('partials/layout-bottom') %>

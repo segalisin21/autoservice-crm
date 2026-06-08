@@ -4,7 +4,7 @@
   <h2 class="card-title-sm">Поиск по госномеру</h2>
   <p class="muted" style="margin-top:0;">Введите номер — если авто уже в базе, выберите его. Иначе создайте клиента и авто ниже.</p>
   <form method="get" action="/orders/new" class="plate-search-form">
-    <input name="plate" class="plate-search-input" value="<%= typeof plateQuery !== 'undefined' ? plateQuery : '' %>" placeholder="А123ВС777" autocomplete="off" autofocus inputmode="text" />
+    <input name="plate" class="plate-search-input" data-plate-input value="<%= typeof plateQuery !== 'undefined' ? plateQuery : '' %>" placeholder="А123ВС777" autocomplete="off" autofocus inputmode="text" />
     <button type="submit" class="btn btn-primary">Найти</button>
   </form>
 
@@ -26,7 +26,7 @@
 
 <section class="card">
   <% if (error) { %><div class="error"><%= error %></div><% } %>
-  <form method="post" action="/orders" class="new-order-form">
+  <form method="post" action="/orders" class="new-order-form" data-vehicle-autocomplete>
     <div class="order-form-grid">
       <label>Дата
         <input type="date" name="scheduled_date" value="<%= order.scheduled_date || '' %>" required />
@@ -75,10 +75,12 @@
     <details class="order-accordion-inline" <%= (typeof plateQuery !== 'undefined' && plateQuery && !(plateMatches && plateMatches.length)) ? 'open' : '' %>>
       <summary>Новый авто и владелец</summary>
       <div class="order-form-grid" style="margin-top:8px;">
-        <label>Госномер <input name="new_plate" value="<%= order.new_plate || plateQuery || '' %>" placeholder="А123ВС777" /></label>
-        <label>Марка <input name="new_make" value="<%= order.new_make || '' %>" /></label>
-        <label>Модель <input name="new_model" value="<%= order.new_model || '' %>" /></label>
-        <label>Год <input name="new_year" value="<%= order.new_year || '' %>" inputmode="numeric" /></label>
+        <input type="hidden" name="vehicle_model_id" value="<%= order.vehicle_model_id || '' %>" />
+        <label>Госномер <input name="new_plate" class="plate-search-input" data-plate-input value="<%= order.new_plate || plateQuery || '' %>" placeholder="А123ВС777" /></label>
+        <label>Марка <input name="new_make" data-ac-mark value="<%= order.new_make || '' %>" autocomplete="off" /></label>
+        <label>Модель <input name="new_model" data-ac-model value="<%= order.new_model || '' %>" autocomplete="off" /></label>
+        <label>Кузов <input name="new_body_type" data-ac-body value="<%= order.new_body_type || '' %>" placeholder="Седан, SUV…" /></label>
+        <label>Год <input name="new_year" data-ac-year value="<%= order.new_year || '' %>" inputmode="numeric" /></label>
         <label>VIN <input name="new_vin" value="<%= order.new_vin || '' %>" /></label>
         <label>ФИО владельца <input name="new_owner_name" value="<%= order.new_owner_name || '' %>" /></label>
         <label>Телефон <input name="new_owner_phone" value="<%= order.new_owner_phone || '' %>" inputmode="tel" placeholder="+7…" /></label>
@@ -89,4 +91,4 @@
     <button type="submit" class="btn btn-primary">Создать заказ</button>
   </form>
 </section>
-<%- include('../partials/layout-bottom') %>
+<%- include('../partials/layout-bottom', { extraScripts: ['/js/vehicle-autocomplete.js'] }) %>

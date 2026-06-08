@@ -1,7 +1,7 @@
 <%- include('../partials/layout-top', { title: car && car.id ? 'Редактировать авто' : 'Новое авто', user }) %>
 <section class="card">
   <% if (error) { %><div class="error"><%= error %></div><% } %>
-  <form method="post" action="<%= car && car.id ? '/cars/' + car.id + '?_method=PUT' : '/cars' %>">
+  <form method="post" action="<%= car && car.id ? '/cars/' + car.id + '?_method=PUT' : '/cars' %>" data-vehicle-autocomplete>
     <label>Клиент
       <select name="client_id" required>
         <option value="">— выберите —</option>
@@ -12,11 +12,13 @@
         <% }) %>
       </select>
     </label>
-    <label>Марка <input name="make" value="<%= car && car.make ? car.make : '' %>" /></label>
-    <label>Модель <input name="model" value="<%= car && car.model ? car.model : '' %>" /></label>
+    <input type="hidden" name="vehicle_model_id" value="<%= car && car.vehicle_model_id ? car.vehicle_model_id : '' %>" />
+    <label>Марка <input name="make" data-ac-mark value="<%= car && car.make ? car.make : '' %>" autocomplete="off" /></label>
+    <label>Модель <input name="model" data-ac-model value="<%= car && car.model ? car.model : '' %>" autocomplete="off" /></label>
+    <label>Кузов <input name="body_type" data-ac-body value="<%= car && car.body_type ? car.body_type : '' %>" placeholder="Седан, SUV…" /></label>
     <label>VIN <input name="vin" value="<%= car && car.vin ? car.vin : '' %>" /></label>
-    <label>Госномер <input name="license_plate_raw" value="<%= car && car.license_plate_raw ? car.license_plate_raw : '' %>" /></label>
-    <label>Год <input name="year" type="number" value="<%= car && car.year ? car.year : '' %>" /></label>
+    <label>Госномер <input name="license_plate_raw" class="plate-search-input" data-plate-input value="<%= car && car.license_plate_raw ? car.license_plate_raw : '' %>" placeholder="А123ВС777" /></label>
+    <label>Год <input name="year" data-ac-year type="number" value="<%= car && car.year ? car.year : '' %>" /></label>
     <label>Цвет <input name="color" value="<%= car && car.color ? car.color : '' %>" /></label>
     <label>Пробег <input name="mileage" type="number" value="<%= car && car.mileage ? car.mileage : '' %>" /></label>
     <label>Заметки <textarea name="notes" rows="3"><%= car && car.notes ? car.notes : '' %></textarea></label>
@@ -26,4 +28,4 @@
     </div>
   </form>
 </section>
-<%- include('../partials/layout-bottom') %>
+<%- include('../partials/layout-bottom', { extraScripts: ['/js/vehicle-autocomplete.js'] }) %>

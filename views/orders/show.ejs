@@ -87,17 +87,10 @@
       <% if (!works.length) { %><p class="muted">Работ пока нет.</p><% } %>
     </div>
     <% if (order.status !== 'completed' && order.status !== 'cancelled') { %>
-    <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" id="form-add-work">
+    <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" id="form-add-work" data-catalog-ac data-work-category="<%= order.work_type || '' %>">
       <input type="hidden" name="line_type" value="work" />
-      <label>Из каталога
-        <select name="catalog_item_id">
-          <option value="">— вручную —</option>
-          <% catalogWorks.forEach(c => { %>
-            <option value="<%= c.id %>"><%= c.name %> (<%= c.default_price %>)</option>
-          <% }) %>
-        </select>
-      </label>
-      <label>Название <input name="name" /></label>
+      <input type="hidden" name="catalog_item_id" value="" />
+      <label>Услуга <input name="name" placeholder="Начните вводить — подсказки из прайса" autocomplete="off" /></label>
       <div class="form-row-2">
         <label>Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
         <label>Цена <input name="unit_price" inputmode="decimal" /></label>
@@ -153,17 +146,10 @@
       </table>
     </div>
     <% if (order.status !== 'completed') { %>
-    <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form">
+    <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" data-catalog-ac data-work-category="">
       <input type="hidden" name="line_type" value="product" />
-      <label>Из каталога
-        <select name="catalog_item_id">
-          <option value="">— вручную —</option>
-          <% catalogProducts.forEach(c => { %>
-            <option value="<%= c.id %>"><%= c.name %></option>
-          <% }) %>
-        </select>
-      </label>
-      <label>Название <input name="name" /></label>
+      <input type="hidden" name="catalog_item_id" value="" />
+      <label>Товар <input name="name" placeholder="Начните вводить — подсказки из прайса" autocomplete="off" /></label>
       <div class="form-row-2">
         <label>Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
         <label>Цена <input name="unit_price" inputmode="decimal" /></label>
@@ -302,4 +288,4 @@
 </div>
 <% } %>
 
-<%- include('../partials/layout-bottom') %>
+<%- include('../partials/layout-bottom', { extraScripts: ['/js/catalog-autocomplete.js'] }) %>

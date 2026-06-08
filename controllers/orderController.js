@@ -12,7 +12,7 @@ const {
 } = require("../lib/payroll");
 const { loadPayrollSettings } = require("../lib/settings");
 const { WORK_TYPES, normalizeWorkType, lineTypeForWorkType } = require("../lib/workTypes");
-const { normalizePlate, normalizePhone, normalizeVin } = require("../lib/normalize");
+const { normalizePlate, normalizePlateStrict, normalizePhone, normalizeVin } = require("../lib/normalize");
 const { relativePathFor, absolutePathFor } = require("../lib/upload");
 const { loadOrderEconomics, loadOrderLinkedExpenses } = require("../lib/orderEconomics");
 const { statusLabel, ORDER_STATUS_LABELS } = require("../lib/orderStatusLabels");
@@ -291,9 +291,12 @@ async function resolveOrCreateCar(db, body) {
   const existingId = Number(body.car_id);
   if (Number.isFinite(existingId) && existingId > 0) return existingId;
 
-  const plate = normalizePlate(body.new_plate);
+  const plate = normalizePlateStrict(body.new_plate);
+  if (plate.error) return { error: plate.error };
   const make = String(body.new_make ?? "").trim() || null;
   const model = String(body.new_model ?? "").trim() || null;
+  const body_type = String(body.new_body_type ?? "").trim() || null;
+  const vehicle_model_id = body.vehicle_model_id ? Number(body.vehicle_model_id) : null;
   const yearRaw = String(body.new_year ?? "").trim();
   const year = yearRaw && Number.isFinite(Number(yearRaw)) ? Number(yearRaw) : null;
   const vin = normalizeVin(body.new_vin);
@@ -313,10 +316,20 @@ async function resolveOrCreateCar(db, body) {
 
   const carId = await db.insertReturning(
     `
-    INSERT INTO cars(client_id, make, model, vin, license_plate_raw, license_plate_normalized, year)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO cars(client_id, make, model, vin, license_plate_raw, license_plate_normalized, year, body_type, vehicle_model_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
-    [clientId, make, model, vin, plate.license_plate_raw, plate.license_plate_normalized, year]
+    [
+      clientId,
+      make,
+      model,
+      vin,
+      plate.license_plate_raw,
+      plate.license_plate_normalized,
+      year,
+      body_type,
+      Number.isFinite(vehicle_model_id) ? vehicle_model_id : null
+    ]
   );
   return carId;
 }

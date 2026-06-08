@@ -17,6 +17,8 @@ const orderRoutes = require("./routes/orders");
 const adminPayrollRoutes = require("./routes/admin-payroll");
 const adminFinanceRoutes = require("./routes/admin-finance");
 const adminReportsRoutes = require("./routes/admin-reports");
+const apiVehiclesRoutes = require("./routes/apiVehicles");
+const apiCatalogRoutes = require("./routes/apiCatalog");
 const journalRoutes = require("./routes/journal");
 const expenseRoutes = require("./routes/expenses");
 const adminUserRoutes = require("./routes/admin-users");
@@ -71,6 +73,8 @@ app.use("/admin/payroll", requireAuth, adminPayrollRoutes);
 app.use("/admin/users", requireAuth, adminUserRoutes);
 app.use("/admin", requireAuth, adminFinanceRoutes);
 app.use("/admin", requireAuth, adminReportsRoutes);
+app.use("/api/vehicles", requireAuth, apiVehiclesRoutes);
+app.use("/api/catalog", requireAuth, apiCatalogRoutes);
 
 app.use((req, res) => {
   res.status(404).send("Not found");

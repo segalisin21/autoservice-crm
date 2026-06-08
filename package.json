@@ -10,6 +10,8 @@
     "migrate": "node scripts/migrate.js",
     "seed:owner": "node scripts/seed-owner.js",
     "import:uchet": "node scripts/import-uchet-csv.js",
+    "import:price": "node scripts/import-price.js",
+    "sync:vehicles": "node scripts/sync-autoru-catalog.js",
     "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
     "postinstall": "npm rebuild better-sqlite3"
   },

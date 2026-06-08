@@ -47,6 +47,8 @@ async function list(req, res) {
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
+  const view = String(req.query.view ?? "cards").trim() === "table" ? "table" : "cards";
+
   const items = await db.query(
     `
     SELECT * FROM catalog_items
@@ -64,7 +66,8 @@ async function list(req, res) {
   res.render("catalog/list", {
     items,
     categories,
-    filters: { type, category, search },
+    filters: { type, category, search, view },
+    synced: req.query.synced === "1",
     user: req.session.user
   });
 }

@@ -1,6 +1,6 @@
 const { getDB } = require("../config/database");
 const { sqlNow } = require("../config/sqlDialect");
-const { normalizePlate, normalizeVin } = require("../lib/normalize");
+const { normalizePlate, normalizePlateStrict, normalizeVin } = require("../lib/normalize");
 
 const PAGE_SIZE = 50;
 
@@ -8,6 +8,7 @@ function parseCarBody(body) {
   const make = String(body.make ?? "").trim() || null;
   const model = String(body.model ?? "").trim() || null;
   const color = String(body.color ?? "").trim() || null;
+  const body_type = String(body.body_type ?? "").trim() || null;
   const notes = String(body.notes ?? "").trim() || null;
   const vin = normalizeVin(body.vin);
   const yearRaw = String(body.year ?? "").trim();
@@ -15,7 +16,8 @@ function parseCarBody(body) {
   const mileageRaw = String(body.mileage ?? "").trim();
   const mileage = mileageRaw ? Number(mileageRaw) : null;
   const client_id = Number(body.client_id);
-  const plate = normalizePlate(body.license_plate_raw);
+  const vehicle_model_id = body.vehicle_model_id ? Number(body.vehicle_model_id) : null;
+  const plate = normalizePlateStrict(body.license_plate_raw);
   return {
     client_id,
     make,
@@ -23,15 +25,19 @@ function parseCarBody(body) {
     vin,
     year: Number.isFinite(year) ? year : null,
     color,
+    body_type,
     mileage: Number.isFinite(mileage) ? mileage : null,
     notes,
+    vehicle_model_id: Number.isFinite(vehicle_model_id) ? vehicle_model_id : null,
     license_plate_raw: plate.license_plate_raw,
-    license_plate_normalized: plate.license_plate_normalized
+    license_plate_normalized: plate.license_plate_normalized,
+    plateError: plate.error
   };
 }
 
 function validateCar(data) {
   if (!Number.isFinite(data.client_id) || data.client_id <= 0) return "Выберите клиента";
+  if (data.plateError) return data.plateError;
   if (data.make && data.make.length > 100) return "Марка слишком длинная";
   if (data.model && data.model.length > 100) return "Модель слишком длинная";
   return null;
@@ -108,8 +114,8 @@ async function create(req, res) {
     `
     INSERT INTO cars(
       client_id, make, model, vin, license_plate_raw, license_plate_normalized,
-      year, color, mileage, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      year, color, body_type, mileage, notes, vehicle_model_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       data.client_id,
@@ -120,8 +126,10 @@ async function create(req, res) {
       data.license_plate_normalized,
       data.year,
       data.color,
+      data.body_type,
       data.mileage,
-      data.notes
+      data.notes,
+      data.vehicle_model_id
     ]
   );
   return res.redirect(`/cars/${id}`);
@@ -176,7 +184,8 @@ async function update(req, res) {
     UPDATE cars SET
       client_id = ?, make = ?, model = ?, vin = ?,
       license_plate_raw = ?, license_plate_normalized = ?,
-      year = ?, color = ?, mileage = ?, notes = ?,
+      year = ?, color = ?, body_type = ?, mileage = ?, notes = ?,
+      vehicle_model_id = ?,
       updated_at = ${now}
     WHERE id = ?
   `,
@@ -189,8 +198,10 @@ async function update(req, res) {
       data.license_plate_normalized,
       data.year,
       data.color,
+      data.body_type,
       data.mileage,
       data.notes,
+      data.vehicle_model_id,
       id
     ]
   );

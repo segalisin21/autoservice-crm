@@ -1,6 +1,33 @@
 # HANDOFF
 
-## 2026-06-02 — UX: аналитика, таблицы заказов/экономики, ЗП accordion
+## 2026-06-08 — UX Vitalik: календарь, госномер, марки/модели, прайс
+
+### What changed
+- **Главная**: календарь/расписание первым блоком; KPI компактно; поиск по госномеру внизу.
+- **Госномер**: `lib/plateFormat.js`, `public/js/plate-input.js` — ввод букв подряд, затем цифр; автоформат `А123ВС777`; валидация при сохранении.
+- **Справочник авто**: миграция `011_vehicle_catalog.sql`; sync с Auto.ru (`lib/autoruCatalog.js`, `npm run sync:vehicles`); API `/api/vehicles/*`; autocomplete в формах авто/заказа.
+- **Прайс/услуги**: карточки каталога; autocomplete в заказе (`/api/catalog/search`); `npm run import:price` для upsert из CSV.
+
+### Key files
+- `views/dashboard.ejs`, `public/css/autoservice.css`
+- `lib/plateFormat.js`, `lib/autoruCatalog.js`, `lib/vehicleCatalog.js`
+- `routes/apiVehicles.js`, `routes/apiCatalog.js`
+- `public/js/plate-input.js`, `vehicle-autocomplete.js`, `catalog-autocomplete.js`
+- `views/cars/form.ejs`, `views/orders/form.ejs`, `views/orders/show.ejs`, `views/catalog/list.ejs`
+
+### Verify
+```bash
+npm test
+npm run import:price
+npm run sync:vehicles -- --quick
+```
+
+### Risks
+- Sync Auto.ru: ~80 марок по кнопке в UI (таймаут); полный sync — CLI `npm run sync:vehicles`.
+- LIKE-поиск каталога чувствителен к регистру кириллицы в SQLite.
+
+---
+
 
 ### What changed
 - **Аналитика**: убраны часы начала, статусы, оплата завершённых, топ клиентов; оставлены дневные/месячные графики, тип работ, топ услуг.
