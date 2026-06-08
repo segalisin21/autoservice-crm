@@ -1,4 +1,8 @@
 (function () {
+  function itemLabel(m) {
+    return m.display_name || m.name || m.name_ru || "";
+  }
+
   function debounce(fn, ms) {
     var t;
     return function () {
@@ -200,7 +204,7 @@
           var items = data.items || [];
           var lower = q.toLowerCase();
           var exact = items.find(function (m) {
-            var label = (m.name_ru || m.name || "").toLowerCase();
+            var label = itemLabel(m).toLowerCase();
             return label === lower || (m.autoru_id || "").toLowerCase() === lower;
           });
           var hit = exact || (items.length === 1 ? items[0] : null);
@@ -230,7 +234,7 @@
                 items: (data.items || []).map(function (m) {
                   return {
                     id: m.id,
-                    label: m.name_ru || m.name,
+                    label: itemLabel(m),
                     meta: formatYearRange(m),
                     raw: m
                   };
@@ -268,7 +272,7 @@
           .then(function (data) {
             render({
               items: (data.items || []).map(function (m) {
-                return { id: m.id, label: m.name_ru || m.name, raw: m };
+                return { id: m.id, label: itemLabel(m), raw: m };
               })
             });
           })

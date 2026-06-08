@@ -6,11 +6,11 @@ const { createTestApp } = require("./helpers/testApp");
 
 async function seedVehicleCatalog(db) {
   await db.query(
-    "INSERT INTO vehicle_marks(autoru_id, name, name_ru) VALUES ('toyota', 'toyota', 'Toyota')"
+    "INSERT INTO vehicle_marks(autoru_id, name, name_ru) VALUES ('toyota', 'Toyota', 'Тойота')"
   );
   const mark = await db.query("SELECT id FROM vehicle_marks WHERE autoru_id = 'toyota'");
   await db.query(
-    "INSERT INTO vehicle_models(mark_id, autoru_id, name, name_ru, year_from, year_to) VALUES (?, 'camry', 'camry', 'Camry', 2012, 2024)",
+    "INSERT INTO vehicle_models(mark_id, autoru_id, name, name_ru, year_from, year_to) VALUES (?, 'camry', 'Camry', 'Камри', 2012, 2024)",
     [mark[0].id]
   );
 }
@@ -26,7 +26,25 @@ test("vehicle marks API returns seeded marks", async (t) => {
   const res = await agent.get("/api/vehicles/marks?q=toy");
   assert.equal(res.status, 200);
   assert.equal(res.body.items.length, 1);
-  assert.equal(res.body.items[0].name_ru, "Toyota");
+  assert.equal(res.body.items[0].display_name, "Toyota");
+});
+
+test("vehicle marks API uses cyrillic when configured", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+  await seedVehicleCatalog(ctx.db);
+  await ctx.db.query(
+    `INSERT INTO settings(key, value) VALUES ('vehicle_catalog_names', 'cyrillic') ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+  );
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const res = await agent.get("/api/vehicles/marks?q=toy");
+  assert.equal(res.status, 200);
+  assert.equal(res.body.items.length, 1);
+  assert.equal(res.body.items[0].display_name, "Тойота");
+  assert.equal(res.body.name_mode, "cyrillic");
 });
 
 test("vehicle models API filters by mark", async (t) => {
@@ -40,7 +58,7 @@ test("vehicle models API filters by mark", async (t) => {
 
   const res = await agent.get(`/api/vehicles/models?mark_id=${mark[0].id}&q=cam`);
   assert.equal(res.status, 200);
-  assert.equal(res.body.items[0].name_ru, "Camry");
+  assert.equal(res.body.items[0].display_name, "Camry");
 });
 
 test("vehicle API requires auth", async (t) => {

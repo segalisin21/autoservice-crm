@@ -2,17 +2,25 @@ const express = require("express");
 
 const { getDB } = require("../config/database");
 const { searchMarks, searchModels, listGenerations, getModelById } = require("../lib/vehicleCatalog");
+const { loadVehicleCatalogSettings } = require("../lib/settings");
+const { withVehicleDisplayNames } = require("../lib/vehicleNames");
 const { syncAll, syncGenerationsForModel } = require("../lib/autoruCatalog");
 const { requirePermission } = require("../middleware/auth");
 
 const router = express.Router();
 
+async function vehicleNameMode(db) {
+  const settings = await loadVehicleCatalogSettings(db);
+  return settings.vehicle_catalog_names;
+}
+
 router.get("/marks", async (req, res, next) => {
   try {
     const db = await getDB();
     const q = String(req.query.q ?? "");
+    const mode = await vehicleNameMode(db);
     const rows = await searchMarks(db, q, 15);
-    res.json({ items: rows });
+    res.json({ items: withVehicleDisplayNames(rows, mode), name_mode: mode });
   } catch (err) {
     next(err);
   }
@@ -23,8 +31,9 @@ router.get("/models", async (req, res, next) => {
     const db = await getDB();
     const markId = req.query.mark_id;
     const q = String(req.query.q ?? "");
+    const mode = await vehicleNameMode(db);
     const rows = await searchModels(db, markId, q, 15);
-    res.json({ items: rows });
+    res.json({ items: withVehicleDisplayNames(rows, mode), name_mode: mode });
   } catch (err) {
     next(err);
   }

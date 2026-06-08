@@ -17,6 +17,7 @@ const orderRoutes = require("./routes/orders");
 const adminPayrollRoutes = require("./routes/admin-payroll");
 const adminFinanceRoutes = require("./routes/admin-finance");
 const adminReportsRoutes = require("./routes/admin-reports");
+const adminSettingsRoutes = require("./routes/admin-settings");
 const apiVehiclesRoutes = require("./routes/apiVehicles");
 const apiCatalogRoutes = require("./routes/apiCatalog");
 const journalRoutes = require("./routes/journal");
@@ -78,6 +79,7 @@ app.use("/admin/payroll", requireAuth, adminPayrollRoutes);
 app.use("/admin/users", requireAuth, adminUserRoutes);
 app.use("/admin", requireAuth, adminFinanceRoutes);
 app.use("/admin", requireAuth, adminReportsRoutes);
+app.use("/admin", requireAuth, adminSettingsRoutes);
 app.use("/api/vehicles", requireAuth, apiVehiclesRoutes);
 app.use("/api/catalog", requireAuth, apiCatalogRoutes);
 

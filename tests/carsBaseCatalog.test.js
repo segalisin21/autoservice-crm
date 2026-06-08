@@ -23,7 +23,9 @@ test("normalizeCarsBasePayload maps API marks and models", () => {
 
   assert.equal(payload.length, 1);
   assert.equal(payload[0].autoru_id, "toyota");
+  assert.equal(payload[0].name, "Toyota");
   assert.equal(payload[0].name_ru, "Тойота");
+  assert.equal(payload[0].models[0].name, "Camry");
   assert.equal(payload[0].models[0].name_ru, "Камри");
   assert.equal(payload[0].models[0].year_from, 2012);
 });
