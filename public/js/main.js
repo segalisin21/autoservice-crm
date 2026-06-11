@@ -67,7 +67,7 @@ function initMobileNav() {
   if (sidebar) {
     sidebar.querySelectorAll('a.nav-item').forEach(function (link) {
       link.addEventListener('click', function () {
-        if (window.matchMedia('(max-width: 1023px)').matches) {
+        if (window.matchMedia('(max-width: 1279px)').matches) {
           closeMobileNav();
         }
       });

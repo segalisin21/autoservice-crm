@@ -96,11 +96,24 @@
   box-sizing: border-box;
 }
 
+img,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+html {
+  overflow-x: clip;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--bg);
   color: var(--foreground);
   line-height: 1.6;
+  overflow-x: clip;
+  max-width: 100vw;
 }
 
 body.layout-nav-open {
@@ -321,18 +334,17 @@ body.layout-nav-open .layout-overlay {
 
 .top-bar {
   min-height: var(--topbar-height);
-  height: var(--topbar-height);
   background: rgba(255, 255, 255, 0.94);
   border-bottom: 1px solid var(--border);
-  padding: 0 1.5rem;
+  padding: 0.5rem 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
   position: sticky;
   top: 0;
   z-index: 40;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 /* Topbar как в Make Header (glass + лёгкая тень) */
@@ -386,8 +398,11 @@ body.layout-nav-open .layout-overlay {
 .top-bar-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  flex-shrink: 0;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex-shrink: 1;
+  min-width: 0;
+  justify-content: flex-end;
 }
 
 .top-bar-user {
@@ -762,7 +777,7 @@ body.layout-nav-open .layout-overlay {
   margin-bottom: 1.5rem;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1279px) {
   .finance-kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1112,7 +1127,8 @@ body.layout-nav-open .layout-overlay {
   font-size: 0.875rem;
 }
 
-.data-table {
+.table-scroll .data-table,
+.table-wrapper .data-table {
   min-width: 720px;
 }
 
@@ -2187,6 +2203,7 @@ body.layout-nav-open .layout-overlay {
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .calendar-title h3 {
@@ -2207,6 +2224,7 @@ body.layout-nav-open .layout-overlay {
   display: flex;
   gap: 0.5rem;
   flex: 0 0 auto;
+  flex-wrap: wrap;
 }
 
 .calendar-grid {
@@ -2326,13 +2344,15 @@ body.layout-nav-open .layout-overlay {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  flex-wrap: wrap;
 }
 
 .dashboard .date-nav h3 {
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0 0.5rem;
-  min-width: 200px;
+  min-width: 0;
+  flex: 1 1 auto;
   text-align: center;
   color: var(--gray-800);
 }
@@ -2361,6 +2381,7 @@ body.layout-nav-open .layout-overlay {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .dashboard .schedule-controls input[type='date'] {
@@ -3398,7 +3419,7 @@ body.layout-nav-open .layout-overlay {
   box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.1);
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1279px) {
   .admin-page .stats-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3601,7 +3622,7 @@ body.layout-nav-open .layout-overlay {
   }
 }
 
-/* Узкие экраны: компактные таблицы/формы см. @media (max-width: 1023px) в конце файла (общий блок с моб. меню) */
+/* Узкие экраны: компактные таблицы/формы см. @media (max-width: 1279px) в конце файла (общий блок с моб. меню) */
 
 @media (max-width: 480px) {
   .stats-grid {
@@ -3762,8 +3783,40 @@ body.layout-nav-open .layout-overlay {
 }
 .logout-form { margin: 0; }
 
-/* Мобильная вёрстка: выдвижной сайдбар как в Figma Make (до 1023px) */
-@media (max-width: 1023px) {
+/* Компактный десктоп: сайдбар уже, сетки в 2 колонки */
+@media (min-width: 1280px) and (max-width: 1600px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+
+  .garage-day-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .finance-kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .stats-grid--compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .calendar-day {
+    min-height: 52px;
+    padding: 0.45rem 0.5rem;
+  }
+
+  .calendar-day-rev {
+    font-size: 0.65rem;
+  }
+
+  .top-bar-user-text {
+    display: none;
+  }
+}
+
+/* Мобильная и планшетная вёрстка: выдвижной сайдбар (до 1280px) */
+@media (max-width: 1279px) {
   .btn-sidebar-toggle {
     display: inline-flex;
   }

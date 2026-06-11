@@ -6,7 +6,7 @@
   align-items: start;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1279px) {
   .garage-day-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -598,7 +598,7 @@
 
 .form-row-2 {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
 }
 
@@ -694,6 +694,7 @@
 
 .finance-kpi-grid--compact {
   margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .charts-grid--single {
@@ -828,7 +829,7 @@
   display: none;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1279px) {
   .mobile-bottom-nav {
     display: flex;
     align-items: stretch;
@@ -1125,7 +1126,7 @@
 }
 
 .stats-grid--compact {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 0.5rem;
 }
 
@@ -1166,9 +1167,15 @@
   font-size: 0.82rem;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .stats-grid--compact {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .stats-grid--compact {
+    grid-template-columns: 1fr;
   }
 
   .stat-card--compact .stat-label {
@@ -1355,5 +1362,92 @@
 .catalog-table {
   margin-top: 16px;
   width: 100%;
+}
+
+/* ============================================
+   Адаптивность: формы, фильтры, контейнеры
+   ============================================ */
+
+.content .card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.table-scroll {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.orders-filter-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.orders-filter-form .orders-search-input {
+  flex: 1 1 200px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.orders-filter-form select {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.orders-filter-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.dashboard-finance-head {
+  flex-wrap: wrap;
+}
+
+.plate-search-bar--inline {
+  width: 100%;
+}
+
+.plate-search-bar--inline .plate-search-form {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+@media (max-width: 1279px) {
+  .dashboard .schedule-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard .schedule-controls,
+  .dashboard .date-nav {
+    width: 100%;
+  }
+
+  .dashboard .schedule-controls form {
+    flex-wrap: wrap;
+  }
+
+  .calendar-title {
+    flex: 1 1 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  .garage-day-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .charts-grid--single,
+  .tables-grid--single {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row-2 {
+    grid-template-columns: 1fr;
+  }
 }
 
