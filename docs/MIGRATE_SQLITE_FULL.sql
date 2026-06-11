@@ -1,22 +1,17 @@
 -- =============================================================================
--- AUTOSERVICE CRM — полная миграция PostgreSQL (001_init.sql … 014_catalog_description_tiers.sql)
+-- AUTOSERVICE CRM — полная миграция SQLite (001_init.sql … 014_catalog_description_tiers.sql)
 -- =============================================================================
--- Назначение: развернуть схему на пустой БД (Railway, VPS, локальный Postgres).
+-- Назначение: развернуть схему на пустой базе SQLite (локально, тесты).
 --
 -- ВАЖНО:
--- 1) Выполняйте ОДИН раз на пустой базе (или после DROP SCHEMA public CASCADE; CREATE SCHEMA public;).
--- 2) Блок в конце создаёт таблицу migrations и помечает все файлы как применённые —
---    иначе при старте приложение попытается выполнить те же ALTER повторно.
--- 3) Только схема — без клиентов, заказов и прочих бизнес-данных.
---    Старый учёт из «Учет - Лист1 (1).csv» сюда НЕ входит; при необходимости:
+-- 1) Выполняйте ОДИН раз на пустой файле БД (или удалите autoservice.sqlite3).
+-- 2) Блок в конце создаёт таблицу migrations и помечает все файлы как применённые.
+-- 3) Только схема — без бизнес-данных. Импорт старого учёта из CSV отдельно:
 --      npm run import:uchet -- "Учет - Лист1 (1).csv"
---    Прайс: npm run import:price-sheet -- "Прайс от 12.2025 - Лист1.csv"
--- 4) На Railway обычно хватает переменной DATABASE_URL: applyMigrations() при boot.
---    Этот файл — для ручного psql, DBeaver, дампа схемы, аварийного восстановления.
+-- 4) Обычно достаточно npm run migrate — этот файл для ручного sqlite3 / DBeaver.
 --
 -- Подключение:
---   psql "%DATABASE_URL%" -f docs/MIGRATE_POSTGRES_FULL.sql
---   (Windows cmd) или psql $env:DATABASE_URL -f docs/MIGRATE_POSTGRES_FULL.sql (PowerShell)
+--   sqlite3 data/autoservice.sqlite3 < docs/MIGRATE_SQLITE_FULL.sql
 --
 -- Порядок:
 --   001_init.sql
@@ -30,26 +25,29 @@
 --   009_activity_logs.sql
 --   010_payout_period.sql
 --   011_vehicle_catalog.sql
---   012_vehicle_catalog_id_default.sql
 --   013_catalog_article.sql
 --   014_catalog_description_tiers.sql
 -- =============================================================================
 
+PRAGMA foreign_keys = ON;
+
 
 -- ---------- 001_init.sql ----------
--- Initial schema for AUTOSERVICE CRM (PostgreSQL)
+-- Initial schema for AUTOSERVICE CRM (SQLite + Postgres compatible subset)
 
+-- users
 CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   username VARCHAR(64) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   name VARCHAR(200) NOT NULL,
   role VARCHAR(20) NOT NULL,
   is_active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
-  updated_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS')
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- role_permissions
 CREATE TABLE IF NOT EXISTS role_permissions (
   role VARCHAR(20) NOT NULL,
   permission VARCHAR(64) NOT NULL,
@@ -57,20 +55,22 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   PRIMARY KEY (role, permission)
 );
 
+-- clients
 CREATE TABLE IF NOT EXISTS clients (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   full_name VARCHAR(200) NOT NULL,
   phone_raw VARCHAR(50) NOT NULL,
   phone_normalized VARCHAR(32) NOT NULL,
   email VARCHAR(200),
   notes TEXT,
-  created_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
-  updated_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS')
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_clients_phone_norm ON clients(phone_normalized);
 
+-- cars
 CREATE TABLE IF NOT EXISTS cars (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   client_id INTEGER NOT NULL,
   make VARCHAR(100),
   model VARCHAR(100),
@@ -81,26 +81,28 @@ CREATE TABLE IF NOT EXISTS cars (
   color VARCHAR(50),
   mileage INTEGER,
   notes TEXT,
-  created_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
-  updated_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_cars_plate_norm ON cars(license_plate_normalized);
 CREATE INDEX IF NOT EXISTS idx_cars_vin ON cars(vin);
 
+-- reminders
 CREATE TABLE IF NOT EXISTS car_reminders (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   car_id INTEGER NOT NULL,
   title VARCHAR(200) NOT NULL,
   due_date TEXT,
   notes TEXT,
   is_done INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (car_id) REFERENCES cars(id) ON DELETE CASCADE
 );
 
+-- catalog
 CREATE TABLE IF NOT EXISTS catalog_items (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   type VARCHAR(20) NOT NULL,
   category VARCHAR(50) NOT NULL,
   name VARCHAR(200) NOT NULL,
@@ -108,21 +110,23 @@ CREATE TABLE IF NOT EXISTS catalog_items (
   unit VARCHAR(50) NOT NULL DEFAULT '',
   is_active INTEGER NOT NULL DEFAULT 1,
   sort_order INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
-  updated_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS')
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_catalog_type_cat ON catalog_items(type, category);
 
+-- settings
 CREATE TABLE IF NOT EXISTS settings (
   key VARCHAR(64) PRIMARY KEY,
   value TEXT NOT NULL,
-  updated_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS')
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- orders
 CREATE TABLE IF NOT EXISTS orders (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   car_id INTEGER NOT NULL,
-  opened_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
+  opened_at TEXT NOT NULL DEFAULT (datetime('now')),
   closed_at TEXT,
   status VARCHAR(20) NOT NULL DEFAULT 'scheduled',
   notes TEXT,
@@ -144,8 +148,8 @@ CREATE TABLE IF NOT EXISTS orders (
   total_price NUMERIC(12,2) NOT NULL DEFAULT 0,
 
   created_by INTEGER,
-  created_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
-  updated_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
 
   FOREIGN KEY (car_id) REFERENCES cars(id) ON DELETE CASCADE,
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
@@ -154,8 +158,9 @@ CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_opened_at ON orders(opened_at);
 CREATE INDEX IF NOT EXISTS idx_orders_closed_at ON orders(closed_at);
 
+-- order_lines
 CREATE TABLE IF NOT EXISTS order_lines (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   order_id INTEGER NOT NULL,
   line_type VARCHAR(20) NOT NULL,
   catalog_item_id INTEGER,
@@ -172,7 +177,7 @@ CREATE TABLE IF NOT EXISTS order_lines (
   master_comp_value NUMERIC(12,2),
   master_earned_amount NUMERIC(12,2),
 
-  created_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
 
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
   FOREIGN KEY (catalog_item_id) REFERENCES catalog_items(id) ON DELETE SET NULL,
@@ -181,10 +186,11 @@ CREATE TABLE IF NOT EXISTS order_lines (
 CREATE INDEX IF NOT EXISTS idx_order_lines_order ON order_lines(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_lines_master ON order_lines(master_id);
 
+-- payments
 CREATE TABLE IF NOT EXISTS payments (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   order_id INTEGER NOT NULL,
-  paid_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
+  paid_at TEXT NOT NULL DEFAULT (datetime('now')),
   amount NUMERIC(12,2) NOT NULL,
   method VARCHAR(20) NOT NULL DEFAULT 'other',
   kind VARCHAR(20) NOT NULL DEFAULT 'payment',
@@ -196,19 +202,20 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 CREATE INDEX IF NOT EXISTS idx_payments_order_paid_at ON payments(order_id, paid_at);
 
+-- compensation rules
 CREATE TABLE IF NOT EXISTS master_comp_rules (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   mode VARCHAR(20) NOT NULL,
   value NUMERIC(12,2) NOT NULL DEFAULT 0,
-  effective_from TEXT NOT NULL DEFAULT (CURRENT_DATE::text),
+  effective_from TEXT NOT NULL DEFAULT (date('now')),
   is_active INTEGER NOT NULL DEFAULT 1,
 
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS master_comp_overrides (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
   catalog_item_id INTEGER NOT NULL,
   mode VARCHAR(20) NOT NULL,
@@ -219,10 +226,11 @@ CREATE TABLE IF NOT EXISTS master_comp_overrides (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_master_comp_overrides ON master_comp_overrides(user_id, catalog_item_id);
 
+-- payouts
 CREATE TABLE IF NOT EXISTS payouts (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   user_id INTEGER NOT NULL,
-  paid_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
+  paid_at TEXT NOT NULL DEFAULT (datetime('now')),
   amount NUMERIC(12,2) NOT NULL,
   method VARCHAR(20) NOT NULL DEFAULT 'other',
   note TEXT,
@@ -246,9 +254,10 @@ ALTER TABLE orders ADD COLUMN scheduled_date TEXT;
 CREATE INDEX IF NOT EXISTS idx_orders_scheduled_bay ON orders(scheduled_date, bay);
 
 -- ---------- 004_expenses.sql ----------
+-- Expenses (расходы): general business expenses and per-order materials (расходники)
 CREATE TABLE IF NOT EXISTS expenses (
-  id SERIAL PRIMARY KEY,
-  expense_date TEXT NOT NULL DEFAULT (CURRENT_DATE::text),
+  id INTEGER PRIMARY KEY,
+  expense_date TEXT NOT NULL DEFAULT (date('now')),
   category VARCHAR(20) NOT NULL DEFAULT 'other',
   amount NUMERIC(12,2) NOT NULL DEFAULT 0,
   payment_method VARCHAR(20) NOT NULL DEFAULT 'cash',
@@ -256,7 +265,7 @@ CREATE TABLE IF NOT EXISTS expenses (
   note TEXT,
   order_id INTEGER,
   created_by INTEGER,
-  created_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
 
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
   FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
@@ -278,13 +287,14 @@ ALTER TABLE orders ADD COLUMN end_time TEXT;
 CREATE INDEX IF NOT EXISTS idx_orders_assigned ON orders(scheduled_date, assigned_user_id);
 
 -- ---------- 007_order_photos.sql ----------
+-- Photos attached to an order (фото работ)
 CREATE TABLE IF NOT EXISTS order_photos (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   order_id INTEGER NOT NULL,
   file_path VARCHAR(300) NOT NULL,
   original_name VARCHAR(300),
   uploaded_by INTEGER,
-  created_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS'),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
 
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
   FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL
@@ -293,13 +303,15 @@ CREATE INDEX IF NOT EXISTS idx_order_photos_order ON order_photos(order_id);
 
 -- ---------- 008_order_line_payroll.sql ----------
 CREATE TABLE IF NOT EXISTS order_line_payroll (
-  id SERIAL PRIMARY KEY,
-  order_line_id INTEGER NOT NULL REFERENCES order_lines(id) ON DELETE CASCADE,
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-  share_percent DOUBLE PRECISION NOT NULL DEFAULT 100,
-  earned_amount DOUBLE PRECISION,
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_line_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  share_percent REAL NOT NULL DEFAULT 100,
+  earned_amount REAL,
   master_comp_mode TEXT,
-  master_comp_value DOUBLE PRECISION
+  master_comp_value REAL,
+  FOREIGN KEY (order_line_id) REFERENCES order_lines(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_order_line_payroll_line_user
@@ -307,39 +319,41 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_order_line_payroll_line_user
 
 -- ---------- 009_activity_logs.sql ----------
 CREATE TABLE IF NOT EXISTS activity_logs (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER,
   action VARCHAR(32) NOT NULL,
   entity_type VARCHAR(32) NOT NULL,
   entity_id INTEGER,
   details TEXT,
-  created_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS')
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_activity_logs_created ON activity_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_activity_logs_entity ON activity_logs(entity_type, entity_id);
 
 -- ---------- 010_payout_period.sql ----------
-ALTER TABLE payouts ADD COLUMN IF NOT EXISTS period_start TEXT;
-ALTER TABLE payouts ADD COLUMN IF NOT EXISTS period_end TEXT;
+ALTER TABLE payouts ADD COLUMN period_start TEXT;
+ALTER TABLE payouts ADD COLUMN period_end TEXT;
 
 -- ---------- 011_vehicle_catalog.sql ----------
+-- Vehicle reference catalog (synced from Auto.ru)
 CREATE TABLE IF NOT EXISTS vehicle_marks (
-  id SERIAL PRIMARY KEY,
-  autoru_id VARCHAR(100) NOT NULL UNIQUE,
-  name VARCHAR(200) NOT NULL,
-  name_ru VARCHAR(200) NOT NULL DEFAULT '',
-  synced_at TIMESTAMPTZ
+  id INTEGER PRIMARY KEY,
+  autoru_id TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  name_ru TEXT NOT NULL DEFAULT '',
+  synced_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS vehicle_models (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   mark_id INTEGER NOT NULL REFERENCES vehicle_marks(id) ON DELETE CASCADE,
-  autoru_id VARCHAR(100) NOT NULL,
-  name VARCHAR(200) NOT NULL,
-  name_ru VARCHAR(200) NOT NULL DEFAULT '',
+  autoru_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  name_ru TEXT NOT NULL DEFAULT '',
   year_from INTEGER,
   year_to INTEGER,
-  synced_at TIMESTAMPTZ,
+  synced_at TEXT,
   UNIQUE (mark_id, autoru_id)
 );
 
@@ -347,11 +361,11 @@ CREATE INDEX IF NOT EXISTS idx_vehicle_models_mark ON vehicle_models(mark_id);
 CREATE INDEX IF NOT EXISTS idx_vehicle_marks_name ON vehicle_marks(name_ru);
 
 CREATE TABLE IF NOT EXISTS vehicle_generations (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   model_id INTEGER NOT NULL REFERENCES vehicle_models(id) ON DELETE CASCADE,
-  autoru_id VARCHAR(100) NOT NULL,
-  name VARCHAR(200) NOT NULL DEFAULT '',
-  body_type VARCHAR(100) NOT NULL DEFAULT '',
+  autoru_id TEXT NOT NULL,
+  name TEXT NOT NULL DEFAULT '',
+  body_type TEXT NOT NULL DEFAULT '',
   year_from INTEGER,
   year_to INTEGER,
   UNIQUE (model_id, autoru_id)
@@ -359,93 +373,40 @@ CREATE TABLE IF NOT EXISTS vehicle_generations (
 
 CREATE INDEX IF NOT EXISTS idx_vehicle_generations_model ON vehicle_generations(model_id);
 
-ALTER TABLE cars ADD COLUMN IF NOT EXISTS body_type VARCHAR(100);
-ALTER TABLE cars ADD COLUMN IF NOT EXISTS vehicle_model_id INTEGER REFERENCES vehicle_models(id) ON DELETE SET NULL;
-
--- ---------- 012_vehicle_catalog_id_default.sql ----------
--- Repair vehicle catalog id columns if table was created without SERIAL/default
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_attrdef ad
-    JOIN pg_attribute a ON ad.adrelid = a.attrelid AND ad.adnum = a.attnum
-    JOIN pg_class c ON c.oid = a.attrelid
-    WHERE c.relname = 'vehicle_marks' AND a.attname = 'id'
-  ) THEN
-    CREATE SEQUENCE IF NOT EXISTS vehicle_marks_id_seq;
-    PERFORM setval('vehicle_marks_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM vehicle_marks), 0), 1));
-    ALTER TABLE vehicle_marks ALTER COLUMN id SET DEFAULT nextval('vehicle_marks_id_seq');
-    ALTER SEQUENCE vehicle_marks_id_seq OWNED BY vehicle_marks.id;
-  END IF;
-END $$;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_attrdef ad
-    JOIN pg_attribute a ON ad.adrelid = a.attrelid AND ad.adnum = a.attnum
-    JOIN pg_class c ON c.oid = a.attrelid
-    WHERE c.relname = 'vehicle_models' AND a.attname = 'id'
-  ) THEN
-    CREATE SEQUENCE IF NOT EXISTS vehicle_models_id_seq;
-    PERFORM setval('vehicle_models_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM vehicle_models), 0), 1));
-    ALTER TABLE vehicle_models ALTER COLUMN id SET DEFAULT nextval('vehicle_models_id_seq');
-    ALTER SEQUENCE vehicle_models_id_seq OWNED BY vehicle_models.id;
-  END IF;
-END $$;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1
-    FROM pg_attrdef ad
-    JOIN pg_attribute a ON ad.adrelid = a.attrelid AND ad.adnum = a.attnum
-    JOIN pg_class c ON c.oid = a.attrelid
-    WHERE c.relname = 'vehicle_generations' AND a.attname = 'id'
-  ) THEN
-    CREATE SEQUENCE IF NOT EXISTS vehicle_generations_id_seq;
-    PERFORM setval('vehicle_generations_id_seq', GREATEST(COALESCE((SELECT MAX(id) FROM vehicle_generations), 0), 1));
-    ALTER TABLE vehicle_generations ALTER COLUMN id SET DEFAULT nextval('vehicle_generations_id_seq');
-    ALTER SEQUENCE vehicle_generations_id_seq OWNED BY vehicle_generations.id;
-  END IF;
-END $$;
+ALTER TABLE cars ADD COLUMN body_type TEXT;
+ALTER TABLE cars ADD COLUMN vehicle_model_id INTEGER REFERENCES vehicle_models(id) ON DELETE SET NULL;
 
 -- ---------- 013_catalog_article.sql ----------
-ALTER TABLE catalog_items ADD COLUMN IF NOT EXISTS article VARCHAR(32);
+ALTER TABLE catalog_items ADD COLUMN article TEXT;
 
 UPDATE catalog_items
-SET article = (CASE WHEN type = 'product' THEN 'P' ELSE 'W' END) || '-' || lpad(id::text, 5, '0')
+SET article = (CASE WHEN type = 'product' THEN 'P' ELSE 'W' END) || '-' || printf('%05d', id)
 WHERE article IS NULL OR trim(article) = '';
-
-ALTER TABLE catalog_items ALTER COLUMN article SET NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_catalog_items_article ON catalog_items(article);
 
 -- ---------- 014_catalog_description_tiers.sql ----------
-ALTER TABLE catalog_items ADD COLUMN IF NOT EXISTS description TEXT;
-ALTER TABLE catalog_items ADD COLUMN IF NOT EXISTS price_tier_2 NUMERIC(12,2);
-ALTER TABLE catalog_items ADD COLUMN IF NOT EXISTS price_tier_3 NUMERIC(12,2);
+ALTER TABLE catalog_items ADD COLUMN description TEXT;
+ALTER TABLE catalog_items ADD COLUMN price_tier_2 NUMERIC(12,2);
+ALTER TABLE catalog_items ADD COLUMN price_tier_3 NUMERIC(12,2);
 
-ALTER TABLE order_lines ADD COLUMN IF NOT EXISTS vehicle_tier INTEGER;
+ALTER TABLE order_lines ADD COLUMN vehicle_tier INTEGER;
 
 -- ---------- migrations registry (после ручного прогона) ----------
 CREATE TABLE IF NOT EXISTS migrations (
   id TEXT PRIMARY KEY,
-  applied_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS')
+  applied_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
-INSERT INTO migrations(id) VALUES ('001_init.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('002_work_type.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('003_garage_bay.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('004_expenses.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('005_order_costs.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('006_scheduling.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('007_order_photos.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('008_order_line_payroll.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('009_activity_logs.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('010_payout_period.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('011_vehicle_catalog.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('012_vehicle_catalog_id_default.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('013_catalog_article.sql') ON CONFLICT (id) DO NOTHING;
-INSERT INTO migrations(id) VALUES ('014_catalog_description_tiers.sql') ON CONFLICT (id) DO NOTHING;
+INSERT OR IGNORE INTO migrations(id) VALUES ('001_init.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('002_work_type.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('003_garage_bay.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('004_expenses.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('005_order_costs.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('006_scheduling.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('007_order_photos.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('008_order_line_payroll.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('009_activity_logs.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('010_payout_period.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('011_vehicle_catalog.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('013_catalog_article.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('014_catalog_description_tiers.sql');

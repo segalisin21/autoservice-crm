@@ -56,6 +56,29 @@ test("master cannot access clients mutate", async (t) => {
   assert.equal(res.status, 403);
 });
 
+test("admin can open client show page", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const createClient = await agent
+    .post("/clients")
+    .type("form")
+    .send({ full_name: "Петр Петров", phone: "8 (999) 222-33-44", email: "", notes: "" });
+  assert.equal(createClient.status, 302);
+
+  const clientId = (
+    await ctx.db.query("SELECT id FROM clients WHERE full_name = ?", ["Петр Петров"])
+  )[0].id;
+
+  const res = await agent.get(`/clients/${clientId}`);
+  assert.equal(res.status, 200);
+  assert.ok(res.text.includes("Петр Петров"));
+  assert.ok(!res.text.includes("include is not a function"));
+});
+
 test("master can view clients list if permission added later - default denied", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());

@@ -3,6 +3,7 @@ const path = require("node:path");
 require("dotenv").config();
 
 const express = require("express");
+const ejs = require("ejs");
 const session = require("express-session");
 const methodOverride = require("method-override");
 
@@ -33,6 +34,22 @@ app.set("trust proxy", 1);
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+// Express passes one merged locals object to EJS. A view variable named `client`
+// would be copied into compile opts and enable EJS client mode, breaking includes.
+app.engine("ejs", (filePath, options, callback) => {
+  const viewOptions = {
+    cache: options.cache,
+    filename: filePath
+  };
+  if (options.settings?.views) {
+    viewOptions.views = options.settings.views;
+  }
+  const configured = options.settings?.["view options"];
+  if (configured) {
+    Object.assign(viewOptions, configured);
+  }
+  ejs.renderFile(filePath, options, viewOptions, callback);
+});
 
 app.use((req, res, next) => {
   res.locals.assetVersion = process.env.ASSET_VERSION || `${pkgVersion}.4`;
