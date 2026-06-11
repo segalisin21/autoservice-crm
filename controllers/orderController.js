@@ -8,7 +8,8 @@ const {
   freezeOrderEarned,
   computeEarnedForLine,
   resolveCompRule,
-  getOrderMaterialsCost
+  getSharedMaterialsCost,
+  allocateMaterialsToLine
 } = require("../lib/payroll");
 const { loadPayrollSettings } = require("../lib/settings");
 const { WORK_TYPES, normalizeWorkType, lineTypeForWorkType } = require("../lib/workTypes");
@@ -441,11 +442,10 @@ async function show(req, res) {
 
   if (isMasterView && req.session.user?.id) {
     const fallback = await loadPayrollSettings(db);
-    const materials = await getOrderMaterialsCost(db, Number(req.params.id));
+    const sharedMaterials = await getSharedMaterialsCost(db, Number(req.params.id));
     const worksTotal = works.reduce((s, l) => s + (Number(l.total) || 0), 0);
     for (const line of works) {
-      const lineTotal = Number(line.total) || 0;
-      const allocatedMaterials = worksTotal > 0 ? materials * (lineTotal / worksTotal) : 0;
+      const allocatedMaterials = allocateMaterialsToLine(line, sharedMaterials, worksTotal);
       const rule = await resolveCompRule(
         db,
         line.master_id,
@@ -585,13 +585,16 @@ async function addLine(req, res) {
   let lineNotes = String(req.body.line_notes ?? "").trim() || null;
   let vehicle_tier = parseOptionalInt(req.body.vehicle_tier);
 
+  let catalogMaterialCost = 0;
   if (catalogId) {
     const cat = await db.query(
-      "SELECT name, description, default_price, price_tier_2, price_tier_3, type FROM catalog_items WHERE id = ?",
+      `SELECT name, description, default_price, price_tier_2, price_tier_3, type, default_material_cost
+       FROM catalog_items WHERE id = ?`,
       [catalogId]
     );
     if (cat[0]) {
       name = cat[0].name;
+      catalogMaterialCost = parseMoney(cat[0].default_material_cost);
       if (!lineNotes && cat[0].description) lineNotes = cat[0].description;
       if (!req.body.unit_price) {
         vehicle_tier = normalizeVehicleTier(vehicle_tier);
@@ -604,7 +607,17 @@ async function addLine(req, res) {
   if (vehicle_tier != null) vehicle_tier = normalizeVehicleTier(vehicle_tier);
 
   const labor_minutes = parseOptionalInt(req.body.labor_minutes);
-  const cost_price = line_type === "product" ? parseMoney(req.body.cost_price) : 0;
+  let cost_price = 0;
+  if (line_type === "product") {
+    cost_price =
+      req.body.cost_price != null && req.body.cost_price !== ""
+        ? parseMoney(req.body.cost_price)
+        : catalogMaterialCost;
+  } else if (req.body.material_cost != null && req.body.material_cost !== "") {
+    cost_price = parseMoney(req.body.material_cost);
+  } else {
+    cost_price = catalogMaterialCost;
+  }
   const lineTotal = parseMoney(quantity * unit_price);
 
   if (line_type === "work") {
@@ -612,6 +625,7 @@ async function addLine(req, res) {
     const n = masterIds.length || 1;
     const splitUnit = parseMoney(unit_price / n);
     const splitTotal = parseMoney(lineTotal / n);
+    const splitMaterial = parseMoney(cost_price / n);
     const targets = masterIds.length ? masterIds : [null];
     for (const master_id of targets) {
       await insertOrderLine(db, {
@@ -625,7 +639,7 @@ async function addLine(req, res) {
         master_id,
         work_status: "pending",
         labor_minutes,
-        cost_price: 0,
+        cost_price: splitMaterial,
         notes: lineNotes,
         vehicle_tier
       });
@@ -709,7 +723,11 @@ async function updateLine(req, res) {
   const work_status = String(req.body.work_status ?? line.work_status ?? "pending");
   const labor_minutes = parseOptionalInt(req.body.labor_minutes);
   const cost_price =
-    req.body.cost_price != null ? parseMoney(req.body.cost_price) : Number(line.cost_price) || 0;
+    req.body.material_cost != null
+      ? parseMoney(req.body.material_cost)
+      : req.body.cost_price != null
+        ? parseMoney(req.body.cost_price)
+        : Number(line.cost_price) || 0;
 
   if (line.line_type === "work") {
     await clearLinePayrollFrozen(db, lineId);

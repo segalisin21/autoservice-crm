@@ -1,5 +1,5 @@
 -- =============================================================================
--- AUTOSERVICE CRM — полная миграция PostgreSQL (001_init.sql … 014_catalog_description_tiers.sql)
+-- AUTOSERVICE CRM — полная миграция PostgreSQL (001_init.sql … 015_catalog_material_cost.sql)
 -- =============================================================================
 -- Назначение: развернуть схему на пустой БД (Railway, VPS, локальный Postgres).
 --
@@ -33,6 +33,7 @@
 --   012_vehicle_catalog_id_default.sql
 --   013_catalog_article.sql
 --   014_catalog_description_tiers.sql
+--   015_catalog_material_cost.sql
 -- =============================================================================
 
 
@@ -430,6 +431,9 @@ ALTER TABLE catalog_items ADD COLUMN IF NOT EXISTS price_tier_3 NUMERIC(12,2);
 
 ALTER TABLE order_lines ADD COLUMN IF NOT EXISTS vehicle_tier INTEGER;
 
+-- ---------- 015_catalog_material_cost.sql ----------
+ALTER TABLE catalog_items ADD COLUMN IF NOT EXISTS default_material_cost NUMERIC(12,2) NOT NULL DEFAULT 0;
+
 -- ---------- migrations registry (после ручного прогона) ----------
 CREATE TABLE IF NOT EXISTS migrations (
   id TEXT PRIMARY KEY,
@@ -449,3 +453,4 @@ INSERT INTO migrations(id) VALUES ('011_vehicle_catalog.sql') ON CONFLICT (id) D
 INSERT INTO migrations(id) VALUES ('012_vehicle_catalog_id_default.sql') ON CONFLICT (id) DO NOTHING;
 INSERT INTO migrations(id) VALUES ('013_catalog_article.sql') ON CONFLICT (id) DO NOTHING;
 INSERT INTO migrations(id) VALUES ('014_catalog_description_tiers.sql') ON CONFLICT (id) DO NOTHING;
+INSERT INTO migrations(id) VALUES ('015_catalog_material_cost.sql') ON CONFLICT (id) DO NOTHING;

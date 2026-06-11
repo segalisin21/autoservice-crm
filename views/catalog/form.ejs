@@ -33,6 +33,10 @@
       <label>2 кат. (паркетник) <input name="price_tier_2" value="<%= item.price_tier_2 != null ? item.price_tier_2 : '' %>" inputmode="decimal" placeholder="необязательно" /></label>
       <label>3 кат. (внедорожник) <input name="price_tier_3" value="<%= item.price_tier_3 != null ? item.price_tier_3 : '' %>" inputmode="decimal" placeholder="необязательно" /></label>
     </fieldset>
+    <label>Расходный материал (закупка, ₽)
+      <input name="default_material_cost" value="<%= item.default_material_cost != null && Number(item.default_material_cost) ? item.default_material_cost : '' %>" inputmode="decimal" placeholder="0" />
+      <span class="muted" style="font-size:12px;">Учитывается в расходниках заказа и при расчёте ЗП (net %)</span>
+    </label>
     <label>Ед. <input name="unit" value="<%= item.unit || '' %>" placeholder="шт, усл." /></label>
     <label>Сортировка <input name="sort_order" type="number" value="<%= item.sort_order || 0 %>" /></label>
     <label>Активна

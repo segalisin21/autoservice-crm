@@ -21,6 +21,7 @@ function parseCatalogBody(body) {
     default_price: parseMoney(body.default_price),
     price_tier_2: parseOptionalTierPrice(body.price_tier_2),
     price_tier_3: parseOptionalTierPrice(body.price_tier_3),
+    default_material_cost: parseMoney(body.default_material_cost),
     unit: String(body.unit ?? "").trim(),
     sort_order: Number(body.sort_order) || 0,
     is_active: body.is_active === "0" || body.is_active === 0 ? 0 : 1
@@ -126,8 +127,8 @@ async function create(req, res) {
     `
     INSERT INTO catalog_items(
       type, category, name, article, description,
-      default_price, price_tier_2, price_tier_3, unit, is_active, sort_order
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      default_price, price_tier_2, price_tier_3, default_material_cost, unit, is_active, sort_order
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       data.type,
@@ -138,6 +139,7 @@ async function create(req, res) {
       data.default_price,
       data.price_tier_2,
       data.price_tier_3,
+      data.default_material_cost,
       data.unit,
       data.is_active,
       data.sort_order
@@ -178,7 +180,7 @@ async function update(req, res) {
     `
     UPDATE catalog_items SET
       type = ?, category = ?, name = ?, article = ?, description = ?,
-      default_price = ?, price_tier_2 = ?, price_tier_3 = ?, unit = ?,
+      default_price = ?, price_tier_2 = ?, price_tier_3 = ?, default_material_cost = ?, unit = ?,
       is_active = ?, sort_order = ?, updated_at = ${now}
     WHERE id = ?
   `,
@@ -191,6 +193,7 @@ async function update(req, res) {
       data.default_price,
       data.price_tier_2,
       data.price_tier_3,
+      data.default_material_cost,
       data.unit,
       data.is_active,
       data.sort_order,

@@ -74,12 +74,18 @@
           <% if (typeof isMasterView !== 'undefined' && isMasterView && l.payroll_estimate != null) { %>
             <p class="muted" style="margin:4px 0;">≈ ЗП <%= Number(l.payroll_estimate).toFixed(0) %> ₽</p>
           <% } %>
+          <% if (typeof isOwnerView !== 'undefined' && isOwnerView && Number(l.cost_price || 0) > 0) { %>
+            <p class="muted" style="margin:4px 0; font-size:12px;">Расходник: <%= Number(l.cost_price).toFixed(2) %> ₽/ед.</p>
+          <% } %>
           <% if (canEditLines) { %>
           <form method="post" action="/orders/lines/<%= l.id %>?_method=PUT" class="line-edit-form">
             <div class="form-row-2">
               <label>Кол-во <input name="quantity" value="<%= l.quantity %>" inputmode="decimal" /></label>
               <label>Цена <input name="unit_price" value="<%= l.unit_price %>" inputmode="decimal" /></label>
             </div>
+            <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
+            <label>Расходник (закупка/ед.) <input name="material_cost" value="<%= l.cost_price || 0 %>" inputmode="decimal" /></label>
+            <% } %>
             <label>Мастер
               <select name="master_id">
                 <option value="">— не назначен —</option>
@@ -109,6 +115,9 @@
         <label>Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
         <label>Цена <input name="unit_price" inputmode="decimal" /></label>
       </div>
+      <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
+      <label>Расходник (закупка/ед.) <input name="material_cost" value="0" inputmode="decimal" placeholder="из каталога, если задано" /></label>
+      <% } %>
       <fieldset class="master-checkboxes">
         <legend>Мастера</legend>
         <div class="master-checkboxes-list">

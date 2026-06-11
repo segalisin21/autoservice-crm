@@ -38,7 +38,7 @@
   <% const viewMode = filters.view || 'cards'; %>
   <% if (viewMode === 'table') { %>
   <table class="catalog-table">
-    <thead><tr><th>Артикул</th><th>Тип</th><th>Категория</th><th>Название</th><th>Цена</th><th></th></tr></thead>
+    <thead><tr><th>Артикул</th><th>Тип</th><th>Категория</th><th>Название</th><th>Цена</th><th>Расходник</th><th></th></tr></thead>
     <tbody>
       <% items.forEach(i => { %>
         <tr>
@@ -55,6 +55,7 @@
               <span class="muted" style="font-size:11px;"> / <%= i.price_tier_2 ? Number(i.price_tier_2).toFixed(0) : '—' %> / <%= i.price_tier_3 ? Number(i.price_tier_3).toFixed(0) : '—' %></span>
             <% } %>
           </td>
+          <td><%= Number(i.default_material_cost || 0) > 0 ? Number(i.default_material_cost).toFixed(0) + ' ₽' : '—' %></td>
           <td style="display:flex; gap:4px; flex-wrap:wrap;">
             <a href="/catalog/<%= i.id %>/edit">Изм.</a>
             <form method="post" action="/catalog/<%= i.id %>/toggle" style="display:inline;"><button type="submit">⇄</button></form>
@@ -78,6 +79,9 @@
           <% } %>
           <% if (i.unit) { %> <span class="muted">/ <%= i.unit %></span><% } %>
         </div>
+        <% if (Number(i.default_material_cost || 0) > 0) { %>
+          <div class="muted" style="font-size:12px; margin-top:4px;">Расходник: <%= Number(i.default_material_cost).toLocaleString('ru-RU') %> ₽</div>
+        <% } %>
         <div class="catalog-card__actions">
           <a href="/catalog/<%= i.id %>/edit" class="btn btn-sm">Изменить</a>
           <form method="post" action="/catalog/<%= i.id %>/toggle"><button type="submit" class="btn btn-sm"><%= i.is_active ? 'Выкл' : 'Вкл' %></button></form>

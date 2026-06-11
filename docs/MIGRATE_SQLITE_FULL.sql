@@ -1,5 +1,5 @@
 -- =============================================================================
--- AUTOSERVICE CRM — полная миграция SQLite (001_init.sql … 014_catalog_description_tiers.sql)
+-- AUTOSERVICE CRM — полная миграция SQLite (001_init.sql … 015_catalog_material_cost.sql)
 -- =============================================================================
 -- Назначение: развернуть схему на пустой базе SQLite (локально, тесты).
 --
@@ -26,6 +26,7 @@
 --   011_vehicle_catalog.sql
 --   013_catalog_article.sql
 --   014_catalog_description_tiers.sql
+--   015_catalog_material_cost.sql
 -- =============================================================================
 
 PRAGMA foreign_keys = ON;
@@ -391,6 +392,9 @@ ALTER TABLE catalog_items ADD COLUMN price_tier_3 NUMERIC(12,2);
 
 ALTER TABLE order_lines ADD COLUMN vehicle_tier INTEGER;
 
+-- ---------- 015_catalog_material_cost.sql ----------
+ALTER TABLE catalog_items ADD COLUMN default_material_cost NUMERIC(12,2) NOT NULL DEFAULT 0;
+
 -- ---------- migrations registry (после ручного прогона) ----------
 CREATE TABLE IF NOT EXISTS migrations (
   id TEXT PRIMARY KEY,
@@ -409,3 +413,4 @@ INSERT OR IGNORE INTO migrations(id) VALUES ('010_payout_period.sql');
 INSERT OR IGNORE INTO migrations(id) VALUES ('011_vehicle_catalog.sql');
 INSERT OR IGNORE INTO migrations(id) VALUES ('013_catalog_article.sql');
 INSERT OR IGNORE INTO migrations(id) VALUES ('014_catalog_description_tiers.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('015_catalog_material_cost.sql');

@@ -1,0 +1,1 @@
+ALTER TABLE catalog_items ADD COLUMN IF NOT EXISTS default_material_cost NUMERIC(12,2) NOT NULL DEFAULT 0;

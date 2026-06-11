@@ -26,7 +26,8 @@ router.get("/search", async (req, res, next) => {
     const articleLike = `%${q.toUpperCase()}%`;
     const params = [like, articleLike];
     let sql = `
-      SELECT id, type, category, name, article, description, default_price, price_tier_2, price_tier_3, unit
+      SELECT id, type, category, name, article, description, default_price, price_tier_2, price_tier_3,
+             default_material_cost, unit
       FROM catalog_items
       WHERE is_active = 1 AND (name LIKE ? OR article LIKE ?)
     `;
