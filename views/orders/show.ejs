@@ -41,9 +41,16 @@
   <% } %>
   <% } %>
 
-  <p class="order-doc-links">
-    <a class="btn btn-secondary btn-sm" href="/orders/<%= order.id %>/print" target="_blank">Печать</a>
-  </p>
+  <div class="order-doc-links">
+    <details class="print-menu">
+      <summary class="btn btn-secondary btn-sm print-menu__toggle">Печать</summary>
+      <div class="print-menu__panel" role="menu">
+        <a class="print-menu__item" role="menuitem" href="/orders/<%= order.id %>/print" target="_blank" rel="noopener">Заказ-наряд</a>
+        <a class="print-menu__item" role="menuitem" href="/orders/<%= order.id %>/act-acceptance" target="_blank" rel="noopener">Акт приёма-передачи</a>
+        <a class="print-menu__item" role="menuitem" href="/orders/<%= order.id %>/act-completion" target="_blank" rel="noopener">Акт выполненных работ</a>
+      </div>
+    </details>
+  </div>
 </section>
 
 <details class="order-accordion card" open>

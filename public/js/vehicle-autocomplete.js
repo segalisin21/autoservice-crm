@@ -3,6 +3,46 @@
     return m.display_name || m.name || m.name_ru || "";
   }
 
+  function findBestMark(items, q) {
+    if (!items.length) return null;
+    var lower = q.toLowerCase();
+    var exact = items.find(function (m) {
+      var label = itemLabel(m).toLowerCase();
+      return label === lower || (m.autoru_id || "").toLowerCase() === lower;
+    });
+    if (exact) return exact;
+    var starts = items.find(function (m) {
+      return itemLabel(m).toLowerCase().indexOf(lower) === 0;
+    });
+    if (starts) return starts;
+    if (items.length === 1) return items[0];
+    return items.find(function (m) {
+      return itemLabel(m).toLowerCase().indexOf(lower) !== -1;
+    }) || null;
+  }
+
+  function applyModelPick(item, ctx) {
+    ctx.modelInput.value = item.label;
+    if (ctx.modelIdInput) ctx.modelIdInput.value = String(item.id);
+    var m = item.raw;
+    if (item.mark_display_name && ctx.makeInput) {
+      ctx.makeInput.value = item.mark_display_name;
+      ctx.markId = m.mark_id;
+      ctx.lastPickedMake = item.mark_display_name;
+    }
+    if (ctx.yearInput && (m.year_from || m.year_to)) {
+      var now = new Date().getFullYear();
+      var y = m.year_to && m.year_to <= now ? m.year_to : m.year_from || now;
+      ctx.yearInput.value = String(y);
+    }
+    fetchJson("/api/vehicles/generations?model_id=" + encodeURIComponent(item.id))
+      .then(function (data) {
+        var gens = data.items || [];
+        if (ctx.bodyInput && gens[0]) ctx.bodyInput.value = gens[0].body_type || "";
+      })
+      .catch(function () {});
+  }
+
   function debounce(fn, ms) {
     var t;
     return function () {
@@ -189,6 +229,26 @@
 
     if (!makeInput || !modelInput) return;
 
+    var ctx = {
+      makeInput: makeInput,
+      modelInput: modelInput,
+      yearInput: yearInput,
+      bodyInput: bodyInput,
+      modelIdInput: modelIdInput,
+      get markId() {
+        return markId;
+      },
+      set markId(v) {
+        markId = v;
+      },
+      get lastPickedMake() {
+        return lastPickedMake;
+      },
+      set lastPickedMake(v) {
+        lastPickedMake = v;
+      }
+    };
+
     function resolveMarkId(callback) {
       if (markId && makeInput.value.trim() === lastPickedMake) {
         callback(markId);
@@ -201,15 +261,9 @@
       }
       fetchJson("/api/vehicles/marks?q=" + encodeURIComponent(q))
         .then(function (data) {
-          var items = data.items || [];
-          var lower = q.toLowerCase();
-          var exact = items.find(function (m) {
-            var label = itemLabel(m).toLowerCase();
-            return label === lower || (m.autoru_id || "").toLowerCase() === lower;
-          });
-          var hit = exact || (items.length === 1 ? items[0] : null);
+          var hit = findBestMark(data.items || [], q);
           markId = hit ? hit.id : null;
-          if (hit) lastPickedMake = makeInput.value.trim();
+          if (hit) lastPickedMake = itemLabel(hit);
           callback(markId);
         })
         .catch(function () {
@@ -217,50 +271,49 @@
         });
     }
 
+    function mapModelItem(m) {
+      var metaParts = [];
+      if (m.mark_display_name) metaParts.push(m.mark_display_name);
+      var years = formatYearRange(m);
+      if (years) metaParts.push(years);
+      return {
+        id: m.id,
+        label: itemLabel(m),
+        meta: metaParts.join(" · "),
+        mark_display_name: m.mark_display_name || "",
+        raw: m
+      };
+    }
+
+    function fetchModels(q, render) {
+      if (!q) {
+        render({ hint: "Начните вводить модель" });
+        return;
+      }
+      resolveMarkId(function (id) {
+        var url = id
+          ? "/api/vehicles/models?mark_id=" + encodeURIComponent(id) + "&q=" + encodeURIComponent(q)
+          : "/api/vehicles/models?q=" + encodeURIComponent(q);
+        fetchJson(url)
+          .then(function (data) {
+            render({
+              items: (data.items || []).map(mapModelItem)
+            });
+          })
+          .catch(function () {
+            render({ items: [] });
+          });
+      });
+    }
+
     var modelAc = bindAutocomplete(modelInput, {
       emptyText: "Модели не найдены",
       fetchItems: function (q, render) {
         render({ loading: true });
-        resolveMarkId(function (id) {
-          if (!id) {
-            render({ hint: "Сначала выберите марку из списка" });
-            return;
-          }
-          fetchJson(
-            "/api/vehicles/models?mark_id=" + encodeURIComponent(id) + "&q=" + encodeURIComponent(q)
-          )
-            .then(function (data) {
-              render({
-                items: (data.items || []).map(function (m) {
-                  return {
-                    id: m.id,
-                    label: itemLabel(m),
-                    meta: formatYearRange(m),
-                    raw: m
-                  };
-                })
-              });
-            })
-            .catch(function () {
-              render({ items: [] });
-            });
-        });
+        fetchModels(q, render);
       },
       onPick: function (item) {
-        modelInput.value = item.label;
-        if (modelIdInput) modelIdInput.value = String(item.id);
-        var m = item.raw;
-        if (yearInput && (m.year_from || m.year_to)) {
-          var now = new Date().getFullYear();
-          var y = m.year_to && m.year_to <= now ? m.year_to : m.year_from || now;
-          yearInput.value = String(y);
-        }
-        fetchJson("/api/vehicles/generations?model_id=" + encodeURIComponent(item.id))
-          .then(function (data) {
-            var gens = data.items || [];
-            if (bodyInput && gens[0]) bodyInput.value = gens[0].body_type || "";
-          })
-          .catch(function () {});
+        applyModelPick(item, ctx);
       }
     });
 

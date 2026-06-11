@@ -47,6 +47,20 @@ test("vehicle marks API uses cyrillic when configured", async (t) => {
   assert.equal(res.body.name_mode, "cyrillic");
 });
 
+test("vehicle marks API is case-insensitive", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+  await seedVehicleCatalog(ctx.db);
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const res = await agent.get("/api/vehicles/marks?q=TOY");
+  assert.equal(res.status, 200);
+  assert.equal(res.body.items.length, 1);
+  assert.equal(res.body.items[0].display_name, "Toyota");
+});
+
 test("vehicle models API filters by mark", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
@@ -59,6 +73,35 @@ test("vehicle models API filters by mark", async (t) => {
   const res = await agent.get(`/api/vehicles/models?mark_id=${mark[0].id}&q=cam`);
   assert.equal(res.status, 200);
   assert.equal(res.body.items[0].display_name, "Camry");
+});
+
+test("vehicle models API is case-insensitive", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+  await seedVehicleCatalog(ctx.db);
+  const mark = await ctx.db.query("SELECT id FROM vehicle_marks WHERE autoru_id = 'toyota'");
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const res = await agent.get(`/api/vehicles/models?mark_id=${mark[0].id}&q=CAM`);
+  assert.equal(res.status, 200);
+  assert.equal(res.body.items[0].display_name, "Camry");
+});
+
+test("vehicle models API searches globally without mark", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+  await seedVehicleCatalog(ctx.db);
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const res = await agent.get("/api/vehicles/models?q=camry");
+  assert.equal(res.status, 200);
+  assert.equal(res.body.items.length, 1);
+  assert.equal(res.body.items[0].display_name, "Camry");
+  assert.equal(res.body.items[0].mark_display_name, "Toyota");
 });
 
 test("vehicle API requires auth", async (t) => {

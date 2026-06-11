@@ -1,9 +1,9 @@
 const express = require("express");
 
 const { getDB } = require("../config/database");
-const { searchMarks, searchModels, listGenerations, getModelById } = require("../lib/vehicleCatalog");
+const { searchMarks, searchModels, searchModelsGlobal, listGenerations, getModelById } = require("../lib/vehicleCatalog");
+const { vehicleDisplayName, withVehicleDisplayNames } = require("../lib/vehicleNames");
 const { loadVehicleCatalogSettings } = require("../lib/settings");
-const { withVehicleDisplayNames } = require("../lib/vehicleNames");
 const { syncAll, syncGenerationsForModel } = require("../lib/autoruCatalog");
 const { requirePermission } = require("../middleware/auth");
 
@@ -26,14 +26,34 @@ router.get("/marks", async (req, res, next) => {
   }
 });
 
+function mapModelItems(rows, mode) {
+  return (rows || []).map(function (row) {
+    const item = Object.assign({}, row, { display_name: vehicleDisplayName(row, mode) });
+    if (row.mark_name != null || row.mark_name_ru != null) {
+      item.mark_display_name = vehicleDisplayName(
+        { name: row.mark_name, name_ru: row.mark_name_ru },
+        mode
+      );
+    }
+    return item;
+  });
+}
+
 router.get("/models", async (req, res, next) => {
   try {
     const db = await getDB();
     const markId = req.query.mark_id;
     const q = String(req.query.q ?? "");
     const mode = await vehicleNameMode(db);
-    const rows = await searchModels(db, markId, q, 15);
-    res.json({ items: withVehicleDisplayNames(rows, mode), name_mode: mode });
+    let rows;
+    if (markId) {
+      rows = await searchModels(db, markId, q, 15);
+    } else if (q.trim()) {
+      rows = await searchModelsGlobal(db, q, 15);
+    } else {
+      rows = [];
+    }
+    res.json({ items: mapModelItems(rows, mode), name_mode: mode });
   } catch (err) {
     next(err);
   }
