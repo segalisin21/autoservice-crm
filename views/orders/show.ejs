@@ -69,6 +69,8 @@
             <strong><%= l.name %></strong>
             <span><%= Number(l.total).toFixed(2) %> ₽</span>
           </div>
+          <% if (l.notes) { %><p class="muted line-notes-preview" style="margin:4px 0 8px; font-size:13px; white-space:pre-line;"><%= l.notes %></p><% } %>
+          <% if (l.vehicle_tier && Number(l.vehicle_tier) > 1) { %><p class="muted" style="margin:0 0 8px; font-size:12px;">Кат. авто: <%= l.vehicle_tier %> (внутр.)</p><% } %>
           <% if (typeof isMasterView !== 'undefined' && isMasterView && l.payroll_estimate != null) { %>
             <p class="muted" style="margin:4px 0;">≈ ЗП <%= Number(l.payroll_estimate).toFixed(0) %> ₽</p>
           <% } %>

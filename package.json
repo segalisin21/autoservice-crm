@@ -11,6 +11,7 @@
     "seed:owner": "node scripts/seed-owner.js",
     "import:uchet": "node scripts/import-uchet-csv.js",
     "import:price": "node scripts/import-price.js",
+    "import:price-sheet": "node scripts/import-price-sheet.js",
     "sync:vehicles": "node scripts/sync-autoru-catalog.js",
     "export:vehicle-seed": "node scripts/export-vehicle-seed.js",
     "import:carsbase-seed": "node scripts/import-carsbase-seed.js",

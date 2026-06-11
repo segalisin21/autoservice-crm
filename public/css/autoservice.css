@@ -1525,3 +1525,64 @@ body.layout-nav-open .order-fab-bar {
   }
 }
 
+.schedule-time-grid-wrap {
+  display: none;
+}
+
+.garage-day-grid-wrap {
+  display: block;
+}
+
+.schedule-time-grid-scroll {
+  overflow-x: auto;
+  margin-top: 0.75rem;
+}
+
+.schedule-time-grid .slot-cell {
+  min-height: 56px;
+  vertical-align: top;
+  text-align: left;
+}
+
+.schedule-time-grid .garage-order-card {
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+}
+
+.schedule-time-grid .garage-order-card:last-child {
+  margin-bottom: 0;
+}
+
+.schedule-no-time-banner {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+  border: 1px solid var(--gray-200, #e5e7eb);
+  border-radius: var(--border-radius, 8px);
+  background: var(--gray-50, #f9fafb);
+}
+
+.schedule-no-time-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+@media (min-width: 1280px) {
+  .schedule-time-grid-wrap {
+    display: block;
+  }
+
+  .garage-day-grid-wrap {
+    display: none;
+  }
+
+  .dashboard .schedule-time-grid thead th.time-col,
+  .dashboard .schedule-time-grid tbody td.time-cell {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--gray-50, #f9fafb);
+  }
+}
+

@@ -2,6 +2,7 @@ const path = require("node:path");
 
 const { getDB } = require("../config/database");
 const { applyMigrations } = require("../config/migrations");
+const { suggestNextArticle } = require("../lib/catalogArticle");
 const { readUchetCsv, collectCatalogItems } = require("../lib/uchetCsv");
 
 async function upsertCatalog(db, items) {
@@ -14,9 +15,10 @@ async function upsertCatalog(db, items) {
     if (existing[0]) {
       await db.query(`UPDATE catalog_items SET default_price = ? WHERE id = ?`, [item.default_price, existing[0].id]);
     } else {
+      const article = await suggestNextArticle(db, item.type);
       await db.query(
-        `INSERT INTO catalog_items(type, category, name, default_price, unit, is_active) VALUES (?, ?, ?, ?, 'шт', 1)`,
-        [item.type, item.category, item.name, item.default_price]
+        `INSERT INTO catalog_items(type, category, name, article, default_price, unit, is_active) VALUES (?, ?, ?, ?, ?, 'шт', 1)`,
+        [item.type, item.category, item.name, article, item.default_price]
       );
     }
     upserted += 1;

@@ -15,6 +15,7 @@ const { WORK_TYPES, normalizeWorkType, lineTypeForWorkType } = require("../lib/w
 const { normalizePlate, normalizePlateStrict, normalizePhone, normalizeVin } = require("../lib/normalize");
 const { relativePathFor, absolutePathFor } = require("../lib/upload");
 const { loadOrderEconomics, loadOrderLinkedExpenses } = require("../lib/orderEconomics");
+const { priceForVehicleTier, normalizeVehicleTier } = require("../lib/catalogPricing");
 const { statusLabel, ORDER_STATUS_LABELS } = require("../lib/orderStatusLabels");
 const fs = require("node:fs");
 
@@ -70,7 +71,9 @@ async function insertOrderLine(db, payload) {
     payload.master_id,
     payload.work_status,
     payload.labor_minutes,
-    payload.cost_price
+    payload.cost_price,
+    payload.notes ?? null,
+    payload.vehicle_tier ?? null
   ];
   let lineId = null;
   if (typeof db.insertReturning === "function") {
@@ -78,8 +81,8 @@ async function insertOrderLine(db, payload) {
       `
       INSERT INTO order_lines(
         order_id, line_type, catalog_item_id, name, quantity, unit_price, total,
-        master_id, work_status, labor_minutes, cost_price
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        master_id, work_status, labor_minutes, cost_price, notes, vehicle_tier
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       params
     );
@@ -88,8 +91,8 @@ async function insertOrderLine(db, payload) {
       `
       INSERT INTO order_lines(
         order_id, line_type, catalog_item_id, name, quantity, unit_price, total,
-        master_id, work_status, labor_minutes, cost_price
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        master_id, work_status, labor_minutes, cost_price, notes, vehicle_tier
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       params
     );
@@ -579,16 +582,26 @@ async function addLine(req, res) {
   let name = String(req.body.name ?? "").trim();
   let unit_price = parseMoney(req.body.unit_price);
   const quantity = parseMoney(req.body.quantity) || 1;
+  let lineNotes = String(req.body.line_notes ?? "").trim() || null;
+  let vehicle_tier = parseOptionalInt(req.body.vehicle_tier);
 
   if (catalogId) {
-    const cat = await db.query("SELECT name, default_price, type FROM catalog_items WHERE id = ?", [catalogId]);
+    const cat = await db.query(
+      "SELECT name, description, default_price, price_tier_2, price_tier_3, type FROM catalog_items WHERE id = ?",
+      [catalogId]
+    );
     if (cat[0]) {
       name = cat[0].name;
-      if (!req.body.unit_price) unit_price = parseMoney(cat[0].default_price);
+      if (!lineNotes && cat[0].description) lineNotes = cat[0].description;
+      if (!req.body.unit_price) {
+        vehicle_tier = normalizeVehicleTier(vehicle_tier);
+        unit_price = priceForVehicleTier(cat[0], vehicle_tier);
+      }
       if (cat[0].type !== line_type) line_type = cat[0].type;
     }
   }
   if (!name) return res.redirect(`/orders/${orderId}`);
+  if (vehicle_tier != null) vehicle_tier = normalizeVehicleTier(vehicle_tier);
 
   const labor_minutes = parseOptionalInt(req.body.labor_minutes);
   const cost_price = line_type === "product" ? parseMoney(req.body.cost_price) : 0;
@@ -612,7 +625,9 @@ async function addLine(req, res) {
         master_id,
         work_status: "pending",
         labor_minutes,
-        cost_price: 0
+        cost_price: 0,
+        notes: lineNotes,
+        vehicle_tier
       });
     }
   } else {
@@ -627,7 +642,9 @@ async function addLine(req, res) {
       master_id: null,
       work_status: null,
       labor_minutes: null,
-      cost_price
+      cost_price,
+      notes: lineNotes,
+      vehicle_tier
     });
   }
 

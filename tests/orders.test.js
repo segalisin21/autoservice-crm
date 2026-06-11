@@ -397,6 +397,32 @@ test("orders list due_only shows orders with balance", async (t) => {
   assert.doesNotMatch(res.text, new RegExp(`/orders/${paidOrderId}`));
 });
 
+test("add line from catalog with vehicle_tier sets price and description snapshot", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(
+    `INSERT INTO catalog_items(type, category, name, article, description, default_price, price_tier_2, price_tier_3, is_active)
+     VALUES ('work', 'Мойка', 'Комплекс Тест', 'W-TIER1', '• пункт один\n• пункт два', 5000, 5500, 6000, 1)`
+  );
+  const catId = (await ctx.db.query("SELECT id FROM catalog_items WHERE article = 'W-TIER1'"))[0].id;
+
+  const { agent, orderId } = await seedOrderWithAgent(ctx);
+  const res = await agent.post(`/orders/${orderId}/lines`).type("form").send({
+    line_type: "work",
+    catalog_item_id: String(catId),
+    vehicle_tier: "2",
+    quantity: "1"
+  });
+  assert.equal(res.status, 302);
+
+  const line = (await ctx.db.query("SELECT * FROM order_lines WHERE order_id = ? ORDER BY id DESC LIMIT 1", [orderId]))[0];
+  assert.equal(line.name, "Комплекс Тест");
+  assert.equal(Number(line.unit_price), 5500);
+  assert.equal(line.vehicle_tier, 2);
+  assert.match(line.notes, /пункт один/);
+});
+
 test("orders list renders data table on mobile width markup", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());

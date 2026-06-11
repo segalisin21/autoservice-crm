@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const request = require("supertest");
 
 const { createTestApp } = require("./helpers/testApp");
-const { getDayByEmployees, getMonthCalendar } = require("../lib/calendarData");
+const { getDayByEmployees, getMonthCalendar, assignOrdersToTimeSlots } = require("../lib/calendarData");
 
 test("dashboard month view shows calendar", async (t) => {
   const ctx = await createTestApp();
@@ -64,4 +64,36 @@ test("dashboard day view shows employee columns", async (t) => {
   assert.equal(res.status, 200);
   assert.match(res.text, /garage-day-grid/);
   assert.match(res.text, /Master/);
+});
+
+test("order at 14:00 lands in correct time slot", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  await ctx.db.query(`INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('Slot', '+7', '79991113344')`);
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, make) VALUES (?, 'Audi')`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+
+  const day = "2026-06-15";
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, scheduled_date, assigned_user_id, start_time, total_price) VALUES (?, 'scheduled', ?, ?, '14:30', 2000)`,
+    [carId, day, masterId]
+  );
+
+  const dayData = await getDayByEmployees(day);
+  const grid = assignOrdersToTimeSlots(dayData);
+  const col = grid.columns.find((c) => c.id === masterId);
+  assert.ok(col);
+  assert.equal(col.byHour[14].length, 1);
+  assert.equal(col.byHour[14][0].start_time, "14:30");
+  assert.equal(col.byHour[10].length, 0);
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const html = await agent.get(`/?mode=day&date=${day}`);
+  assert.equal(html.status, 200);
+  assert.match(html.text, /schedule-time-grid/);
+  assert.match(html.text, /data-hour="14"/);
 });

@@ -1,0 +1,47 @@
+<% if (timeGrid.noTime && timeGrid.noTime.length) { %>
+<div class="schedule-no-time-banner">
+  <div class="garage-bay-header">
+    <span>Без времени</span>
+    <span class="garage-bay-count"><%= timeGrid.noTime.length %></span>
+  </div>
+  <div class="schedule-no-time-cards">
+    <% timeGrid.noTime.forEach(function(o) { %>
+      <%- include('order-card', { o: o, statusLabel: statusLabel }) %>
+    <% }); %>
+  </div>
+</div>
+<% } %>
+
+<div class="schedule-time-grid-scroll">
+  <table class="schedule-table schedule-time-grid">
+    <thead>
+      <tr>
+        <th class="time-col">Время</th>
+        <% (timeGrid.columns || []).forEach(function(col) { %>
+          <th class="resource-col">
+            <div class="resource-name"><%= col.name %></div>
+          </th>
+        <% }); %>
+      </tr>
+    </thead>
+    <tbody>
+      <% (timeGrid.hours || []).forEach(function(slot) { %>
+        <tr>
+          <td class="time-cell"><%= slot.label %></td>
+          <% (timeGrid.columns || []).forEach(function(col) { %>
+            <td class="slot-cell" data-hour="<%= slot.hour %>" data-employee="<%= col.id %>">
+              <% const slotOrders = (col.byHour && col.byHour[slot.hour]) ? col.byHour[slot.hour] : []; %>
+              <% if (!slotOrders.length) { %>
+                <span class="slot-free">—</span>
+              <% } else { %>
+                <% slotOrders.forEach(function(o) { %>
+                  <%- include('order-card', { o: o, statusLabel: statusLabel }) %>
+                <% }); %>
+              <% } %>
+            </td>
+          <% }); %>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</div>

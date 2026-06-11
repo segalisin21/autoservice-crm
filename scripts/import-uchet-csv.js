@@ -7,6 +7,7 @@ const { seedDefaultPermissions } = require("../config/permissions");
 const { hashPassword } = require("../lib/password");
 const { recomputeOrderTotals } = require("../lib/orderTotals");
 const { freezeOrderEarned } = require("../lib/payroll");
+const { suggestNextArticle } = require("../lib/catalogArticle");
 const {
   readUchetCsv,
   buildOrderGroups,
@@ -65,9 +66,10 @@ async function upsertCatalog(db, items) {
     if (existing[0]) {
       await db.query(`UPDATE catalog_items SET default_price = ? WHERE id = ?`, [item.default_price, existing[0].id]);
     } else {
+      const article = await suggestNextArticle(db, item.type);
       await db.query(
-        `INSERT INTO catalog_items(type, category, name, default_price, unit, is_active) VALUES (?, ?, ?, ?, 'шт', 1)`,
-        [item.type, item.category, item.name, item.default_price]
+        `INSERT INTO catalog_items(type, category, name, article, default_price, unit, is_active) VALUES (?, ?, ?, ?, ?, 'шт', 1)`,
+        [item.type, item.category, item.name, article, item.default_price]
       );
     }
   }

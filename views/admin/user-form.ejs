@@ -18,9 +18,12 @@
       </select>
     </label>
     <label>Новый пароль (если менять) <input name="password" type="text" autocomplete="new-password" /></label>
-    <div style="grid-column:1/-1; display:flex; gap:8px;">
+    <div style="grid-column:1/-1; display:flex; gap:8px; flex-wrap:wrap;">
       <button type="submit" class="btn btn-primary">Сохранить</button>
       <a class="btn btn-secondary" href="/admin/users">Назад</a>
+      <% if (target.id !== user.id) { %>
+      <button type="submit" class="btn btn-sm" formaction="/admin/users/<%= target.id %>?_method=DELETE" formmethod="post" onclick="return confirm('Удалить сотрудника безвозвратно?');" style="color:var(--danger, #c00);">Удалить</button>
+      <% } %>
     </div>
   </form>
 </section>

@@ -10,6 +10,24 @@
     };
   }
 
+  function hasTiers(item) {
+    return (
+      (item.price_tier_2 != null && Number(item.price_tier_2) > 0) ||
+      (item.price_tier_3 != null && Number(item.price_tier_3) > 0)
+    );
+  }
+
+  function tierPrice(item, tier) {
+    var t = Number(tier) || 1;
+    if (t === 2 && item.price_tier_2 != null && Number(item.price_tier_2) > 0) {
+      return Number(item.price_tier_2);
+    }
+    if (t === 3 && item.price_tier_3 != null && Number(item.price_tier_3) > 0) {
+      return Number(item.price_tier_3);
+    }
+    return Number(item.default_price) || 0;
+  }
+
   function createDropdown(input) {
     var wrap = input.closest(".ac-wrap") || input.parentElement;
     if (!wrap.classList.contains("ac-wrap")) {
@@ -29,6 +47,29 @@
     return list;
   }
 
+  function ensureTierBlock(form) {
+    var block = form.querySelector(".catalog-tier-block");
+    if (!block) {
+      block = document.createElement("div");
+      block.className = "catalog-tier-block";
+      block.hidden = true;
+      block.innerHTML =
+        '<label class="catalog-tier-label">Категория авто (внутр.) ' +
+        '<select name="vehicle_tier">' +
+        '<option value="1">1 кат. (седан)</option>' +
+        '<option value="2">2 кат. (паркетник)</option>' +
+        '<option value="3">3 кат. (внедорожник)</option>' +
+        "</select></label>";
+      var priceRow = form.querySelector(".form-row-2");
+      if (priceRow) {
+        priceRow.parentNode.insertBefore(block, priceRow);
+      } else {
+        form.appendChild(block);
+      }
+    }
+    return block;
+  }
+
   function initCatalogAutocomplete(form) {
     var nameInput = form.querySelector('input[name="name"]');
     var priceInput = form.querySelector('input[name="unit_price"]');
@@ -36,9 +77,35 @@
     if (!nameInput) return;
 
     var list = createDropdown(nameInput);
+    var tierBlock = ensureTierBlock(form);
+    var tierSelect = tierBlock.querySelector('select[name="vehicle_tier"]');
     var lineType = form.querySelector('input[name="line_type"]');
     var type = lineType ? lineType.value : "work";
     var category = form.dataset.workCategory || "";
+    var selectedItem = null;
+
+    function applyItem(item) {
+      selectedItem = item;
+      nameInput.value = item.name;
+      if (hiddenId) hiddenId.value = String(item.id);
+      if (hasTiers(item)) {
+        tierBlock.hidden = false;
+        var tier = tierSelect ? tierSelect.value : "1";
+        if (priceInput) priceInput.value = String(tierPrice(item, tier));
+      } else {
+        tierBlock.hidden = true;
+        if (priceInput) priceInput.value = String(item.default_price);
+      }
+      list.hidden = true;
+    }
+
+    if (tierSelect) {
+      tierSelect.addEventListener("change", function () {
+        if (selectedItem && priceInput) {
+          priceInput.value = String(tierPrice(selectedItem, tierSelect.value));
+        }
+      });
+    }
 
     function render(items) {
       list.innerHTML = "";
@@ -49,13 +116,19 @@
       items.forEach(function (item) {
         var li = document.createElement("li");
         li.className = "ac-item";
-        li.textContent = item.name + " — " + Number(item.default_price).toLocaleString("ru-RU") + " ₽";
+        var priceLabel = Number(item.default_price).toLocaleString("ru-RU") + " ₽";
+        if (hasTiers(item)) {
+          priceLabel +=
+            " (2/3: " +
+            Number(item.price_tier_2 || 0).toLocaleString("ru-RU") +
+            " / " +
+            Number(item.price_tier_3 || 0).toLocaleString("ru-RU") +
+            ")";
+        }
+        li.textContent = item.name + " — " + priceLabel;
         li.addEventListener("mousedown", function (e) {
           e.preventDefault();
-          nameInput.value = item.name;
-          if (priceInput) priceInput.value = String(item.default_price);
-          if (hiddenId) hiddenId.value = String(item.id);
-          list.hidden = true;
+          applyItem(item);
         });
         list.appendChild(li);
       });
@@ -85,6 +158,8 @@
 
     nameInput.addEventListener("input", function () {
       if (hiddenId) hiddenId.value = "";
+      selectedItem = null;
+      tierBlock.hidden = true;
       runSearch();
     });
     nameInput.addEventListener("focus", runSearch);

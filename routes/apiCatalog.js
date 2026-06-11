@@ -1,6 +1,12 @@
 const express = require("express");
 
 const { getDB } = require("../config/database");
+const {
+  normalizeArticle,
+  validateArticleFormat,
+  findArticleConflict,
+  suggestNextArticle
+} = require("../lib/catalogArticle");
 
 const router = express.Router();
 
@@ -17,11 +23,12 @@ router.get("/search", async (req, res, next) => {
     }
 
     const like = `%${q}%`;
-    const params = [like];
+    const articleLike = `%${q.toUpperCase()}%`;
+    const params = [like, articleLike];
     let sql = `
-      SELECT id, type, category, name, default_price, unit
+      SELECT id, type, category, name, article, description, default_price, price_tier_2, price_tier_3, unit
       FROM catalog_items
-      WHERE is_active = 1 AND name LIKE ?
+      WHERE is_active = 1 AND (name LIKE ? OR article LIKE ?)
     `;
     if (type === "work" || type === "product") {
       sql += " AND type = ?";
@@ -36,6 +43,46 @@ router.get("/search", async (req, res, next) => {
 
     const rows = await db.query(sql, params);
     res.json({ items: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/check-article", async (req, res, next) => {
+  try {
+    const db = await getDB();
+    const article = normalizeArticle(req.query.article);
+    const excludeId = req.query.exclude_id != null ? Number(req.query.exclude_id) : null;
+
+    const formatErr = validateArticleFormat(article);
+    if (formatErr) {
+      return res.json({ available: false, error: formatErr });
+    }
+
+    const existing = await findArticleConflict(db, article, excludeId);
+    if (existing) {
+      return res.json({
+        available: false,
+        existing: {
+          id: existing.id,
+          name: existing.name,
+          type: existing.type,
+          category: existing.category
+        }
+      });
+    }
+    return res.json({ available: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/suggest-article", async (req, res, next) => {
+  try {
+    const db = await getDB();
+    const type = req.query.type === "product" ? "product" : "work";
+    const article = await suggestNextArticle(db, type);
+    res.json({ article });
   } catch (err) {
     next(err);
   }

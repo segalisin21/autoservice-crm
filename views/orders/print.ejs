@@ -17,6 +17,7 @@
     .signs { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; font-size: 13px; }
     .sign-line { margin-top: 28px; border-top: 1px solid #333; padding-top: 4px; }
     .actions { margin-bottom: 16px; }
+    .line-desc { font-size: 11px; color: #555; margin-top: 4px; white-space: pre-line; }
     @media print { .actions { display: none; } }
   </style>
 </head>
@@ -41,7 +42,7 @@
     <thead><tr><th>Наименование</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
     <tbody>
       <% works.forEach(l => { %>
-        <tr><td><%= l.name %></td><td><%= l.quantity %></td><td><%= Number(l.unit_price).toFixed(2) %></td><td><%= Number(l.total).toFixed(2) %></td></tr>
+        <tr><td><%- include('../partials/order-line-name-cell', { l: l }) %></td><td><%= l.quantity %></td><td><%= Number(l.unit_price).toFixed(2) %></td><td><%= Number(l.total).toFixed(2) %></td></tr>
       <% }) %>
       <% if (!works.length) { %><tr><td colspan="4" style="color:#888;">—</td></tr><% } %>
     </tbody>
@@ -52,7 +53,7 @@
     <thead><tr><th>Наименование</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
     <tbody>
       <% products.forEach(l => { %>
-        <tr><td><%= l.name %></td><td><%= l.quantity %></td><td><%= Number(l.unit_price).toFixed(2) %></td><td><%= Number(l.total).toFixed(2) %></td></tr>
+        <tr><td><%- include('../partials/order-line-name-cell', { l: l }) %></td><td><%= l.quantity %></td><td><%= Number(l.unit_price).toFixed(2) %></td><td><%= Number(l.total).toFixed(2) %></td></tr>
       <% }) %>
       <% if (!products.length) { %><tr><td colspan="4" style="color:#888;">—</td></tr><% } %>
     </tbody>

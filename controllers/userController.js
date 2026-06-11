@@ -118,4 +118,44 @@ async function toggleActive(req, res) {
   return res.redirect("/admin/users");
 }
 
-module.exports = { list, create, showEdit, update, toggleActive };
+async function remove(req, res) {
+  const db = await getDB();
+  const id = Number(req.params.id);
+  if (id === req.session.user.id) {
+    return res.status(400).send("Нельзя удалить свою учётную запись");
+  }
+
+  const rows = await db.query("SELECT id, role FROM users WHERE id = ?", [id]);
+  if (!rows.length) return res.status(404).send("Not found");
+  const target = rows[0];
+
+  if (target.role === "owner") {
+    const owners = await db.query("SELECT id FROM users WHERE role = 'owner'");
+    if (owners.length <= 1) {
+      return res.status(409).send("Нельзя удалить последнего владельца");
+    }
+  }
+
+  const payroll = await db.query("SELECT COUNT(*) AS cnt FROM order_line_payroll WHERE user_id = ?", [id]);
+  if (Number(payroll[0]?.cnt) > 0) {
+    return res
+      .status(409)
+      .send("Сотрудник участвует в заказах — отключите вместо удаления");
+  }
+
+  const assigned = await db.query(
+    `SELECT COUNT(*) AS cnt FROM orders WHERE assigned_user_id = ? AND status NOT IN ('cancelled', 'completed')`,
+    [id]
+  );
+  if (Number(assigned[0]?.cnt) > 0) {
+    return res
+      .status(409)
+      .send("Сотрудник участвует в заказах — отключите вместо удаления");
+  }
+
+  await db.query("DELETE FROM users WHERE id = ?", [id]);
+  clearPermissionCache();
+  return res.redirect("/admin/users");
+}
+
+module.exports = { list, create, showEdit, update, toggleActive, remove };

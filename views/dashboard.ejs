@@ -14,6 +14,7 @@
   var viewDayStats = (typeof dayStats !== 'undefined' && dayStats) ? dayStats : { count: 0, revenue: 0, employees_busy: 0, employees_total: 0 };
   var viewNav = (typeof nav !== 'undefined' && nav) ? nav : {};
   var viewDayData = (typeof dayData !== 'undefined') ? dayData : null;
+  var viewTimeGrid = (typeof timeGrid !== 'undefined') ? timeGrid : null;
   var viewFinance = (typeof finance !== 'undefined') ? finance : null;
   var viewShowMoney = (typeof showMoney !== 'undefined') ? showMoney : false;
   var pageTitle = (typeof title !== 'undefined' && title) ? title : (viewMode === 'day' ? 'Расписание' : 'Календарь');
@@ -97,44 +98,52 @@
       </div>
     </div>
 
-    <% if (viewDayData.unassigned && viewDayData.unassigned.length) { %>
-    <div class="garage-unassigned">
-      <div class="garage-bay-column">
-        <div class="garage-bay-header">
-          <span>Без сотрудника</span>
-          <span class="garage-bay-count"><%= viewDayData.unassigned.length %></span>
-        </div>
-        <div class="garage-bay-body">
-          <% viewDayData.unassigned.forEach(function(o) { %>
-            <%- include('partials/order-card', { o: o, statusLabel: statusLabel }) %>
-          <% }); %>
-        </div>
-      </div>
-    </div>
-    <% } %>
-
     <% if (!viewDayData.employees || !viewDayData.employees.length) { %>
       <p class="dashboard-empty muted">Нет активных сотрудников. Добавьте их в разделе «Сотрудники».</p>
     <% } %>
 
-    <p class="only-mobile schedule-scroll-hint muted">Свайп влево — другие сотрудники</p>
-    <div class="garage-day-grid schedule-day-scroll">
-      <% (viewDayData.employees || []).forEach(function(emp) { %>
+    <% if (viewTimeGrid) { %>
+    <div class="schedule-time-grid-wrap">
+      <%- include('partials/schedule-time-grid', { timeGrid: viewTimeGrid, statusLabel: statusLabel }) %>
+    </div>
+    <% } %>
+
+    <div class="garage-day-grid-wrap">
+      <% if (viewDayData.unassigned && viewDayData.unassigned.length) { %>
+      <div class="garage-unassigned">
         <div class="garage-bay-column">
           <div class="garage-bay-header">
-            <span><%= emp.name %></span>
-            <span class="garage-bay-count"><%= emp.orders.length %></span>
+            <span>Без сотрудника</span>
+            <span class="garage-bay-count"><%= viewDayData.unassigned.length %></span>
           </div>
           <div class="garage-bay-body">
-            <% if (!emp.orders.length) { %>
-              <div class="garage-bay-empty">Свободно</div>
-            <% } %>
-            <% emp.orders.forEach(function(o) { %>
+            <% viewDayData.unassigned.forEach(function(o) { %>
               <%- include('partials/order-card', { o: o, statusLabel: statusLabel }) %>
             <% }); %>
           </div>
         </div>
-      <% }); %>
+      </div>
+      <% } %>
+
+      <p class="only-mobile schedule-scroll-hint muted">Свайп влево — другие сотрудники</p>
+      <div class="garage-day-grid schedule-day-scroll">
+        <% (viewDayData.employees || []).forEach(function(emp) { %>
+          <div class="garage-bay-column">
+            <div class="garage-bay-header">
+              <span><%= emp.name %></span>
+              <span class="garage-bay-count"><%= emp.orders.length %></span>
+            </div>
+            <div class="garage-bay-body">
+              <% if (!emp.orders.length) { %>
+                <div class="garage-bay-empty">Свободно</div>
+              <% } %>
+              <% emp.orders.forEach(function(o) { %>
+                <%- include('partials/order-card', { o: o, statusLabel: statusLabel }) %>
+              <% }); %>
+            </div>
+          </div>
+        <% }); %>
+      </div>
     </div>
   </div>
   <% } %>

@@ -38,17 +38,27 @@
   <% const viewMode = filters.view || 'cards'; %>
   <% if (viewMode === 'table') { %>
   <table class="catalog-table">
-    <thead><tr><th>Тип</th><th>Категория</th><th>Название</th><th>Цена</th><th></th></tr></thead>
+    <thead><tr><th>Артикул</th><th>Тип</th><th>Категория</th><th>Название</th><th>Цена</th><th></th></tr></thead>
     <tbody>
       <% items.forEach(i => { %>
         <tr>
+          <td><code><%= i.article || '—' %></code></td>
           <td><%= i.type === 'work' ? 'Работа' : 'Товар' %></td>
           <td><%= i.category %></td>
-          <td><%= i.name %><% if (!i.is_active) { %> <span class="muted">(выкл)</span><% } %></td>
-          <td><%= Number(i.default_price).toFixed(2) %> ₽</td>
           <td>
+            <%= i.name %><% if (!i.is_active) { %> <span class="muted">(выкл)</span><% } %>
+            <% if (i.description) { %><div class="muted" style="font-size:12px; margin-top:2px;"><%= i.description.split('\n')[0].slice(0, 60) %><% if (i.description.length > 60) { %>…<% } %></div><% } %>
+          </td>
+          <td>
+            <%= Number(i.default_price).toFixed(0) %> ₽
+            <% if (i.price_tier_2 || i.price_tier_3) { %>
+              <span class="muted" style="font-size:11px;"> / <%= i.price_tier_2 ? Number(i.price_tier_2).toFixed(0) : '—' %> / <%= i.price_tier_3 ? Number(i.price_tier_3).toFixed(0) : '—' %></span>
+            <% } %>
+          </td>
+          <td style="display:flex; gap:4px; flex-wrap:wrap;">
             <a href="/catalog/<%= i.id %>/edit">Изм.</a>
             <form method="post" action="/catalog/<%= i.id %>/toggle" style="display:inline;"><button type="submit">⇄</button></form>
+            <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" style="display:inline;" onsubmit="return confirm('Удалить позицию?');"><button type="submit">Удалить</button></form>
           </td>
         </tr>
       <% }) %>
@@ -58,12 +68,20 @@
   <div class="catalog-cards">
     <% items.forEach(i => { %>
       <article class="catalog-card <%= i.is_active ? '' : 'catalog-card--inactive' %>">
-        <div class="catalog-card__type"><%= i.type === 'work' ? 'Работа' : 'Товар' %> · <%= i.category %></div>
+        <div class="catalog-card__type"><%= i.type === 'work' ? 'Работа' : 'Товар' %> · <%= i.category %><% if (i.article) { %> · <code><%= i.article %></code><% } %></div>
         <h3 class="catalog-card__title"><%= i.name %></h3>
-        <div class="catalog-card__price"><%= Number(i.default_price).toLocaleString('ru-RU') %> ₽<% if (i.unit) { %> <span class="muted">/ <%= i.unit %></span><% } %></div>
+        <% if (i.description) { %><p class="catalog-card__desc muted" style="font-size:13px; margin:4px 0;"><%= i.description.split('\n').slice(0, 2).join(' · ') %><% if (i.description.split('\n').length > 2) { %>…<% } %></p><% } %>
+        <div class="catalog-card__price">
+          <%= Number(i.default_price).toLocaleString('ru-RU') %> ₽
+          <% if (i.price_tier_2 || i.price_tier_3) { %>
+            <span class="muted" style="font-size:12px;"> (2/3 кат.: <%= i.price_tier_2 ? Number(i.price_tier_2).toLocaleString('ru-RU') : '—' %> / <%= i.price_tier_3 ? Number(i.price_tier_3).toLocaleString('ru-RU') : '—' %>)</span>
+          <% } %>
+          <% if (i.unit) { %> <span class="muted">/ <%= i.unit %></span><% } %>
+        </div>
         <div class="catalog-card__actions">
           <a href="/catalog/<%= i.id %>/edit" class="btn btn-sm">Изменить</a>
           <form method="post" action="/catalog/<%= i.id %>/toggle"><button type="submit" class="btn btn-sm"><%= i.is_active ? 'Выкл' : 'Вкл' %></button></form>
+          <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');"><button type="submit" class="btn btn-sm">Удалить</button></form>
         </div>
       </article>
     <% }) %>
