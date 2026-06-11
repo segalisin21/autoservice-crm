@@ -6,11 +6,12 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "start:prod": "node scripts/migrate.js && node scripts/seed-owner.js && node server.js",
+    "start:prod": "node scripts/migrate.js && node scripts/seed-catalog.js && node scripts/seed-owner.js && node server.js",
     "migrate": "node scripts/migrate.js",
     "setup:db": "node scripts/setup-database.js",
     "build:migrate-full": "node scripts/build-postgres-full-migration.js && node scripts/build-sqlite-full-migration.js",
     "seed:owner": "node scripts/seed-owner.js",
+    "seed:catalog": "node scripts/seed-catalog.js",
     "import:uchet": "node scripts/import-uchet-csv.js",
     "import:price": "node scripts/import-price.js",
     "import:price-sheet": "node scripts/import-price-sheet.js",
