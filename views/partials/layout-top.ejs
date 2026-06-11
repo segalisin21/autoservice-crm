@@ -15,6 +15,15 @@
   <link rel="stylesheet" href="/css/autoservice.css">
 </head>
 <body class="<%= typeof category !== 'undefined' ? 'page-' + category : '' %>">
+  <script>
+    (function () {
+      try {
+        if (window.matchMedia("(min-width: 1280px)").matches && localStorage.getItem("crm-sidebar-collapsed") === "1") {
+          document.body.classList.add("sidebar-collapsed");
+        }
+      } catch (e) {}
+    })();
+  </script>
   <div class="layout-overlay" id="layout-overlay" aria-hidden="true"></div>
   <div class="app-container">
     <aside class="sidebar" id="app-sidebar" aria-label="Навигация">

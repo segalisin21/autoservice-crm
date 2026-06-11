@@ -31,6 +31,12 @@ function csrfHeaders(base) {
   return h;
 }
 
+var SIDEBAR_COLLAPSED_KEY = 'crm-sidebar-collapsed';
+
+function isMobileNavMode() {
+  return window.matchMedia('(max-width: 1279px)').matches;
+}
+
 function closeMobileNav() {
   document.body.classList.remove('layout-nav-open');
   const overlay = document.getElementById('layout-overlay');
@@ -43,36 +49,70 @@ function openMobileNav() {
   if (overlay) overlay.setAttribute('aria-hidden', 'false');
 }
 
+function setDesktopSidebarCollapsed(collapsed) {
+  document.body.classList.toggle('sidebar-collapsed', collapsed);
+  try {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+  } catch (e) {}
+}
+
+function restoreDesktopSidebarState() {
+  if (isMobileNavMode()) return;
+  try {
+    if (localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1') {
+      document.body.classList.add('sidebar-collapsed');
+    }
+  } catch (e) {}
+}
+
+function toggleSidebar() {
+  if (isMobileNavMode()) {
+    if (document.body.classList.contains('layout-nav-open')) {
+      closeMobileNav();
+    } else {
+      openMobileNav();
+    }
+    return;
+  }
+  setDesktopSidebarCollapsed(!document.body.classList.contains('sidebar-collapsed'));
+}
+
+function collapseSidebar() {
+  if (isMobileNavMode()) {
+    closeMobileNav();
+    return;
+  }
+  setDesktopSidebarCollapsed(true);
+}
+
 function initMobileNav() {
   const openBtn = document.getElementById('btn-nav-open');
   const closeBtn = document.getElementById('btn-nav-close');
   const overlay = document.getElementById('layout-overlay');
   const sidebar = document.getElementById('app-sidebar');
 
-  if (openBtn) {
-    openBtn.addEventListener('click', function () {
-      openMobileNav();
-    });
-  }
-  if (closeBtn) {
-    closeBtn.addEventListener('click', function () {
-      closeMobileNav();
-    });
-  }
-  if (overlay) {
-    overlay.addEventListener('click', function () {
-      closeMobileNav();
-    });
-  }
+  restoreDesktopSidebarState();
+
+  if (openBtn) openBtn.addEventListener('click', toggleSidebar);
+  if (closeBtn) closeBtn.addEventListener('click', collapseSidebar);
+  if (overlay) overlay.addEventListener('click', closeMobileNav);
   if (sidebar) {
     sidebar.querySelectorAll('a.nav-item').forEach(function (link) {
       link.addEventListener('click', function () {
-        if (window.matchMedia('(max-width: 1279px)').matches) {
-          closeMobileNav();
-        }
+        if (isMobileNavMode()) closeMobileNav();
       });
     });
   }
+
+  window.matchMedia('(max-width: 1279px)').addEventListener('change', function () {
+    if (isMobileNavMode()) {
+      document.body.classList.remove('sidebar-collapsed');
+      closeMobileNav();
+    } else {
+      closeMobileNav();
+      restoreDesktopSidebarState();
+    }
+  });
 }
 
 // Отображение текущей даты в sidebar

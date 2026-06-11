@@ -217,7 +217,7 @@ test("add work line with two masters splits total across lines", async (t) => {
   assert.equal(Number(order.subtotal_works), 3000);
 });
 
-test("completed order page shows status badge not chips", async (t) => {
+test("completed order page shows status chips for admin", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
 
@@ -227,15 +227,73 @@ test("completed order page shows status badge not chips", async (t) => {
   const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
   await ctx.db.query(`INSERT INTO cars(client_id) VALUES (?)`, [clientId]);
   const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
-  await ctx.db.query(`INSERT INTO orders(car_id, status, total_price) VALUES (?, 'completed', 100)`, [carId]);
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, closed_at, total_price) VALUES (?, 'completed', datetime('now'), 100)`,
+    [carId]
+  );
   const orderId = (await ctx.db.query("SELECT id FROM orders LIMIT 1"))[0].id;
 
   const agent = request.agent(ctx.app);
   await ctx.loginAs(agent, "admin", "admin");
   const res = await agent.get(`/orders/${orderId}`);
   assert.equal(res.status, 200);
-  assert.match(res.text, /status-badge status-completed/);
-  assert.ok(!res.text.includes('status-chip-form'));
+  assert.match(res.text, /status-chip-form/);
+  assert.match(res.text, /status-chip active/);
+});
+
+test("admin can reopen completed order", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('T', '1', '79990000013')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id) VALUES (?)`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, closed_at, total_price) VALUES (?, 'completed', datetime('now'), 100)`,
+    [carId]
+  );
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const res = await agent.post(`/orders/${orderId}/status`).type("form").send({ status: "in_progress" });
+  assert.equal(res.status, 302);
+
+  const order = (await ctx.db.query("SELECT status, closed_at FROM orders WHERE id = ?", [orderId]))[0];
+  assert.equal(order.status, "in_progress");
+  assert.equal(order.closed_at, null);
+});
+
+test("master cannot change completed order status", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('T', '1', '79990000014')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id) VALUES (?)`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, closed_at, total_price) VALUES (?, 'completed', datetime('now'), 100)`,
+    [carId]
+  );
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "master", "master");
+  const page = await agent.get(`/orders/${orderId}`);
+  assert.equal(page.status, 200);
+  assert.ok(!page.text.includes("status-chip-form"));
+
+  const res = await agent.post(`/orders/${orderId}/status`).type("form").send({ status: "in_progress" });
+  assert.equal(res.status, 403);
+
+  const order = (await ctx.db.query("SELECT status FROM orders WHERE id = ?", [orderId]))[0];
+  assert.equal(order.status, "completed");
 });
 
 test("update work line changes master and price", async (t) => {

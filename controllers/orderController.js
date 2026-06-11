@@ -113,6 +113,11 @@ async function insertOrderLine(db, payload) {
 
 const PAGE_SIZE = 50;
 const ORDER_STATUSES = ["scheduled", "in_progress", "ready", "completed", "cancelled"];
+const ACTIVE_STATUS_OPTIONS = ["scheduled", "in_progress", "ready", "completed"];
+
+function canManageOrderStatus(role) {
+  return role === "owner" || role === "admin";
+}
 
 async function loadMasters(db) {
   return db.query(
@@ -460,6 +465,8 @@ async function show(req, res) {
     orderExpenses,
     isOwnerView,
     isMasterView,
+    canChangeOrderStatus: canManageOrderStatus(role),
+    statusOptions: canManageOrderStatus(role) ? ORDER_STATUSES : ACTIVE_STATUS_OPTIONS,
     statuses: ORDER_STATUSES,
     statusLabels: ORDER_STATUS_LABELS,
     statusLabel,
@@ -535,15 +542,26 @@ async function changeStatus(req, res) {
   }
 
   const db = await getDB();
-  const rows = await db.query("SELECT status FROM orders WHERE id = ?", [id]);
-  const previousStatus = rows[0]?.status;
-  let closed_at = null;
-  if (status === "completed") {
-    closed_at = new Date().toISOString().slice(0, 19).replace("T", " ");
+  const rows = await db.query("SELECT status, closed_at FROM orders WHERE id = ?", [id]);
+  if (!rows.length) return res.status(404).send("Not found");
+
+  const previousStatus = rows[0].status;
+  const manageStatus = canManageOrderStatus(req.session.user?.role);
+  if (!manageStatus && (previousStatus === "completed" || previousStatus === "cancelled")) {
+    return res.redirect(`/orders/${id}`);
   }
+
+  let closed_at = rows[0].closed_at;
+  if (status === "completed") {
+    closed_at =
+      closed_at || new Date().toISOString().slice(0, 19).replace("T", " ");
+  } else if (manageStatus) {
+    closed_at = null;
+  }
+
   const now = sqlNow(db.dialect);
   await db.query(
-    `UPDATE orders SET status = ?, closed_at = COALESCE(closed_at, ?), updated_at = ${now} WHERE id = ?`,
+    `UPDATE orders SET status = ?, closed_at = ?, updated_at = ${now} WHERE id = ?`,
     [status, closed_at, id]
   );
   await onOrderStatusChange(id, previousStatus, status);

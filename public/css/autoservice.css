@@ -650,20 +650,26 @@
 .order-fab-bar {
   position: fixed;
   bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-  left: 0;
-  right: 0;
+  left: 12px;
+  right: 12px;
   display: flex;
   gap: 8px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.95);
-  border-top: 1px solid #e5e7eb;
-  z-index: 50;
+  padding: 8px 0;
+  background: transparent;
+  border-top: none;
+  z-index: 110;
+  pointer-events: none;
+  justify-content: center;
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 .order-fab {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 220px;
   text-align: center;
-  padding: 12px;
+  padding: 12px 16px;
   background: #16a34a;
   color: #fff;
   text-decoration: none;
@@ -673,6 +679,29 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: auto;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.order-fab-bar .order-fab:only-child {
+  flex: 0 1 auto;
+  min-width: 160px;
+  max-width: min(100%, 280px);
+}
+
+body.layout-nav-open .order-fab-bar {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .order-fab-bar {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    max-width: 420px;
+  }
+
+  body.page-orders .content {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .order-fab--pay {

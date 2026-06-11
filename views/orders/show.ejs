@@ -12,15 +12,20 @@
   </div>
   <% } %>
 
-  <% if (order.status !== 'completed' && order.status !== 'cancelled') { %>
+  <% var canChangeStatus = typeof canChangeOrderStatus !== 'undefined' && canChangeOrderStatus; %>
+  <% var statusChipOptions = typeof statusOptions !== 'undefined' ? statusOptions : ['scheduled','in_progress','ready','completed']; %>
+  <% if (canChangeStatus || (order.status !== 'completed' && order.status !== 'cancelled')) { %>
   <div class="status-chips" role="group" aria-label="Статус заказа">
-    <% ['scheduled','in_progress','ready','completed'].forEach(s => { %>
+    <% statusChipOptions.forEach(function(s) { %>
       <form method="post" action="/orders/<%= order.id %>/status" class="status-chip-form">
         <input type="hidden" name="status" value="<%= s %>" />
         <button type="submit" class="status-chip <%= order.status === s ? 'active' : '' %>"><%= statusLabel(s) %></button>
       </form>
     <% }) %>
   </div>
+  <% if (canChangeStatus && (order.status === 'completed' || order.status === 'cancelled')) { %>
+  <p class="muted" style="margin:8px 0 0;font-size:0.8rem;">Владелец/админ: можно вернуть заказ в работу или сменить статус.</p>
+  <% } %>
   <% } else { %>
   <p class="order-status-display">
     <span class="status-badge status-<%= order.status %>"><%= statusLabel(order.status) %></span>

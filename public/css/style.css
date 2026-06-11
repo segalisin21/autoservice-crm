@@ -366,7 +366,7 @@ body.layout-nav-open .layout-overlay {
 }
 
 .btn-sidebar-toggle {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 40px;
@@ -3783,6 +3783,26 @@ body.layout-nav-open .layout-overlay {
 }
 .logout-form { margin: 0; }
 
+/* Десктоп: сворачиваемый сайдбар (состояние в localStorage) */
+@media (min-width: 1280px) {
+  .sidebar {
+    transition: transform 0.2s ease;
+  }
+
+  .sidebar-close {
+    display: inline-flex;
+  }
+
+  body.sidebar-collapsed .sidebar {
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+  }
+
+  body.sidebar-collapsed .main-content {
+    margin-left: 0;
+  }
+}
+
 /* Компактный десктоп: сайдбар уже, сетки в 2 колонки */
 @media (min-width: 1280px) and (max-width: 1600px) {
   :root {
@@ -3817,14 +3837,6 @@ body.layout-nav-open .layout-overlay {
 
 /* Мобильная и планшетная вёрстка: выдвижной сайдбар (до 1280px) */
 @media (max-width: 1279px) {
-  .btn-sidebar-toggle {
-    display: inline-flex;
-  }
-
-  .sidebar-close {
-    display: inline-flex;
-  }
-
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.2s ease;
