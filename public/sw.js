@@ -1,17 +1,18 @@
-const CACHE = "autoservice-v2";
-const ASSETS = [
-  "/css/style.css",
-  "/css/autoservice.css",
-  "/js/app.js",
+const CACHE = "autoservice-v4";
+const PRECACHE = [
   "/icons/icon.svg",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/manifest.webmanifest"
 ];
 
+function isMutableAsset(pathname) {
+  return /\.(css|js)$/.test(pathname);
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS)).catch(() => {})
+    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).catch(() => {})
   );
   self.skipWaiting();
 });
@@ -25,6 +26,12 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
@@ -32,22 +39,39 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
 
-  const isAsset = /\.(css|js|svg|png|jpg|jpeg|webp|gif|webmanifest)$/.test(url.pathname);
-  if (isAsset) {
-    event.respondWith(
-      caches.match(req).then((cached) =>
-        cached ||
-        fetch(req)
-          .then((res) => {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
-            return res;
-          })
-          .catch(() => cached)
-      )
-    );
+  if (isMutableAsset(url.pathname)) {
+    event.respondWith(networkFirst(req));
+    return;
+  }
+
+  if (/\.(svg|png|jpg|jpeg|webp|gif|webmanifest)$/.test(url.pathname)) {
+    event.respondWith(cacheFirst(req));
     return;
   }
 
   event.respondWith(fetch(req).catch(() => caches.match(req)));
 });
+
+function networkFirst(req) {
+  return fetch(req)
+    .then((res) => {
+      if (res && res.status === 200) {
+        const copy = res.clone();
+        caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+      }
+      return res;
+    })
+    .catch(() => caches.match(req));
+}
+
+function cacheFirst(req) {
+  return caches.match(req).then(
+    (cached) =>
+      cached ||
+      fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((cache) => cache.put(req, copy)).catch(() => {});
+        return res;
+      })
+  );
+}

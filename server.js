@@ -26,6 +26,7 @@ const adminUserRoutes = require("./routes/admin-users");
 const { bootstrapVehicleCatalog } = require("./lib/vehicleCatalogBootstrap");
 
 const app = express();
+const { version: pkgVersion } = require("./package.json");
 
 // Railway/Heroku terminate TLS at the edge; required for secure session cookies.
 app.set("trust proxy", 1);
@@ -33,7 +34,20 @@ app.set("trust proxy", 1);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use((req, res, next) => {
+  res.locals.assetVersion = process.env.ASSET_VERSION || `${pkgVersion}.4`;
+  next();
+});
+
+app.use(
+  express.static(path.join(__dirname, "public"), {
+    setHeaders(res, filePath) {
+      if (/\.(js|css)$/.test(filePath)) {
+        res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+      }
+    }
+  })
+);
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());

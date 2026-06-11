@@ -11,15 +11,23 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Автосервис">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/autoservice.css">
+  <% var _assetV = typeof assetVersion !== 'undefined' ? assetVersion : '1'; %>
+  <link rel="stylesheet" href="/css/style.css?v=<%= _assetV %>">
+  <link rel="stylesheet" href="/css/autoservice.css?v=<%= _assetV %>">
 </head>
 <body class="<%= typeof category !== 'undefined' ? 'page-' + category : '' %>">
   <script>
     (function () {
+      document.body.classList.remove("layout-nav-open");
       try {
-        if (window.matchMedia("(min-width: 1280px)").matches && localStorage.getItem("crm-sidebar-collapsed") === "1") {
-          document.body.classList.add("sidebar-collapsed");
+        if (window.matchMedia("(min-width: 1280px)").matches) {
+          if (localStorage.getItem("crm-sidebar-collapsed") === "1") {
+            document.body.classList.add("sidebar-collapsed");
+          } else {
+            document.body.classList.remove("sidebar-collapsed");
+          }
+        } else {
+          document.body.classList.remove("sidebar-collapsed");
         }
       } catch (e) {}
     })();

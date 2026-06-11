@@ -4,12 +4,45 @@ document.addEventListener("DOMContentLoaded", function () {
   registerServiceWorker();
 });
 
-function registerServiceWorker() {
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", function () {
-      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(function () {});
-    });
+window.addEventListener("pageshow", function (event) {
+  document.body.classList.remove("layout-nav-open");
+  var overlay = document.getElementById("layout-overlay");
+  if (overlay) overlay.setAttribute("aria-hidden", "true");
+  if (event.persisted || typeof event.persisted === "boolean") {
+    restoreDesktopSidebarState();
   }
+});
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+
+  var reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", function () {
+    if (reloaded) return;
+    reloaded = true;
+    window.location.reload();
+  });
+
+  window.addEventListener("load", function () {
+    var version = document.querySelector('script[src*="/js/app.js"]');
+    var v = "";
+    if (version && version.src) {
+      var m = version.src.match(/[?&]v=([^&]+)/);
+      if (m) v = "?v=" + m[1];
+    }
+    navigator.serviceWorker.register("/sw.js" + v, { scope: "/" }).then(function (reg) {
+      if (reg.waiting) reg.waiting.postMessage({ type: "SKIP_WAITING" });
+      reg.addEventListener("updatefound", function () {
+        var worker = reg.installing;
+        if (!worker) return;
+        worker.addEventListener("statechange", function () {
+          if (worker.state === "installed" && navigator.serviceWorker.controller) {
+            worker.postMessage({ type: "SKIP_WAITING" });
+          }
+        });
+      });
+    }).catch(function () {});
+  });
 }
 
 function initDateDisplay() {
@@ -49,11 +82,15 @@ function setDesktopSidebarCollapsed(collapsed) {
 }
 
 function restoreDesktopSidebarState() {
-  if (isMobileNavMode()) return;
+  if (isMobileNavMode()) {
+    document.body.classList.remove("sidebar-collapsed");
+    return;
+  }
   try {
-    if (localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1") {
-      document.body.classList.add("sidebar-collapsed");
-    }
+    document.body.classList.toggle(
+      "sidebar-collapsed",
+      localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1"
+    );
   } catch (e) {}
 }
 
