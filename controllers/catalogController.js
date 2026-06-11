@@ -8,6 +8,7 @@ const {
   findArticleConflict,
   suggestNextArticle
 } = require("../lib/catalogArticle");
+const { likePatternFolded, lcLike, foldSearchCase } = require("../lib/sqlSearch");
 
 const PAGE_SIZE = 50;
 
@@ -66,9 +67,8 @@ async function list(req, res) {
     params.push(category);
   }
   if (search) {
-    where.push("(name LIKE ? OR article LIKE ?)");
-    const like = `%${search}%`;
-    params.push(like, `%${search.toUpperCase()}%`);
+    where.push(`(${lcLike("name_lc")} OR article LIKE ?)`);
+    params.push(likePatternFolded(search), `%${search.toUpperCase()}%`);
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
@@ -126,14 +126,15 @@ async function create(req, res) {
   await db.query(
     `
     INSERT INTO catalog_items(
-      type, category, name, article, description,
+      type, category, name, name_lc, article, description,
       default_price, price_tier_2, price_tier_3, default_material_cost, unit, is_active, sort_order
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       data.type,
       data.category,
       data.name,
+      foldSearchCase(data.name),
       data.article,
       data.description,
       data.default_price,
@@ -179,7 +180,7 @@ async function update(req, res) {
   await db.query(
     `
     UPDATE catalog_items SET
-      type = ?, category = ?, name = ?, article = ?, description = ?,
+      type = ?, category = ?, name = ?, name_lc = ?, article = ?, description = ?,
       default_price = ?, price_tier_2 = ?, price_tier_3 = ?, default_material_cost = ?, unit = ?,
       is_active = ?, sort_order = ?, updated_at = ${now}
     WHERE id = ?
@@ -188,6 +189,7 @@ async function update(req, res) {
       data.type,
       data.category,
       data.name,
+      foldSearchCase(data.name),
       data.article,
       data.description,
       data.default_price,

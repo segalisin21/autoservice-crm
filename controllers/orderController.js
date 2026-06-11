@@ -12,12 +12,24 @@ const {
   allocateMaterialsToLine
 } = require("../lib/payroll");
 const { loadPayrollSettings } = require("../lib/settings");
-const { WORK_TYPES, normalizeWorkType, lineTypeForWorkType } = require("../lib/workTypes");
+const {
+  WORK_TYPES,
+  parseWorkTypes,
+  normalizeWorkTypesFromBody,
+  primaryWorkType,
+  lineTypeForWorkType
+} = require("../lib/workTypes");
 const { normalizePlate, normalizePlateStrict, normalizePhone, normalizeVin } = require("../lib/normalize");
+const { likePattern, likePatternFolded, lcLike, foldSearchCase } = require("../lib/sqlSearch");
 const { relativePathFor, absolutePathFor } = require("../lib/upload");
 const { loadOrderEconomics, loadOrderLinkedExpenses } = require("../lib/orderEconomics");
 const { priceForVehicleTier, normalizeVehicleTier } = require("../lib/catalogPricing");
 const { statusLabel, ORDER_STATUS_LABELS } = require("../lib/orderStatusLabels");
+const {
+  validateCanAssign,
+  loadAbsencesForDate,
+  orderOverlapsAbsence
+} = require("../lib/staffAbsence");
 const fs = require("node:fs");
 
 function normalizeTime(value) {
@@ -66,6 +78,7 @@ async function insertOrderLine(db, payload) {
     payload.line_type,
     payload.catalogId,
     payload.name,
+    foldSearchCase(payload.name),
     payload.quantity,
     payload.unit_price,
     payload.lineTotal,
@@ -81,9 +94,9 @@ async function insertOrderLine(db, payload) {
     lineId = await db.insertReturning(
       `
       INSERT INTO order_lines(
-        order_id, line_type, catalog_item_id, name, quantity, unit_price, total,
+        order_id, line_type, catalog_item_id, name, name_lc, quantity, unit_price, total,
         master_id, work_status, labor_minutes, cost_price, notes, vehicle_tier
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       params
     );
@@ -91,9 +104,9 @@ async function insertOrderLine(db, payload) {
     await db.query(
       `
       INSERT INTO order_lines(
-        order_id, line_type, catalog_item_id, name, quantity, unit_price, total,
+        order_id, line_type, catalog_item_id, name, name_lc, quantity, unit_price, total,
         master_id, work_status, labor_minutes, cost_price, notes, vehicle_tier
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
       params
     );
@@ -127,6 +140,21 @@ async function loadMasters(db) {
   return db.query(
     "SELECT id, name, username FROM users WHERE role IN ('master','admin','owner') AND is_active = 1 ORDER BY name"
   );
+}
+
+async function loadMastersForSchedule(db, scheduledDate, startTime, endTime, currentUserId = null) {
+  const masters = await loadMasters(db);
+  if (!scheduledDate) {
+    return masters.map((m) => ({ ...m, absent: false }));
+  }
+  const absences = await loadAbsencesForDate(db, scheduledDate);
+  return masters.map((m) => ({
+    ...m,
+    absent:
+      Number(currentUserId) === Number(m.id)
+        ? false
+        : orderOverlapsAbsence(absences, m.id, startTime, endTime)
+  }));
 }
 
 async function loadCarsForSelect(db) {
@@ -190,20 +218,18 @@ async function list(req, res) {
   }
   if (search) {
     const plateNorm = normalizePlate(search).license_plate_normalized;
+    const like = likePattern(search);
+    const digits = search.replace(/\D/g, "");
     if (plateNorm) {
       where.push(
-        "(c.license_plate_normalized LIKE ? OR cl.full_name LIKE ? OR cl.phone_normalized LIKE ? OR CAST(o.id AS TEXT) LIKE ?)"
+        `(c.license_plate_normalized LIKE ? OR ${lcLike("cl.full_name_lc")} OR cl.phone_normalized LIKE ? OR CAST(o.id AS TEXT) LIKE ?)`
       );
-      const like = `%${search}%`;
-      const digits = search.replace(/\D/g, "");
-      params.push(`%${plateNorm}%`, like, `%${digits || search}%`, like);
+      params.push(`%${plateNorm}%`, likePatternFolded(search), `%${digits || search}%`, likePattern(search));
     } else {
       where.push(
-        "(cl.full_name LIKE ? OR cl.phone_normalized LIKE ? OR c.license_plate_normalized LIKE ? OR CAST(o.id AS TEXT) LIKE ?)"
+        `(${lcLike("cl.full_name_lc")} OR cl.phone_normalized LIKE ? OR c.license_plate_normalized LIKE ? OR CAST(o.id AS TEXT) LIKE ?)`
       );
-      const like = `%${search}%`;
-      const digits = search.replace(/\D/g, "");
-      params.push(like, `%${digits || search}%`, `%${search.toUpperCase().replace(/[\s-]/g, "")}%`, like);
+      params.push(likePatternFolded(search), `%${digits || search}%`, `%${search.toUpperCase().replace(/[\s-]/g, "")}%`, likePattern(search));
     }
   }
   if (due_only) {
@@ -262,8 +288,13 @@ async function findCarsByPlate(db, plateRaw) {
 
 async function showNew(req, res) {
   const db = await getDB();
-  const masters = await loadMasters(db);
   const today = new Date().toISOString().slice(0, 10);
+  const masters = await loadMastersForSchedule(
+    db,
+    req.query.scheduled_date || today,
+    req.query.start_time || "",
+    req.query.end_time || ""
+  );
 
   const plateQuery = String(req.query.plate ?? "").trim();
   let plateMatches = [];
@@ -290,6 +321,7 @@ async function showNew(req, res) {
     plateQuery,
     plateMatches,
     workTypes: WORK_TYPES,
+    selectedWorkTypes: ["Электрика"],
     error: null,
     user: req.session.user,
     category: "orders"
@@ -319,19 +351,21 @@ async function resolveOrCreateCar(db, body) {
   }
 
   const clientId = await db.insertReturning(
-    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES (?, ?, ?)`,
-    [ownerName, phone_raw, phone_normalized]
+    `INSERT INTO clients(full_name, full_name_lc, phone_raw, phone_normalized) VALUES (?, ?, ?, ?)`,
+    [ownerName, foldSearchCase(ownerName), phone_raw, phone_normalized]
   );
 
   const carId = await db.insertReturning(
     `
-    INSERT INTO cars(client_id, make, model, vin, license_plate_raw, license_plate_normalized, year, body_type, vehicle_model_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO cars(client_id, make, model, make_lc, model_lc, vin, license_plate_raw, license_plate_normalized, year, body_type, vehicle_model_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       clientId,
       make,
       model,
+      make ? foldSearchCase(make) : null,
+      model ? foldSearchCase(model) : null,
       vin,
       plate.license_plate_raw,
       plate.license_plate_normalized,
@@ -344,7 +378,7 @@ async function resolveOrCreateCar(db, body) {
 }
 
 async function create(req, res) {
-  const work_type = normalizeWorkType(req.body.work_type);
+  const work_type = normalizeWorkTypesFromBody(req.body);
   const notes = String(req.body.notes ?? "").trim() || null;
   const scheduled_date = String(req.body.scheduled_date ?? "").slice(0, 10) || new Date().toISOString().slice(0, 10);
   const assigned_user_id = normalizeUserId(req.body.assigned_user_id);
@@ -355,7 +389,13 @@ async function create(req, res) {
 
   async function renderError(error) {
     const cars = await loadCarsForSelect(db);
-    const masters = await loadMasters(db);
+    const masters = await loadMastersForSchedule(
+      db,
+      scheduled_date,
+      start_time,
+      end_time,
+      assigned_user_id
+    );
     return res.status(400).render("orders/form", {
       order: req.body,
       cars,
@@ -363,6 +403,7 @@ async function create(req, res) {
       plateQuery: "",
       plateMatches: [],
       workTypes: WORK_TYPES,
+      selectedWorkTypes: parseWorkTypes(req.body.work_type),
       error,
       user: req.session.user,
       category: "orders"
@@ -377,6 +418,13 @@ async function create(req, res) {
   if (!Number.isFinite(car_id) || car_id <= 0) {
     return renderError("Выберите автомобиль или заполните данные нового авто и владельца");
   }
+
+  if (!work_type) {
+    return renderError("Выберите хотя бы один тип работ");
+  }
+
+  const absenceErr = await validateCanAssign(db, assigned_user_id, scheduled_date, start_time, end_time);
+  if (absenceErr) return renderError(absenceErr);
 
   await ensureDefaultSettings(db);
   const tax = await loadTaxSettings(db);
@@ -418,7 +466,13 @@ async function show(req, res) {
   const catalogProducts = await db.query(
     "SELECT id, name, default_price, unit FROM catalog_items WHERE type = 'product' AND is_active = 1 ORDER BY category, name LIMIT 200"
   );
-  const masters = await loadMasters(db);
+  const masters = await loadMastersForSchedule(
+    db,
+    ctx.order.scheduled_date,
+    ctx.order.start_time,
+    ctx.order.end_time,
+    ctx.order.assigned_user_id
+  );
 
   const photos = await db.query(
     "SELECT id, file_path, original_name FROM order_photos WHERE order_id = ? ORDER BY id DESC",
@@ -474,7 +528,13 @@ async function show(req, res) {
     statusLabels: ORDER_STATUS_LABELS,
     statusLabel,
     user: req.session.user,
-    category: "orders"
+    category: "orders",
+    scheduleError: req.query.schedule_error === "1" ? "Мастер отсутствует в это время" : null,
+    workTypeError: req.query.work_type_error === "1" ? "Выберите хотя бы один тип работ" : null,
+    workTypes: WORK_TYPES,
+    selectedWorkTypes: parseWorkTypes(ctx.order.work_type),
+    catalogWorkCategory:
+      parseWorkTypes(ctx.order.work_type).length === 1 ? primaryWorkType(ctx.order.work_type) : ""
   });
 }
 
@@ -488,7 +548,10 @@ async function update(req, res) {
   }
 
   const previousStatus = rows[0].status;
-  const work_type = normalizeWorkType(req.body.work_type || rows[0].work_type);
+  const work_type = normalizeWorkTypesFromBody(req.body);
+  if (!work_type) {
+    return res.redirect(`/orders/${id}?work_type_error=1`);
+  }
   const discount_type = String(req.body.discount_type ?? "none");
   const discount_value = parseMoney(req.body.discount_value);
   const discount_scope = String(req.body.discount_scope ?? "order_total");
@@ -500,6 +563,11 @@ async function update(req, res) {
   const assigned_user_id = normalizeUserId(req.body.assigned_user_id);
   const start_time = normalizeTime(req.body.start_time);
   const end_time = normalizeTime(req.body.end_time);
+
+  const absenceErr = await validateCanAssign(db, assigned_user_id, scheduled_date, start_time, end_time);
+  if (absenceErr) {
+    return res.redirect(`/orders/${id}?schedule_error=1`);
+  }
 
   let closed_at = rows[0].closed_at;
   if (status === "completed" && !closed_at) {

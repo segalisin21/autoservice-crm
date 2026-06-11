@@ -7,6 +7,7 @@ const {
   findArticleConflict,
   suggestNextArticle
 } = require("../lib/catalogArticle");
+const { likePatternFolded, lcLike, foldSearchCase } = require("../lib/sqlSearch");
 
 const router = express.Router();
 
@@ -22,14 +23,14 @@ router.get("/search", async (req, res, next) => {
       return res.json({ items: [] });
     }
 
-    const like = `%${q}%`;
+    const like = likePatternFolded(q);
     const articleLike = `%${q.toUpperCase()}%`;
     const params = [like, articleLike];
     let sql = `
       SELECT id, type, category, name, article, description, default_price, price_tier_2, price_tier_3,
              default_material_cost, unit
       FROM catalog_items
-      WHERE is_active = 1 AND (name LIKE ? OR article LIKE ?)
+      WHERE is_active = 1 AND (${lcLike("name_lc")} OR article LIKE ?)
     `;
     if (type === "work" || type === "product") {
       sql += " AND type = ?";

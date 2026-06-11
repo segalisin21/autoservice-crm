@@ -1,0 +1,13 @@
+<% const selected = Array.isArray(selectedWorkTypes) ? selectedWorkTypes : []; %>
+<div class="work-type-checkboxes" data-work-type-picker>
+  <span class="work-type-checkboxes__label">Тип работ</span>
+  <input type="hidden" name="work_type" value="<%= selected.length ? selected.join(', ') : '' %>" />
+  <div class="work-type-checkboxes__options">
+    <% workTypes.forEach(function(t) { %>
+      <label class="work-type-checkboxes__item">
+        <input type="checkbox" data-work-type="<%= t %>" <%= selected.includes(t) ? 'checked' : '' %> />
+        <%= t %>
+      </label>
+    <% }) %>
+  </div>
+</div>

@@ -18,8 +18,11 @@
       <tr>
         <th class="time-col">Время</th>
         <% (timeGrid.columns || []).forEach(function(col) { %>
-          <th class="resource-col">
-            <div class="resource-name"><%= col.name %></div>
+          <th class="resource-col <%= col.has_absence ? 'resource-col--absent' : '' %>">
+            <div class="resource-name">
+              <%= col.name %>
+              <% if (col.has_absence) { %><span class="resource-absence-dot" title="<%= (col.absence_labels || []).join(', ') %>"></span><% } %>
+            </div>
           </th>
         <% }); %>
       </tr>
@@ -29,9 +32,12 @@
         <tr>
           <td class="time-cell"><%= slot.label %></td>
           <% (timeGrid.columns || []).forEach(function(col) { %>
-            <td class="slot-cell" data-hour="<%= slot.hour %>" data-employee="<%= col.id %>">
-              <% const slotOrders = (col.byHour && col.byHour[slot.hour]) ? col.byHour[slot.hour] : []; %>
-              <% if (!slotOrders.length) { %>
+            <% const slotOrders = (col.byHour && col.byHour[slot.hour]) ? col.byHour[slot.hour] : []; %>
+            <% const isAbsent = col.absentByHour && col.absentByHour[slot.hour]; %>
+            <td class="slot-cell <%= isAbsent ? 'slot-cell--absent' : '' %>" data-hour="<%= slot.hour %>" data-employee="<%= col.id %>">
+              <% if (!slotOrders.length && isAbsent) { %>
+                <span class="slot-absent-label">Отсутствует</span>
+              <% } else if (!slotOrders.length) { %>
                 <span class="slot-free">—</span>
               <% } else { %>
                 <% slotOrders.forEach(function(o) { %>

@@ -1,5 +1,5 @@
 -- =============================================================================
--- AUTOSERVICE CRM — полная миграция PostgreSQL (001_init.sql … 015_catalog_material_cost.sql)
+-- AUTOSERVICE CRM — полная миграция PostgreSQL (001_init.sql … 018_search_lc.sql)
 -- =============================================================================
 -- Назначение: развернуть схему на пустой БД (Railway, VPS, локальный Postgres).
 --
@@ -34,6 +34,9 @@
 --   013_catalog_article.sql
 --   014_catalog_description_tiers.sql
 --   015_catalog_material_cost.sql
+--   016_staff_absences.sql
+--   017_work_type_widen.sql
+--   018_search_lc.sql
 -- =============================================================================
 
 
@@ -434,6 +437,34 @@ ALTER TABLE order_lines ADD COLUMN IF NOT EXISTS vehicle_tier INTEGER;
 -- ---------- 015_catalog_material_cost.sql ----------
 ALTER TABLE catalog_items ADD COLUMN IF NOT EXISTS default_material_cost NUMERIC(12,2) NOT NULL DEFAULT 0;
 
+-- ---------- 016_staff_absences.sql ----------
+CREATE TABLE IF NOT EXISTS staff_absences (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  absence_date TEXT NOT NULL,
+  start_time TEXT,
+  end_time TEXT,
+  is_full_day INTEGER NOT NULL DEFAULT 0,
+  note TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT to_char(NOW(), 'YYYY-MM-DD HH24:MI:SS')
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_absences_date ON staff_absences(absence_date, user_id);
+
+-- ---------- 017_work_type_widen.sql ----------
+ALTER TABLE orders ALTER COLUMN work_type TYPE VARCHAR(100);
+
+-- ---------- 018_search_lc.sql ----------
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS full_name_lc VARCHAR(200);
+ALTER TABLE catalog_items ADD COLUMN IF NOT EXISTS name_lc VARCHAR(200);
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS make_lc VARCHAR(100);
+ALTER TABLE cars ADD COLUMN IF NOT EXISTS model_lc VARCHAR(100);
+ALTER TABLE order_lines ADD COLUMN IF NOT EXISTS name_lc VARCHAR(200);
+
+CREATE INDEX IF NOT EXISTS idx_clients_full_name_lc ON clients(full_name_lc);
+CREATE INDEX IF NOT EXISTS idx_catalog_name_lc ON catalog_items(name_lc);
+
 -- ---------- migrations registry (после ручного прогона) ----------
 CREATE TABLE IF NOT EXISTS migrations (
   id TEXT PRIMARY KEY,
@@ -454,3 +485,6 @@ INSERT INTO migrations(id) VALUES ('012_vehicle_catalog_id_default.sql') ON CONF
 INSERT INTO migrations(id) VALUES ('013_catalog_article.sql') ON CONFLICT (id) DO NOTHING;
 INSERT INTO migrations(id) VALUES ('014_catalog_description_tiers.sql') ON CONFLICT (id) DO NOTHING;
 INSERT INTO migrations(id) VALUES ('015_catalog_material_cost.sql') ON CONFLICT (id) DO NOTHING;
+INSERT INTO migrations(id) VALUES ('016_staff_absences.sql') ON CONFLICT (id) DO NOTHING;
+INSERT INTO migrations(id) VALUES ('017_work_type_widen.sql') ON CONFLICT (id) DO NOTHING;
+INSERT INTO migrations(id) VALUES ('018_search_lc.sql') ON CONFLICT (id) DO NOTHING;

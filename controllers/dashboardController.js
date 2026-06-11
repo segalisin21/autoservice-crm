@@ -1,5 +1,5 @@
 const { getDB } = require("../config/database");
-const { getMonthCalendar, getDayByEmployees, getDayStats, assignOrdersToTimeSlots } = require("../lib/calendarData");
+const { getMonthCalendar, getDayByEmployees, getDayStats, assignOrdersToTimeSlots, loadStaff } = require("../lib/calendarData");
 const { loadFinanceMetrics } = require("../lib/finance");
 
 function parseDateParam(raw) {
@@ -36,7 +36,8 @@ function emptyMonthCalendar(year, monthIndex0) {
       day,
       weekday: d.getDay(),
       booking_count: 0,
-      revenue: 0
+      revenue: 0,
+      has_absence: false
     });
   }
   return {
@@ -61,8 +62,10 @@ async function index(req, res, next) {
   let dayStats = { count: 0, revenue: 0, employees_busy: 0, employees_total: 0 };
   let finance = null;
   let loadError = null;
+  let staffList = [];
 
   const showMoney = ["owner", "admin"].includes(req.session.user.role);
+  const canManageAllAbsences = showMoney;
 
   try {
     const db = await getDB();
@@ -71,6 +74,7 @@ async function index(req, res, next) {
     if (mode === "day") {
       dayData = await getDayByEmployees(today);
       timeGrid = assignOrdersToTimeSlots(dayData);
+      staffList = await loadStaff(db);
     }
     if (showMoney) {
       const monthStart = new Date(year, month, 1).toISOString().slice(0, 10);
@@ -98,7 +102,10 @@ async function index(req, res, next) {
     finance,
     showMoney,
     nav,
-    loadError
+    loadError,
+    staffList,
+    canManageAllAbsences,
+    absenceError: req.query.absence_error || null
   });
 }
 

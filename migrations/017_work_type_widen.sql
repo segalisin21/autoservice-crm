@@ -1,0 +1,2 @@
+-- Widen work_type for multiple comma-separated values (e.g. "Мойка, Электрика")
+-- SQLite does not enforce VARCHAR length; migration documents intent for fresh installs.

@@ -1,6 +1,7 @@
 const { getDB } = require("../config/database");
 const { sqlNow } = require("../config/sqlDialect");
 const { normalizePlate, normalizePlateStrict, normalizeVin } = require("../lib/normalize");
+const { likePattern, likePatternFolded, lcLike, foldSearchCase } = require("../lib/sqlSearch");
 
 const PAGE_SIZE = 50;
 
@@ -56,7 +57,7 @@ async function list(req, res) {
   let cars;
   if (search) {
     const digits = search.replace(/\D/g, "");
-    const like = `%${search}%`;
+    const like = likePatternFolded(search);
     const likePlate = `%${search.toUpperCase().replace(/[\s-]/g, "")}%`;
     const likePhone = `%${digits || search}%`;
     cars = await db.query(
@@ -65,13 +66,13 @@ async function list(req, res) {
              cl.full_name AS client_name, cl.phone_raw AS client_phone
       FROM cars c
       JOIN clients cl ON cl.id = c.client_id
-      WHERE c.make LIKE ? OR c.model LIKE ? OR c.vin LIKE ?
+      WHERE ${lcLike("c.make_lc")} OR ${lcLike("c.model_lc")} OR ${lcLike("c.vin")}
          OR c.license_plate_normalized LIKE ?
          OR cl.phone_normalized LIKE ?
       ORDER BY c.id DESC
       LIMIT ? OFFSET ?
     `,
-      [like, like, like, likePlate, likePhone, PAGE_SIZE, offset]
+      [like, like, likePattern(search), likePlate, likePhone, PAGE_SIZE, offset]
     );
   } else {
     cars = await db.query(
@@ -113,14 +114,16 @@ async function create(req, res) {
   const id = await db.insertReturning(
     `
     INSERT INTO cars(
-      client_id, make, model, vin, license_plate_raw, license_plate_normalized,
+      client_id, make, model, make_lc, model_lc, vin, license_plate_raw, license_plate_normalized,
       year, color, body_type, mileage, notes, vehicle_model_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       data.client_id,
       data.make,
       data.model,
+      data.make ? foldSearchCase(data.make) : null,
+      data.model ? foldSearchCase(data.model) : null,
       data.vin,
       data.license_plate_raw,
       data.license_plate_normalized,
@@ -182,7 +185,7 @@ async function update(req, res) {
   await db.query(
     `
     UPDATE cars SET
-      client_id = ?, make = ?, model = ?, vin = ?,
+      client_id = ?, make = ?, model = ?, make_lc = ?, model_lc = ?, vin = ?,
       license_plate_raw = ?, license_plate_normalized = ?,
       year = ?, color = ?, body_type = ?, mileage = ?, notes = ?,
       vehicle_model_id = ?,
@@ -193,6 +196,8 @@ async function update(req, res) {
       data.client_id,
       data.make,
       data.model,
+      data.make ? foldSearchCase(data.make) : null,
+      data.model ? foldSearchCase(data.model) : null,
       data.vin,
       data.license_plate_raw,
       data.license_plate_normalized,

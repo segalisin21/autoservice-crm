@@ -2,6 +2,7 @@ const { getDB } = require("../config/database");
 const { sqlDateOf } = require("../config/sqlDialect");
 const { getPaidAmount } = require("../lib/orderTotals");
 const { WORK_TYPES } = require("../lib/workTypes");
+const { likePattern, likePatternFolded, lcLike, ciLike } = require("../lib/sqlSearch");
 
 async function index(req, res) {
   const db = await getDB();
@@ -22,15 +23,15 @@ async function index(req, res) {
     params.push(end);
   }
   if (work_type) {
-    where.push("o.work_type = ?");
-    params.push(work_type);
+    where.push("(o.work_type = ? OR o.work_type LIKE ? OR o.work_type LIKE ? OR o.work_type LIKE ?)");
+    params.push(work_type, `${work_type},%`, `%, ${work_type},%`, `%, ${work_type}`);
   }
   if (search) {
     where.push(
-      "(ol.name LIKE ? OR c.make LIKE ? OR c.license_plate_raw LIKE ? OR u.name LIKE ?)"
+      `(${lcLike("ol.name_lc")} OR ${lcLike("c.make_lc")} OR c.license_plate_raw LIKE ? OR ${ciLike("u.name")})`
     );
-    const like = `%${search}%`;
-    params.push(like, like, like, like);
+    const like = likePatternFolded(search);
+    params.push(like, like, likePattern(search), like);
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 

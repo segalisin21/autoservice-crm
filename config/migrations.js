@@ -47,6 +47,9 @@ async function applyMigrations(db) {
     await db.exec(sql);
     await db.query("INSERT INTO migrations(id) VALUES (?)", [m.id]);
   }
+
+  const { backfillSearchLc } = require("../lib/sqlSearch");
+  await backfillSearchLc(db);
 }
 
 module.exports = { applyMigrations };

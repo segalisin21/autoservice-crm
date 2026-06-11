@@ -6,6 +6,7 @@ const clientController = require("../controllers/clientController");
 const router = express.Router();
 
 router.get("/", requirePermission("clients:view"), clientController.list);
+router.get("/search", requirePermission("clients:view"), clientController.search);
 router.get("/new", requirePermission("clients:mutate"), clientController.showNew);
 router.post("/", requirePermission("clients:mutate"), clientController.create);
 router.get("/:id", requirePermission("clients:view"), clientController.show);

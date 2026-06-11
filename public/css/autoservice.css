@@ -297,6 +297,37 @@
   flex-shrink: 0;
 }
 
+.work-type-checkboxes {
+  grid-column: 1 / -1;
+  margin: 0 0 8px;
+}
+
+.work-type-checkboxes__label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.work-type-checkboxes__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.work-type-checkboxes__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.work-type-checkboxes__item input {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+}
+
 .order-add-line-form,
 .order-payment-form {
   margin-top: 12px;
@@ -1584,5 +1615,77 @@ body.layout-nav-open .order-fab-bar {
     z-index: 2;
     background: var(--gray-50, #f9fafb);
   }
+}
+
+.calendar-day-absence-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #dc2626;
+  pointer-events: none;
+}
+
+.calendar-day-link {
+  position: relative;
+}
+
+.staff-absences-panel {
+  margin-bottom: 12px;
+}
+
+.staff-absences-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+.staff-absences-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--gray-100, #f3f4f6);
+}
+
+.staff-absences-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.slot-cell--absent {
+  background: rgba(220, 38, 38, 0.08);
+  color: #991b1b;
+  font-size: 0.75rem;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.resource-col--absent .resource-name {
+  color: #991b1b;
+}
+
+.resource-absence-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: #dc2626;
+  vertical-align: middle;
+}
+
+.order-card--absence-conflict {
+  border-left: 3px solid #dc2626;
+}
+
+.order-absence-marker {
+  color: #dc2626;
+  font-size: 0.65rem;
+  margin-left: 4px;
 }
 

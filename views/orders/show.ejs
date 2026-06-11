@@ -1,5 +1,8 @@
 <%- include('../partials/layout-top', { title: 'Заказ #' + order.id, user, category: 'orders' }) %>
 
+<% if (typeof scheduleError !== 'undefined' && scheduleError) { %><div class="error" style="margin-bottom:12px;"><%= scheduleError %></div><% } %>
+<% if (typeof workTypeError !== 'undefined' && workTypeError) { %><div class="error" style="margin-bottom:12px;"><%= workTypeError %></div><% } %>
+
 <section class="card order-summary-card">
   <h1 class="order-title">#<%= order.id %> · <%= [order.make, order.model].filter(Boolean).join(' ') || 'Авто' %></h1>
   <p class="order-subtitle"><%= order.client_name %> · <%= order.client_phone %></p>
@@ -107,7 +110,7 @@
       <% if (!works.length) { %><p class="muted">Работ пока нет.</p><% } %>
     </div>
     <% if (order.status !== 'completed' && order.status !== 'cancelled') { %>
-    <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" id="form-add-work" data-catalog-ac data-work-category="<%= order.work_type || '' %>">
+    <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" id="form-add-work" data-catalog-ac data-work-category="<%= typeof catalogWorkCategory !== 'undefined' ? catalogWorkCategory : (order.work_type || '') %>">
       <input type="hidden" name="line_type" value="work" />
       <input type="hidden" name="catalog_item_id" value="" />
       <label>Услуга <input name="name" placeholder="Начните вводить — подсказки из прайса" autocomplete="off" /></label>
@@ -268,19 +271,17 @@
   <div class="order-accordion-body">
     <form method="post" action="/orders/<%= order.id %>?_method=PUT" class="order-header-form">
       <div class="order-form-grid">
-        <label>Тип работ
-          <select name="work_type" <%= order.status === 'completed' ? 'disabled' : '' %>>
-            <% ['Мойка','Электрика','Продажа'].forEach(t => { %>
-              <option value="<%= t %>" <%= order.work_type === t ? 'selected' : '' %>><%= t %></option>
-            <% }) %>
-          </select>
-        </label>
+        <% if (order.status !== 'completed') { %>
+        <%- include('../partials/work-type-checkboxes', { workTypes, selectedWorkTypes: typeof selectedWorkTypes !== 'undefined' ? selectedWorkTypes : [] }) %>
+        <% } else { %>
+        <label>Тип работ <input value="<%= order.work_type || '—' %>" disabled /></label>
+        <% } %>
         <label>Дата <input type="date" name="scheduled_date" value="<%= (order.scheduled_date || '').slice(0,10) %>" /></label>
         <label>Сотрудник
           <select name="assigned_user_id">
             <option value="">—</option>
             <% (masters || []).forEach(m => { %>
-              <option value="<%= m.id %>" <%= Number(order.assigned_user_id) === m.id ? 'selected' : '' %>><%= m.name %></option>
+              <option value="<%= m.id %>" <%= Number(order.assigned_user_id) === m.id ? 'selected' : '' %><%= m.absent ? ' disabled' : '' %>><%= m.name %><% if (m.absent) { %> (отсутствует)<% } %></option>
             <% }) %>
           </select>
         </label>
@@ -311,4 +312,4 @@
 </div>
 <% } %>
 
-<%- include('../partials/layout-bottom', { extraScripts: ['/js/catalog-autocomplete.js'] }) %>
+<%- include('../partials/layout-bottom', { extraScripts: ['/js/catalog-autocomplete.js', '/js/work-type-picker.js'] }) %>

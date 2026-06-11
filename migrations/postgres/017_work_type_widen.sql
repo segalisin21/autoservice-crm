@@ -1,0 +1,1 @@
+ALTER TABLE orders ALTER COLUMN work_type TYPE VARCHAR(100);

@@ -24,6 +24,7 @@ const apiCatalogRoutes = require("./routes/apiCatalog");
 const journalRoutes = require("./routes/journal");
 const expenseRoutes = require("./routes/expenses");
 const adminUserRoutes = require("./routes/admin-users");
+const scheduleRoutes = require("./routes/schedule");
 const { bootstrapVehicleCatalog } = require("./lib/vehicleCatalogBootstrap");
 
 const app = express();
@@ -104,6 +105,7 @@ app.use("/clients", requireAuth, clientRoutes);
 app.use("/cars", requireAuth, carRoutes);
 app.use("/catalog", requireAuth, catalogRoutes);
 app.use("/orders", requireAuth, orderRoutes);
+app.use("/schedule", requireAuth, scheduleRoutes);
 app.use("/journal", requireAuth, journalRoutes);
 app.use("/expenses", requireAuth, expenseRoutes);
 app.use("/admin/payroll", requireAuth, adminPayrollRoutes);

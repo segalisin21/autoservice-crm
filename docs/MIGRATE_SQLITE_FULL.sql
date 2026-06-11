@@ -1,5 +1,5 @@
 -- =============================================================================
--- AUTOSERVICE CRM — полная миграция SQLite (001_init.sql … 015_catalog_material_cost.sql)
+-- AUTOSERVICE CRM — полная миграция SQLite (001_init.sql … 018_search_lc.sql)
 -- =============================================================================
 -- Назначение: развернуть схему на пустой базе SQLite (локально, тесты).
 --
@@ -27,6 +27,9 @@
 --   013_catalog_article.sql
 --   014_catalog_description_tiers.sql
 --   015_catalog_material_cost.sql
+--   016_staff_absences.sql
+--   017_work_type_widen.sql
+--   018_search_lc.sql
 -- =============================================================================
 
 PRAGMA foreign_keys = ON;
@@ -395,6 +398,37 @@ ALTER TABLE order_lines ADD COLUMN vehicle_tier INTEGER;
 -- ---------- 015_catalog_material_cost.sql ----------
 ALTER TABLE catalog_items ADD COLUMN default_material_cost NUMERIC(12,2) NOT NULL DEFAULT 0;
 
+-- ---------- 016_staff_absences.sql ----------
+CREATE TABLE IF NOT EXISTS staff_absences (
+  id INTEGER PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  absence_date TEXT NOT NULL,
+  start_time TEXT,
+  end_time TEXT,
+  is_full_day INTEGER NOT NULL DEFAULT 0,
+  note TEXT,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_staff_absences_date ON staff_absences(absence_date, user_id);
+
+-- ---------- 017_work_type_widen.sql ----------
+-- Widen work_type for multiple comma-separated values (e.g. "Мойка, Электрика")
+-- SQLite does not enforce VARCHAR length; migration documents intent for fresh installs.
+
+-- ---------- 018_search_lc.sql ----------
+-- Lowercase search keys (filled by app; SQLite LOWER() does not fold Cyrillic)
+
+ALTER TABLE clients ADD COLUMN full_name_lc TEXT;
+ALTER TABLE catalog_items ADD COLUMN name_lc TEXT;
+ALTER TABLE cars ADD COLUMN make_lc TEXT;
+ALTER TABLE cars ADD COLUMN model_lc TEXT;
+ALTER TABLE order_lines ADD COLUMN name_lc TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_clients_full_name_lc ON clients(full_name_lc);
+CREATE INDEX IF NOT EXISTS idx_catalog_name_lc ON catalog_items(name_lc);
+
 -- ---------- migrations registry (после ручного прогона) ----------
 CREATE TABLE IF NOT EXISTS migrations (
   id TEXT PRIMARY KEY,
@@ -414,3 +448,6 @@ INSERT OR IGNORE INTO migrations(id) VALUES ('011_vehicle_catalog.sql');
 INSERT OR IGNORE INTO migrations(id) VALUES ('013_catalog_article.sql');
 INSERT OR IGNORE INTO migrations(id) VALUES ('014_catalog_description_tiers.sql');
 INSERT OR IGNORE INTO migrations(id) VALUES ('015_catalog_material_cost.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('016_staff_absences.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('017_work_type_widen.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('018_search_lc.sql');

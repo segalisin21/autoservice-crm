@@ -81,7 +81,8 @@
     var tierSelect = tierBlock.querySelector('select[name="vehicle_tier"]');
     var lineType = form.querySelector('input[name="line_type"]');
     var type = lineType ? lineType.value : "work";
-    var category = form.dataset.workCategory || "";
+    var categoryRaw = form.dataset.workCategory || "";
+    var category = categoryRaw.indexOf(",") >= 0 ? "" : categoryRaw;
     var selectedItem = null;
 
     function applyItem(item) {

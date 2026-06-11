@@ -1,6 +1,7 @@
 const { getDB } = require("../config/database");
 const { sqlNow } = require("../config/sqlDialect");
 const { normalizePhone } = require("../lib/normalize");
+const { likePatternFolded, lcLike, foldSearchCase } = require("../lib/sqlSearch");
 
 const PAGE_SIZE = 50;
 
@@ -28,17 +29,16 @@ async function list(req, res) {
   let rows;
   if (search) {
     const digits = search.replace(/\D/g, "");
-    const likeName = `%${search}%`;
     const likePhone = `%${digits || search}%`;
     rows = await db.query(
       `
       SELECT id, full_name, phone_raw, phone_normalized, email, created_at
       FROM clients
-      WHERE full_name LIKE ? OR phone_normalized LIKE ?
+      WHERE ${lcLike("full_name_lc")} OR phone_normalized LIKE ?
       ORDER BY id DESC
       LIMIT ? OFFSET ?
     `,
-      [likeName, likePhone, PAGE_SIZE, offset]
+      [likePatternFolded(search), likePhone, PAGE_SIZE, offset]
     );
   } else {
     rows = await db.query(
@@ -53,6 +53,31 @@ async function list(req, res) {
   }
 
   res.render("clients/list", { clients: rows, search, user: req.session.user });
+}
+
+async function search(req, res) {
+  const db = await getDB();
+  const q = String(req.query.q ?? "").trim();
+  if (q.length < 2) {
+    return res.json([]);
+  }
+
+  const digits = q.replace(/\D/g, "");
+  const likeName = likePatternFolded(q);
+  const likePhone = `%${digits || q}%`;
+
+  const rows = await db.query(
+    `
+    SELECT id, full_name, phone_raw AS phone
+    FROM clients
+    WHERE ${lcLike("full_name_lc")} OR phone_normalized LIKE ?
+    ORDER BY full_name
+    LIMIT 10
+  `,
+    [likeName, likePhone]
+  );
+
+  return res.json(rows);
 }
 
 async function showNew(req, res) {
@@ -73,10 +98,10 @@ async function create(req, res) {
   const db = await getDB();
   const id = await db.insertReturning(
     `
-    INSERT INTO clients(full_name, phone_raw, phone_normalized, email, notes)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO clients(full_name, full_name_lc, phone_raw, phone_normalized, email, notes)
+    VALUES (?, ?, ?, ?, ?, ?)
   `,
-    [data.full_name, data.phone_raw, data.phone_normalized, data.email, data.notes]
+    [data.full_name, foldSearchCase(data.full_name), data.phone_raw, data.phone_normalized, data.email, data.notes]
   );
   return res.redirect(`/clients/${id}`);
 }
@@ -118,11 +143,11 @@ async function update(req, res) {
   await db.query(
     `
     UPDATE clients SET
-      full_name = ?, phone_raw = ?, phone_normalized = ?, email = ?, notes = ?,
+      full_name = ?, full_name_lc = ?, phone_raw = ?, phone_normalized = ?, email = ?, notes = ?,
       updated_at = ${now}
     WHERE id = ?
   `,
-    [data.full_name, data.phone_raw, data.phone_normalized, data.email, data.notes, id]
+    [data.full_name, foldSearchCase(data.full_name), data.phone_raw, data.phone_normalized, data.email, data.notes, id]
   );
   return res.redirect(`/clients/${id}`);
 }
@@ -135,6 +160,7 @@ async function remove(req, res) {
 
 module.exports = {
   list,
+  search,
   showNew,
   create,
   show,
