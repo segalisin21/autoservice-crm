@@ -1,5 +1,5 @@
 const { getDB } = require("../config/database");
-const { loadRolePermissions } = require("../config/permissions");
+const { loadRolePermissions, canViewOrderMoney } = require("../config/permissions");
 
 const ROLE_LABELS = {
   owner: "Владелец",
@@ -18,6 +18,7 @@ async function loadUserPermissions(req, res, next) {
     res.locals.permissions = permissions;
     res.locals.can = (permission) => user.role === "owner" || permissions.has(permission);
     res.locals.roleLabel = ROLE_LABELS[user.role] || user.role;
+    res.locals.showMoney = canViewOrderMoney(user.role);
     return next();
   } catch (err) {
     return next(err);

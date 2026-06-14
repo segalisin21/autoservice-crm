@@ -1,5 +1,26 @@
 # HANDOFF
 
+## 2026-06-14 — hide order money for staff
+
+### What changed
+- Флаг `showMoney` (`canViewOrderMoney`: owner/admin/manager) — мастер не видит суммы заказов.
+- Календарь/расписание: скрыты суммы в месячной сетке, day-summary, KPI «Сумма за день», карточках заказов и time-grid.
+- Список заказов: колонки «Итого»/«Долг» для manager и выше; мастер — без сумм в календаре и карточке заказа.
+- Карточка заказа для мастера: без долга, без цен/сумм по работам.
+
+### Key files
+- `middleware/loadUserPermissions.js`, `controllers/dashboardController.js`
+- `views/dashboard.ejs`, `views/partials/order-card.ejs`, `views/partials/schedule-time-grid.ejs`
+- `views/orders/list.ejs`, `views/orders/show.ejs`
+- `tests/roles-rbac.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-14 — roles master and manager
 
 ### What changed

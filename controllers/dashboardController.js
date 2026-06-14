@@ -1,6 +1,7 @@
 const { getDB } = require("../config/database");
 const { getMonthCalendar, getDayByEmployees, getDayStats, assignOrdersToTimeSlots, loadStaff } = require("../lib/calendarData");
 const { loadFinanceMetrics } = require("../lib/finance");
+const { canViewOrderMoney } = require("../config/permissions");
 
 function parseDateParam(raw) {
   const s = String(raw || "").slice(0, 10);
@@ -64,8 +65,9 @@ async function index(req, res, next) {
   let loadError = null;
   let staffList = [];
 
-  const showMoney = ["owner", "admin"].includes(req.session.user.role);
-  const canManageAllAbsences = showMoney;
+  const showMoney = canViewOrderMoney(req.session.user.role);
+  const canManageAllAbsences = req.session.user.role === "owner" || req.session.user.role === "admin";
+  const showFinance = canManageAllAbsences;
 
   try {
     const db = await getDB();
@@ -76,7 +78,7 @@ async function index(req, res, next) {
       timeGrid = assignOrdersToTimeSlots(dayData);
       staffList = await loadStaff(db);
     }
-    if (showMoney) {
+    if (showFinance) {
       const monthStart = new Date(year, month, 1).toISOString().slice(0, 10);
       const monthEnd = new Date(year, month + 1, 0).toISOString().slice(0, 10);
       finance = await loadFinanceMetrics(db, monthStart, monthEnd);

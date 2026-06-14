@@ -37,8 +37,10 @@
           <th>Клиент</th>
           <th>Телефон</th>
           <th>Статус</th>
+          <% if (typeof showMoney !== 'undefined' && showMoney) { %>
           <th class="num">Итого</th>
           <th class="num">Долг</th>
+          <% } %>
         </tr>
       </thead>
       <tbody>
@@ -51,6 +53,7 @@
             <td><%= o.client_name %></td>
             <td class="muted"><%= o.client_phone || '—' %></td>
             <td><span class="status-badge status-<%= o.status %>"><%= (statusLabels && statusLabels[o.status]) || o.status %></span></td>
+            <% if (typeof showMoney !== 'undefined' && showMoney) { %>
             <td class="num"><%= Number(o.total_price).toFixed(2) %> ₽</td>
             <td class="num">
               <% if (o.due_amount > 0) { %>
@@ -59,6 +62,7 @@
                 <span class="muted">0</span>
               <% } %>
             </td>
+            <% } %>
           </tr>
         <% }) %>
       </tbody>

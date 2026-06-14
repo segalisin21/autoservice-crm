@@ -98,11 +98,17 @@ async function roleHasPermission(db, role, permission) {
   return perms.has(permission);
 }
 
+/** Order totals in calendar/list/card — manager and above; master cannot see. */
+function canViewOrderMoney(role) {
+  return role === "owner" || role === "admin" || role === "manager";
+}
+
 module.exports = {
   PERMISSIONS,
   DEFAULT_MATRIX,
   seedDefaultPermissions,
   loadRolePermissions,
   roleHasPermission,
+  canViewOrderMoney,
   clearPermissionCache
 };

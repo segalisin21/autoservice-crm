@@ -68,7 +68,7 @@
           <% if (d.booking_count > 0) { %>
             <div class="calendar-day-meta">
               <span class="calendar-day-count"><%= d.booking_count %></span>
-              <% if (d.revenue > 0) { %>
+              <% if (viewShowMoney && d.revenue > 0) { %>
                 <span class="calendar-day-rev"><%= Math.round(d.revenue).toLocaleString('ru-RU') %> ₽</span>
               <% } %>
             </div>
@@ -105,7 +105,9 @@
 
     <div class="day-summary-strip" aria-label="Показатели дня">
       <span>Заказы <strong><%= viewDayStats.count %></strong></span>
+      <% if (viewShowMoney) { %>
       <span>Сумма <strong><%= Math.round(viewDayStats.revenue).toLocaleString('ru-RU') %> ₽</strong></span>
+      <% } %>
       <span>Сотрудники <strong><%= viewDayStats.employees_busy %>/<%= empTotal %></strong></span>
       <% if (viewDayData.absences && viewDayData.absences.length) { %>
         <span class="day-summary-strip__warn">Отсутствуют <strong><%= viewDayData.absences.length %></strong></span>
@@ -118,7 +120,7 @@
 
     <% if (viewTimeGrid) { %>
     <div class="schedule-time-grid-wrap">
-      <%- include('partials/schedule-time-grid', { timeGrid: viewTimeGrid, statusLabel: statusLabel }) %>
+      <%- include('partials/schedule-time-grid', { timeGrid: viewTimeGrid, statusLabel: statusLabel, showMoney: viewShowMoney }) %>
     </div>
     <% } %>
 
@@ -132,7 +134,7 @@
           </div>
           <div class="garage-bay-body">
             <% viewDayData.unassigned.forEach(function(o) { %>
-              <%- include('partials/order-card', { o: o, statusLabel: statusLabel }) %>
+              <%- include('partials/order-card', { o: o, statusLabel: statusLabel, showMoney: viewShowMoney }) %>
             <% }); %>
           </div>
         </div>
@@ -152,7 +154,7 @@
                 <div class="garage-bay-empty">Свободно</div>
               <% } %>
               <% emp.orders.forEach(function(o) { %>
-                <%- include('partials/order-card', { o: o, statusLabel: statusLabel }) %>
+                <%- include('partials/order-card', { o: o, statusLabel: statusLabel, showMoney: viewShowMoney }) %>
               <% }); %>
             </div>
           </div>
@@ -236,6 +238,7 @@
         <div class="stat-label">Заказов за день</div>
       </div>
     </div>
+    <% if (viewShowMoney) { %>
     <div class="stat-card stat-card--compact">
       <div class="stat-icon revenue">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -247,6 +250,7 @@
         <div class="stat-label">Сумма за день</div>
       </div>
     </div>
+    <% } %>
     <div class="stat-card stat-card--compact">
       <div class="stat-icon active">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -8,7 +8,7 @@
   <p class="order-subtitle"><%= order.client_name %> · <%= order.client_phone %></p>
   <% if (order.license_plate_raw) { %><p class="muted"><%= order.license_plate_raw %></p><% } %>
 
-  <% if (typeof due_amount !== 'undefined' && due_amount > 0 && order.status !== 'cancelled') { %>
+  <% if (typeof due_amount !== 'undefined' && due_amount > 0 && order.status !== 'cancelled' && !(typeof isMasterView !== 'undefined' && isMasterView)) { %>
   <div class="order-due-alert" role="status">
     <strong>Долг по заказу: <%= Number(due_amount).toLocaleString('ru-RU') %> ₽</strong>
     <span class="muted"> · оплачено <%= Number(paid_amount).toFixed(0) %> из <%= Number(order.total_price).toFixed(0) %> ₽</span>
@@ -64,7 +64,8 @@
 <details class="order-accordion card" open>
   <summary class="order-accordion-summary">Работы<% if (typeof isMasterView !== 'undefined' && isMasterView) { %> <span class="muted">(ваши)</span><% } %></summary>
   <div class="order-accordion-body">
-    <% const canEditLines = order.status !== 'cancelled' && order.status !== 'completed' && !(typeof isMasterView !== 'undefined' && isMasterView); %>
+    <% const hideLineMoney = typeof isMasterView !== 'undefined' && isMasterView; %>
+    <% const canEditLines = order.status !== 'cancelled' && order.status !== 'completed' && !hideLineMoney; %>
     <div class="work-lines-table-wrap table-scroll">
       <% works.forEach(l => { %>
         <% if (canEditLines) { %>
@@ -75,11 +76,10 @@
         <thead>
           <tr>
             <th>Работа</th>
-            <th>Кол-во</th>
-            <th>Цена</th>
+            <% if (!hideLineMoney) { %><th>Кол-во</th><th>Цена</th><% } %>
             <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %><th>Расходник</th><% } %>
             <th>Мастер</th>
-            <th>Сумма</th>
+            <% if (!hideLineMoney) { %><th>Сумма</th><% } %>
             <th></th>
           </tr>
         </thead>
@@ -90,13 +90,15 @@
                 <strong><%= l.name %></strong>
                 <% if (l.notes) { %><div class="muted table-sub" style="white-space:pre-line;"><%= l.notes %></div><% } %>
                 <% if (l.vehicle_tier && Number(l.vehicle_tier) > 1) { %><div class="muted table-sub">Кат. авто: <%= l.vehicle_tier %></div><% } %>
-                <% if (typeof isMasterView !== 'undefined' && isMasterView && l.payroll_estimate != null) { %>
+                <% if (!hideLineMoney && typeof isMasterView !== 'undefined' && isMasterView && l.payroll_estimate != null) { %>
                   <div class="muted table-sub">≈ ЗП <%= Number(l.payroll_estimate).toFixed(0) %> ₽</div>
                 <% } %>
               </td>
               <% if (canEditLines) { %>
+                <% if (!hideLineMoney) { %>
                 <td><input class="table-input" form="work-line-form-<%= l.id %>" name="quantity" value="<%= l.quantity %>" inputmode="decimal" /></td>
                 <td><input class="table-input" form="work-line-form-<%= l.id %>" name="unit_price" value="<%= l.unit_price %>" inputmode="decimal" /></td>
+                <% } %>
                 <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
                   <td><input class="table-input" form="work-line-form-<%= l.id %>" name="material_cost" value="<%= l.cost_price || 0 %>" inputmode="decimal" /></td>
                 <% } %>
@@ -109,12 +111,14 @@
                   </select>
                 </td>
               <% } else { %>
+                <% if (!hideLineMoney) { %>
                 <td><%= l.quantity %></td>
                 <td><%= Number(l.unit_price).toFixed(2) %></td>
+                <% } %>
                 <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %><td><%= Number(l.cost_price || 0).toFixed(2) %></td><% } %>
                 <td><%= l.master_name || '—' %></td>
               <% } %>
-              <td><strong><%= Number(l.total).toFixed(2) %> ₽</strong></td>
+              <% if (!hideLineMoney) { %><td><strong><%= Number(l.total).toFixed(2) %> ₽</strong></td><% } %>
               <td class="table-actions-cell">
                 <% if (canEditLines) { %>
                   <div class="table-row-actions">
@@ -128,7 +132,7 @@
             </tr>
           <% }) %>
           <% if (!works.length) { %>
-            <tr><td colspan="<%= typeof isOwnerView !== 'undefined' && isOwnerView ? 7 : 6 %>" class="muted">Работ пока нет.</td></tr>
+            <tr><td colspan="<%= (hideLineMoney ? 2 : 4) + (typeof isOwnerView !== 'undefined' && isOwnerView ? 1 : 0) + 1 %>" class="muted">Работ пока нет.</td></tr>
           <% } %>
         </tbody>
       </table>

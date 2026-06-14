@@ -51,6 +51,61 @@ test("master: calendar ok, orders list redirects, annotate notes, no line mutate
   assert.equal((await agent.get("/admin/payroll")).status, 200);
 });
 
+test("master does not see order money; manager does", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('Money', '+7', '79990000200')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, make, license_plate_raw) VALUES (?, 'VW', 'M111MM77')`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const day = "2026-06-15";
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, scheduled_date, assigned_user_id, start_time, total_price, subtotal_works) VALUES (?, 'scheduled', ?, ?, '10:00', 15000, 15000)`,
+    [carId, day, masterId]
+  );
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, name, quantity, unit_price, total, master_id) VALUES (?, 'work', 'Oil change', 1, 15000, 15000, ?)`,
+    [orderId, masterId]
+  );
+
+  const masterAgent = request.agent(ctx.app);
+  await ctx.loginAs(masterAgent, "master", "master");
+
+  const masterDay = await masterAgent.get(`/?mode=day&date=${day}`);
+  assert.equal(masterDay.status, 200);
+  assert.doesNotMatch(masterDay.text, /calendar-day-rev/);
+  assert.doesNotMatch(masterDay.text, /15[\s\u00a0]?000\s*₽/);
+  assert.doesNotMatch(masterDay.text, /Сумма <strong>/);
+
+  const masterShow = await masterAgent.get(`/orders/${orderId}`);
+  assert.equal(masterShow.status, 200);
+  assert.doesNotMatch(masterShow.text, /Долг по заказу/);
+  assert.doesNotMatch(masterShow.text, /15[\s\u00a0]?000/);
+
+  const mgrAgent = request.agent(ctx.app);
+  await ctx.loginAs(mgrAgent, "manager", "manager");
+
+  const mgrDay = await mgrAgent.get(`/?mode=day&date=${day}`);
+  assert.equal(mgrDay.status, 200);
+  assert.match(mgrDay.text, /15[\s\u00a0]?000\s*₽/);
+
+  const mgrList = await mgrAgent.get("/orders");
+  assert.equal(mgrList.status, 200);
+  assert.match(mgrList.text, /<th class="num">Итого<\/th>/);
+
+  const adminAgent = request.agent(ctx.app);
+  await ctx.loginAs(adminAgent, "admin", "admin");
+  const adminDay = await adminAgent.get(`/?mode=day&date=${day}`);
+  assert.equal(adminDay.status, 200);
+  assert.match(adminDay.text, /15[\s\u00a0]?000\s*₽/);
+});
+
 test("manager: clients and orders mutate, no journal or finance", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
