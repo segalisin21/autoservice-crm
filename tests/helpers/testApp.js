@@ -34,6 +34,7 @@ async function createTestApp() {
 
   const owner = await insertUser("owner", "owner", "owner", "Owner");
   const admin = await insertUser("admin", "admin", "admin", "Admin");
+  const manager = await insertUser("manager", "manager", "manager", "Manager");
   const master = await insertUser("master", "master", "master", "Master");
 
   async function loginAs(agent, username, password) {
@@ -45,7 +46,7 @@ async function createTestApp() {
     app,
     db,
     dbPath,
-    users: { owner, admin, master },
+    users: { owner, admin, manager, master },
     loginAs,
     async close() {
       await db.close();

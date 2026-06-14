@@ -6,6 +6,7 @@ const PERMISSIONS = [
   "cars:mutate",
   "orders:view",
   "orders:mutate",
+  "orders:annotate",
   "catalog:view",
   "catalog:manage",
   "payments:view",
@@ -41,7 +42,19 @@ const DEFAULT_MATRIX = {
     "expenses:mutate",
     "admin:reports"
   ]),
-  master: new Set(["dashboard:view", "orders:view", "payroll:view"])
+  master: new Set(["dashboard:view", "orders:view", "orders:annotate", "payroll:view"]),
+  manager: new Set([
+    "dashboard:view",
+    "clients:view",
+    "clients:mutate",
+    "cars:view",
+    "cars:mutate",
+    "orders:view",
+    "orders:mutate",
+    "catalog:view",
+    "payments:view",
+    "payments:mutate"
+  ])
 };
 
 async function seedDefaultPermissions(db) {
@@ -89,6 +102,7 @@ module.exports = {
   PERMISSIONS,
   DEFAULT_MATRIX,
   seedDefaultPermissions,
+  loadRolePermissions,
   roleHasPermission,
   clearPermissionCache
 };

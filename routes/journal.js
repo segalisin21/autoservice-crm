@@ -5,6 +5,6 @@ const journalController = require("../controllers/journalController");
 
 const router = express.Router();
 
-router.get("/", requirePermission("orders:view"), journalController.index);
+router.get("/", requirePermission("admin:reports"), journalController.index);
 
 module.exports = router;

@@ -17,7 +17,7 @@
 
   <% var canChangeStatus = typeof canChangeOrderStatus !== 'undefined' && canChangeOrderStatus; %>
   <% var statusChipOptions = typeof statusOptions !== 'undefined' ? statusOptions : ['scheduled','in_progress','ready','completed']; %>
-  <% if (canChangeStatus || (order.status !== 'completed' && order.status !== 'cancelled')) { %>
+  <% if (canChangeStatus) { %>
   <div class="status-chips" role="group" aria-label="Статус заказа">
     <% statusChipOptions.forEach(function(s) { %>
       <form method="post" action="/orders/<%= order.id %>/status" class="status-chip-form">
@@ -64,7 +64,7 @@
 <details class="order-accordion card" open>
   <summary class="order-accordion-summary">Работы<% if (typeof isMasterView !== 'undefined' && isMasterView) { %> <span class="muted">(ваши)</span><% } %></summary>
   <div class="order-accordion-body">
-    <% const canEditLines = order.status !== 'cancelled' && !(typeof isMasterView !== 'undefined' && isMasterView); %>
+    <% const canEditLines = order.status !== 'cancelled' && order.status !== 'completed' && !(typeof isMasterView !== 'undefined' && isMasterView); %>
     <div class="work-lines-table-wrap table-scroll">
       <% works.forEach(l => { %>
         <% if (canEditLines) { %>
@@ -133,7 +133,7 @@
         </tbody>
       </table>
     </div>
-    <% if (order.status !== 'completed' && order.status !== 'cancelled') { %>
+    <% if (canEditLines) { %>
     <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" id="form-add-work" data-catalog-ac data-work-category="<%= typeof catalogWorkCategory !== 'undefined' ? catalogWorkCategory : (order.work_type || '') %>">
       <input type="hidden" name="line_type" value="work" />
       <input type="hidden" name="catalog_item_id" value="" />
@@ -184,9 +184,9 @@
               <td data-label="Закупка"><%= Number(l.cost_price || 0).toFixed(2) %></td>
               <% } %>
               <td>
-                <% if (order.status !== 'completed') { %>
+                <% if (canEditLines) { %>
                 <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" style="display:inline;">
-                  <button type="submit" class="btn-line-delete">×</button>
+                  <button type="submit" class="btn btn-sm btn-delete btn-line-delete" title="Удалить">×</button>
                 </form>
                 <% } %>
               </td>
@@ -195,7 +195,7 @@
         </tbody>
       </table>
     </div>
-    <% if (order.status !== 'completed') { %>
+    <% if (canEditLines) { %>
     <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" data-catalog-ac data-work-category="">
       <input type="hidden" name="line_type" value="product" />
       <input type="hidden" name="catalog_item_id" value="" />
@@ -244,6 +244,7 @@
 </details>
 <% } %>
 
+<% if (!(typeof isMasterView !== 'undefined' && isMasterView)) { %>
 <details class="order-accordion card" open>
   <summary class="order-accordion-summary">Оплата · долг <%= Number(due_amount).toFixed(0) %> ₽</summary>
   <div class="order-accordion-body">
@@ -253,7 +254,7 @@
         <li><%= p.paid_at %> — <%= Number(p.amount).toFixed(2) %> ₽ (<%= p.method %>)</li>
       <% }) %>
     </ul>
-    <% if (order.status !== 'cancelled' && due_amount > 0) { %>
+    <% if (canEditLines && order.status !== 'cancelled' && due_amount > 0) { %>
     <form method="post" action="/orders/<%= order.id %>/payments" class="order-payment-form" id="form-payment">
       <label>Сумма <input name="amount" value="<%= Number(due_amount).toFixed(2) %>" required inputmode="decimal" /></label>
       <label>Способ
@@ -269,7 +270,34 @@
     <% } %>
   </div>
 </details>
+<% } %>
 
+<% if (typeof canAnnotateOrder !== 'undefined' && canAnnotateOrder) { %>
+<details class="order-accordion card" open>
+  <summary class="order-accordion-summary">Комментарий и фото</summary>
+  <div class="order-accordion-body">
+    <form method="post" action="/orders/<%= order.id %>/notes" class="order-master-notes-form">
+      <label>Комментарий к заказу
+        <textarea name="notes" rows="3"><%= order.notes || '' %></textarea>
+      </label>
+      <button type="submit" class="btn btn-primary btn-sm">Сохранить комментарий</button>
+    </form>
+    <% if (photos && photos.length) { %>
+    <div class="order-photos-grid">
+      <% photos.forEach(p => { %>
+        <a href="/orders/<%= order.id %>/photos/<%= p.id %>/file" target="_blank">
+          <img src="/orders/<%= order.id %>/photos/<%= p.id %>/file" alt="" class="order-photo-thumb" />
+        </a>
+      <% }) %>
+    </div>
+    <% } %>
+    <form method="post" action="/orders/<%= order.id %>/photos" enctype="multipart/form-data" class="order-photo-upload">
+      <input type="file" name="photo" accept="image/*" multiple />
+      <button type="submit" class="btn btn-sm">Загрузить фото</button>
+    </form>
+  </div>
+</details>
+<% } else if (!(typeof isMasterView !== 'undefined' && isMasterView)) { %>
 <details class="order-accordion card">
   <summary class="order-accordion-summary">Фото</summary>
   <div class="order-accordion-body">
@@ -282,12 +310,15 @@
       <% }) %>
     </div>
     <% } %>
+    <% if (canEditLines) { %>
     <form method="post" action="/orders/<%= order.id %>/photos" enctype="multipart/form-data" class="order-photo-upload">
       <input type="file" name="photo" accept="image/*" multiple />
       <button type="submit" class="btn btn-sm">Загрузить</button>
     </form>
+    <% } %>
   </div>
 </details>
+<% } %>
 
 <% if (!isMasterView) { %>
 <details class="order-accordion card">

@@ -1,5 +1,26 @@
 # HANDOFF
 
+## 2026-06-14 — roles master and manager
+
+### What changed
+- Новая роль `manager`: календарь, заказы, клиенты, авто, оплаты; без журнала/финансов/админки.
+- Роль `master` ужесточена: только календарь, карточка заказа (read-only работы), комментарий/фото (`orders:annotate`), своя ЗП; `/orders` → редирект на `/`.
+- Permission `orders:annotate`; middleware `loadUserPermissions`; меню фильтруется по `can()`.
+- Маршрут `POST /orders/:id/notes`; фото — `orders:mutate` или `orders:annotate`.
+
+### Key files
+- `config/permissions.js`, `middleware/loadUserPermissions.js`, `middleware/auth.js`
+- `controllers/orderController.js`, `routes/orders.js`, `routes/dashboard.js`, `routes/journal.js`
+- `views/partials/layout-top.ejs`, `views/partials/mobile-nav.ejs`, `views/orders/show.ejs`
+- `controllers/userController.js`, `tests/roles-rbac.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-14 — compact payroll tables
 
 ### What changed

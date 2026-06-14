@@ -8,6 +8,7 @@ const session = require("express-session");
 const methodOverride = require("method-override");
 
 const { requireAuth } = require("./middleware/auth");
+const { loadUserPermissions } = require("./middleware/loadUserPermissions");
 const { isProbablyPostgresUrl } = require("./config/database");
 const authRoutes = require("./routes/auth");
 const dashboardRoutes = require("./routes/dashboard");
@@ -94,6 +95,11 @@ if (isProbablyPostgresUrl(process.env.DATABASE_URL)) {
 }
 
 app.use(session(sessionOptions));
+
+app.use((req, res, next) => {
+  if (!req.session?.user) return next();
+  return loadUserPermissions(req, res, next);
+});
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });

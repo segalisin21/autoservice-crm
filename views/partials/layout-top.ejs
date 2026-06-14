@@ -1,4 +1,6 @@
 <% var _cat = typeof category !== 'undefined' ? category : 'app'; %>
+<% var _can = typeof can === 'function' ? can : function () { return true; }; %>
+<% var _isMaster = typeof user !== 'undefined' && user && user.role === 'master'; %>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -45,92 +47,128 @@
         </button>
       </div>
       <nav class="sidebar-nav">
+        <% if (_can('dashboard:view')) { %>
         <a href="/" class="nav-item <%= _cat === 'dashboard' ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
           </svg>
           <span>Календарь</span>
         </a>
+        <% } %>
+        <% if (_can('orders:view') && !_isMaster) { %>
         <a href="/orders" class="nav-item <%= _cat === 'orders' ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
           </svg>
           <span>Заказы</span>
         </a>
+        <% } %>
+        <% if (_can('clients:view')) { %>
         <a href="/clients" class="nav-item <%= _cat === 'clients' ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
           </svg>
           <span>Клиенты</span>
         </a>
+        <% } %>
+        <% if (_can('cars:view')) { %>
         <a href="/cars" class="nav-item <%= _cat === 'cars' ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 17h14M5 17l1-4h12l1 4M7 13l1.5-4h7L17 13M6 17a2 2 0 104 0M14 17a2 2 0 104 0"/>
           </svg>
           <span>Авто</span>
         </a>
+        <% } %>
+        <% if (_can('admin:reports')) { %>
         <a href="/journal" class="nav-item <%= _cat === 'journal' ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 6h16M4 10h16M4 14h10M4 18h8"/>
           </svg>
           <span>Журнал</span>
         </a>
+        <% } %>
+        <% if (_can('catalog:view') && _can('catalog:manage')) { %>
         <a href="/catalog" class="nav-item <%= _cat === 'catalog' ? 'active' : '' %>">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
           </svg>
           <span>Каталог</span>
         </a>
+        <% } %>
+        <% if (_isMaster && _can('payroll:view')) { %>
+        <a href="/admin/payroll" class="nav-item <%= _cat === 'payroll' ? 'active' : '' %>">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2m9-4a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>Моя ЗП</span>
+        </a>
+        <% } %>
+        <% if (_can('expenses:view') || _can('admin:users') || _can('admin:reports') || (_can('payroll:view') && !_isMaster)) { %>
         <details class="sidebar-admin-details" open>
           <summary class="sidebar-admin-summary">
             <span>Администрирование</span>
             <svg class="sidebar-admin-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
           </summary>
           <div class="sidebar-admin-inner">
+            <% if (_can('expenses:view')) { %>
             <a href="/expenses" class="nav-item <%= _cat === 'expenses' ? 'active' : '' %>">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 10h18M7 15h2m6 0h2M5 5h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/>
               </svg>
               <span>Расходы</span>
             </a>
+            <% } %>
+            <% if (_can('admin:users')) { %>
             <a href="/admin/users" class="nav-item <%= _cat === 'users' ? 'active' : '' %>">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
               </svg>
               <span>Сотрудники</span>
             </a>
+            <% } %>
+            <% if (_can('admin:reports')) { %>
             <a href="/admin/orders-economics" class="nav-item <%= (typeof adminSection !== 'undefined' && adminSection === 'economics') ? 'active' : '' %>">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 17v-2m3 2v-4m3 4v-6M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z"/>
               </svg>
               <span>Экономика заказов</span>
             </a>
+            <% } %>
+            <% if (_can('admin:reports')) { %>
             <a href="/admin/finance" class="nav-item <%= (typeof adminSection !== 'undefined' && adminSection === 'summary') || (_cat === 'finance' && typeof adminSection === 'undefined') ? 'active' : '' %>">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7H14a3 3 0 010 6H6"/>
               </svg>
               <span>Финансы</span>
             </a>
+            <% } %>
+            <% if (_can('payroll:view') && !_isMaster) { %>
             <a href="/admin/payroll" class="nav-item <%= _cat === 'payroll' ? 'active' : '' %>">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8V6m0 12v-2m9-4a9 9 0 11-18 0 9 9 0 0118 0z"/>
               </svg>
               <span>Зарплата</span>
             </a>
+            <% } %>
+            <% if (_can('admin:reports')) { %>
             <a href="/admin/reports" class="nav-item <%= _cat === 'reports' ? 'active' : '' %>">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
               </svg>
               <span>Аналитика</span>
             </a>
+            <% } %>
+            <% if (_can('admin:settings')) { %>
             <a href="/admin/settings" class="nav-item <%= _cat === 'settings' ? 'active' : '' %>">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9c.26.604.852.997 1.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
               </svg>
               <span>Настройки</span>
             </a>
+            <% } %>
           </div>
         </details>
+        <% } %>
       </nav>
       <div class="sidebar-footer">
         <div class="date-display"><span id="current-date"></span></div>
@@ -145,12 +183,14 @@
           <h2 class="page-title"><%= typeof title !== 'undefined' ? title : 'CRM' %></h2>
         </div>
         <div class="top-bar-actions">
+          <% if (_can('orders:mutate')) { %>
           <a href="/orders/new" class="btn btn-primary btn-sm">Новый заказ</a>
+          <% } %>
           <% if (typeof user !== 'undefined' && user) { %>
           <div class="top-bar-user">
             <div class="top-bar-user-text">
               <p class="top-bar-user-name"><%= user.name || user.username %></p>
-              <p class="top-bar-user-role"><%= user.role %></p>
+              <p class="top-bar-user-role"><%= typeof roleLabel !== 'undefined' ? roleLabel : user.role %></p>
             </div>
             <form action="/logout" method="POST" class="logout-form">
               <button type="submit" class="btn-logout" title="Выйти">

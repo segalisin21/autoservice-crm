@@ -32,4 +32,23 @@ function requirePermission(permission) {
   };
 }
 
-module.exports = { requireAuth, requireRole, requirePermission };
+function requireAnyPermission(...permissions) {
+  const list = permissions.flat();
+  return async (req, res, next) => {
+    const user = req.session?.user;
+    if (!user) return res.redirect("/login");
+    if (user.role === "owner") return next();
+
+    try {
+      const db = await getDB();
+      for (const permission of list) {
+        if (await roleHasPermission(db, user.role, permission)) return next();
+      }
+      return res.status(403).send("Forbidden");
+    } catch (err) {
+      return next(err);
+    }
+  };
+}
+
+module.exports = { requireAuth, requireRole, requirePermission, requireAnyPermission };

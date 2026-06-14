@@ -3,8 +3,13 @@ const { sqlNow } = require("../config/sqlDialect");
 const { hashPassword } = require("../lib/password");
 const { clearPermissionCache } = require("../config/permissions");
 
-const ROLES = ["owner", "admin", "master"];
-const ROLE_LABELS = { owner: "Владелец", admin: "Администратор", master: "Мастер" };
+const ROLES = ["owner", "admin", "manager", "master"];
+const ROLE_LABELS = {
+  owner: "Владелец",
+  admin: "Администратор",
+  manager: "Менеджер",
+  master: "Мастер"
+};
 
 function normalizeRole(value) {
   const v = String(value ?? "").trim().toLowerCase();

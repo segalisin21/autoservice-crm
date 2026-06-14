@@ -1,5 +1,6 @@
 const express = require("express");
 
+const { requirePermission } = require("../middleware/auth");
 const { getDB } = require("../config/database");
 const {
   normalizeArticle,
@@ -11,7 +12,7 @@ const { likePatternFolded, lcLike, foldSearchCase } = require("../lib/sqlSearch"
 
 const router = express.Router();
 
-router.get("/search", async (req, res, next) => {
+router.get("/search", requirePermission("catalog:view"), async (req, res, next) => {
   try {
     const db = await getDB();
     const q = String(req.query.q ?? "").trim();

@@ -133,12 +133,14 @@ const ORDER_STATUSES = ["scheduled", "in_progress", "ready", "completed", "cance
 const ACTIVE_STATUS_OPTIONS = ["scheduled", "in_progress", "ready", "completed"];
 
 function canManageOrderStatus(role) {
-  return role === "owner" || role === "admin";
+  return role === "owner" || role === "admin" || role === "manager";
 }
+
+const STAFF_ROLES_SQL = "('master','manager','admin','owner')";
 
 async function loadMasters(db) {
   return db.query(
-    "SELECT id, name, username FROM users WHERE role IN ('master','admin','owner') AND is_active = 1 ORDER BY name"
+    `SELECT id, name, username FROM users WHERE role IN ${STAFF_ROLES_SQL} AND is_active = 1 ORDER BY name`
   );
 }
 
@@ -203,6 +205,9 @@ async function getOrderContext(db, orderId) {
 }
 
 async function list(req, res) {
+  if (req.session.user?.role === "master") {
+    return res.redirect("/");
+  }
   const db = await getDB();
   const status = String(req.query.status ?? "").trim();
   const search = String(req.query.search ?? "").trim();
@@ -486,7 +491,11 @@ async function show(req, res) {
 
   const role = req.session.user?.role;
   const isOwnerView = role === "owner" || role === "admin";
+  const isManagerView = role === "manager";
   const isMasterView = role === "master";
+  const { roleHasPermission } = require("../config/permissions");
+  const canAnnotateOrder =
+    role === "owner" || (await roleHasPermission(db, role, "orders:annotate"));
   let works = ctx.works;
   if (isMasterView && req.session.user?.id) {
     works = works.filter((l) => Number(l.master_id) === Number(req.session.user.id));
@@ -526,7 +535,9 @@ async function show(req, res) {
     economics,
     orderExpenses,
     isOwnerView,
+    isManagerView,
     isMasterView,
+    canAnnotateOrder,
     canChangeOrderStatus: canManageOrderStatus(role),
     statusOptions: canManageOrderStatus(role) ? ORDER_STATUSES : ACTIVE_STATUS_OPTIONS,
     statuses: ORDER_STATUSES,
@@ -607,6 +618,18 @@ async function update(req, res) {
 
   await recomputeOrderTotals(id);
   await onOrderStatusChange(id, previousStatus, status);
+  return res.redirect(`/orders/${id}`);
+}
+
+async function updateNotes(req, res) {
+  const id = Number(req.params.id);
+  const db = await getDB();
+  const rows = await db.query("SELECT id FROM orders WHERE id = ?", [id]);
+  if (!rows.length) return res.status(404).send("Not found");
+
+  const notes = String(req.body.notes ?? "").trim() || null;
+  const now = sqlNow(db.dialect);
+  await db.query(`UPDATE orders SET notes = ?, updated_at = ${now} WHERE id = ?`, [notes, id]);
   return res.redirect(`/orders/${id}`);
 }
 
@@ -976,6 +999,7 @@ module.exports = {
   showNew,
   create,
   update,
+  updateNotes,
   changeStatus,
   show,
   addLine,

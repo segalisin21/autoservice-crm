@@ -1,6 +1,6 @@
 const express = require("express");
 
-const { requirePermission } = require("../middleware/auth");
+const { requirePermission, requireAnyPermission } = require("../middleware/auth");
 const orderController = require("../controllers/orderController");
 const { uploadPhotos } = require("../lib/upload");
 
@@ -14,6 +14,7 @@ router.get("/:id/act-acceptance", requirePermission("orders:view"), orderControl
 router.get("/:id/act-completion", requirePermission("orders:view"), orderController.actCompletion);
 router.get("/:id", requirePermission("orders:view"), orderController.show);
 router.put("/:id", requirePermission("orders:mutate"), orderController.update);
+router.post("/:id/notes", requirePermission("orders:annotate"), orderController.updateNotes);
 router.post("/:id/status", requirePermission("orders:mutate"), orderController.changeStatus);
 router.post("/:id/lines", requirePermission("orders:mutate"), orderController.addLine);
 router.put("/lines/:lineId", requirePermission("orders:mutate"), orderController.updateLine);
@@ -21,7 +22,7 @@ router.delete("/lines/:lineId", requirePermission("orders:mutate"), orderControl
 router.post("/:id/payments", requirePermission("orders:mutate"), orderController.addPayment);
 router.post(
   "/:id/photos",
-  requirePermission("orders:mutate"),
+  requireAnyPermission("orders:mutate", "orders:annotate"),
   uploadPhotos.array("photo", 10),
   orderController.uploadPhotos
 );

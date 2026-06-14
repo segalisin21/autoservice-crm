@@ -1,0 +1,1 @@
+-- Role manager + permission orders:annotate seeded via config/permissions.js on login
