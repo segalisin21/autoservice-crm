@@ -16,19 +16,18 @@ async function seedOrder(ctx) {
   return (await ctx.db.query("SELECT id FROM orders LIMIT 1"))[0].id;
 }
 
-test("net_percent subtracts allocated materials before percentage", () => {
+test("net_percent subtracts work-line consumables before percentage", () => {
   const r = computeEarnedForLine({ total: 1000 }, { mode: "net_percent", value: 50 }, { allocatedMaterials: 400 });
   assert.equal(r.earned, 300); // (1000 - 400) * 50%
 });
 
-test("default 50% of (works - materials) applied when no rule", async (t) => {
+test("product tab cost does not reduce payroll", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
 
   const masterId = ctx.users.master.id;
   const orderId = await seedOrder(ctx);
 
-  // work line 2000, product cost 600 (расходники)
   await ctx.db.query(
     `INSERT INTO order_lines(order_id, line_type, name, quantity, unit_price, total, master_id, work_status)
      VALUES (?, 'work', 'Ремонт', 1, 2000, 2000, ?, 'done')`,
@@ -47,10 +46,37 @@ test("default 50% of (works - materials) applied when no rule", async (t) => {
     [orderId]
   ))[0];
   assert.equal(line.master_comp_mode, "net_percent");
-  assert.equal(Number(line.master_earned_amount), 700); // (2000 - 600) * 50%
+  assert.equal(Number(line.master_earned_amount), 1000); // 2000 * 50%, product ignored
 });
 
-test("materials from order-linked expenses also reduce payroll base", async (t) => {
+test("work line consumable reduces payroll base", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  const orderId = await seedOrder(ctx);
+
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, name, quantity, unit_price, total, master_id, work_status, cost_price)
+     VALUES (?, 'work', 'Ремонт', 1, 2000, 2000, ?, 'done', 400)`,
+    [orderId, masterId]
+  );
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, name, quantity, unit_price, total, cost_price)
+     VALUES (?, 'product', 'Деталь', 1, 1000, 1000, 600)`,
+    [orderId]
+  );
+
+  await freezeOrderEarned(orderId);
+
+  const line = (await ctx.db.query(
+    "SELECT master_earned_amount FROM order_lines WHERE line_type='work' AND order_id=?",
+    [orderId]
+  ))[0];
+  assert.equal(Number(line.master_earned_amount), 800); // (2000 - 400) * 50%
+});
+
+test("order-linked materials expense does not reduce payroll", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
 
@@ -72,5 +98,5 @@ test("materials from order-linked expenses also reduce payroll base", async (t) 
     "SELECT master_earned_amount FROM order_lines WHERE line_type='work' AND order_id=?",
     [orderId]
   ))[0];
-  assert.equal(Number(line.master_earned_amount), 400); // (1000 - 200) * 50%
+  assert.equal(Number(line.master_earned_amount), 500); // 1000 * 50%
 });
