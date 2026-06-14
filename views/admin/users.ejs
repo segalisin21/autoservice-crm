@@ -35,7 +35,7 @@
               <button type="submit" class="btn btn-sm"><%= u.is_active ? 'Отключить' : 'Включить' %></button>
             </form>
             <form method="post" action="/admin/users/<%= u.id %>?_method=DELETE" style="display:inline;" onsubmit="return confirm('Удалить сотрудника безвозвратно?');">
-              <button type="submit" class="btn btn-sm" style="color:var(--danger, #c00);">Удалить</button>
+              <button type="submit" class="btn btn-sm btn-delete">Удалить</button>
             </form>
             <% } %>
           </td>

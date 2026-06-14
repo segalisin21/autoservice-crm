@@ -183,7 +183,7 @@
                   <td>
                     <% if (typeof canManageAllAbsences !== 'undefined' && canManageAllAbsences || (typeof user !== 'undefined' && user && Number(user.id) === Number(a.user_id))) { %>
                     <form method="post" action="/schedule/absences/<%= a.id %>?_method=DELETE&date=<%= viewToday %>" style="display:inline;">
-                      <button type="submit" class="btn btn-sm">Удалить</button>
+                      <button type="submit" class="btn btn-sm btn-delete">Удалить</button>
                     </form>
                     <% } %>
                   </td>

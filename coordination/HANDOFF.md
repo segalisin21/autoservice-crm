@@ -1,5 +1,26 @@
 # HANDOFF
 
+## 2026-06-14 — compact order detail page
+
+### What changed
+- Страница заказа `/orders/:id`: форма добавления работы уплотнена — мастера в одну строку чекбоксов, поля в компактной сетке.
+- Убраны плавающие кнопки «+ Работа» / «Оплата» (order-fab-bar) — перекрывали контент при скролле.
+- Действия в таблице работ: ✓ и × в одну строку; удаление красное.
+- Глобальный класс `.btn-delete` / `.btn-line-delete` — красные кнопки и крестики удаления (каталог, клиенты, авто, сотрудники, отсутствия).
+
+### Key files
+- `views/orders/show.ejs`
+- `public/css/autoservice.css`
+- `views/catalog/list.ejs`, `views/dashboard.ejs`, `views/clients/show.ejs`, `views/cars/show.ejs`, `views/admin/users.ejs`
+
+### Verify
+```bash
+npm test
+```
+Визуально: `/orders/:id` — блок мастеров, таблица работ, нет FAB-кнопок внизу.
+
+---
+
 ## 2026-06-14 — fix inline toolbar layout overlap
 
 ### What changed

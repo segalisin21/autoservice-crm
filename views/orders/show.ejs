@@ -115,12 +115,12 @@
                 <td><%= l.master_name || '—' %></td>
               <% } %>
               <td><strong><%= Number(l.total).toFixed(2) %> ₽</strong></td>
-              <td>
+              <td class="table-actions-cell">
                 <% if (canEditLines) { %>
-                  <div class="compact-actions">
-                    <button type="submit" form="work-line-form-<%= l.id %>" class="btn btn-primary btn-sm">ОК</button>
+                  <div class="table-row-actions">
+                    <button type="submit" form="work-line-form-<%= l.id %>" class="btn btn-primary btn-sm" title="Сохранить">✓</button>
                     <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" class="line-delete-form">
-                      <button type="submit" class="btn btn-sm">Удалить</button>
+                      <button type="submit" class="btn btn-sm btn-delete" title="Удалить">×</button>
                     </form>
                   </div>
                 <% } %>
@@ -137,16 +137,16 @@
     <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" id="form-add-work" data-catalog-ac data-work-category="<%= typeof catalogWorkCategory !== 'undefined' ? catalogWorkCategory : (order.work_type || '') %>">
       <input type="hidden" name="line_type" value="work" />
       <input type="hidden" name="catalog_item_id" value="" />
-      <label>Услуга <input name="name" placeholder="Начните вводить — подсказки из прайса" autocomplete="off" /></label>
-      <div class="form-row-2">
-        <label>Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
-        <label>Цена <input name="unit_price" inputmode="decimal" /></label>
+      <label class="order-add-line-field order-add-line-field--wide">Услуга <input name="name" placeholder="Начните вводить — подсказки из прайса" autocomplete="off" /></label>
+      <div class="order-add-line-fields-row">
+        <label class="order-add-line-field">Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
+        <label class="order-add-line-field">Цена <input name="unit_price" inputmode="decimal" /></label>
+        <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
+        <label class="order-add-line-field">Расходник <input name="material_cost" value="0" inputmode="decimal" placeholder="закупка/ед." /></label>
+        <% } %>
       </div>
-      <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
-      <label>Расходник (закупка/ед.) <input name="material_cost" value="0" inputmode="decimal" placeholder="из каталога, если задано" /></label>
-      <% } %>
-      <fieldset class="master-checkboxes">
-        <legend>Мастера</legend>
+      <div class="master-checkboxes master-checkboxes--compact">
+        <span class="master-checkboxes__label">Мастера:</span>
         <div class="master-checkboxes-list">
           <% (masters || []).forEach(m => { %>
             <label class="master-checkbox-item">
@@ -155,8 +155,8 @@
             </label>
           <% }) %>
         </div>
-      </fieldset>
-      <button type="submit" class="btn-primary">Добавить работу</button>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Добавить работу</button>
     </form>
     <% } %>
   </div>
@@ -199,17 +199,17 @@
     <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" data-catalog-ac data-work-category="">
       <input type="hidden" name="line_type" value="product" />
       <input type="hidden" name="catalog_item_id" value="" />
-      <label>Товар <input name="name" placeholder="Начните вводить — подсказки из прайса" autocomplete="off" /></label>
-      <div class="form-row-2">
-        <label>Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
-        <label>Цена <input name="unit_price" inputmode="decimal" /></label>
+      <label class="order-add-line-field order-add-line-field--wide">Товар <input name="name" placeholder="Начните вводить — подсказки из прайса" autocomplete="off" /></label>
+      <div class="order-add-line-fields-row">
+        <label class="order-add-line-field">Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
+        <label class="order-add-line-field">Цена <input name="unit_price" inputmode="decimal" /></label>
+        <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
+        <label class="order-add-line-field">Закупка <input name="cost_price" value="0" inputmode="decimal" /></label>
+        <% } else { %>
+        <input type="hidden" name="cost_price" value="0" />
+        <% } %>
       </div>
-      <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
-      <label>Закупка <input name="cost_price" value="0" inputmode="decimal" /></label>
-      <% } else { %>
-      <input type="hidden" name="cost_price" value="0" />
-      <% } %>
-      <button type="submit" class="btn-primary">Добавить товар</button>
+      <button type="submit" class="btn btn-primary btn-sm">Добавить товар</button>
     </form>
     <% } %>
   </div>
@@ -264,7 +264,7 @@
           <option value="other">Другое</option>
         </select>
       </label>
-      <button type="submit" class="btn-primary">Принять оплату</button>
+      <button type="submit" class="btn btn-primary btn-sm">Принять оплату</button>
     </form>
     <% } %>
   </div>
@@ -325,15 +325,6 @@
     </form>
   </div>
 </details>
-<% } %>
-
-<% if (order.status !== 'completed' && order.status !== 'cancelled') { %>
-<div class="order-fab-bar">
-  <a href="#form-add-work" class="order-fab">+ Работа</a>
-  <% if (due_amount > 0) { %>
-  <a href="#form-payment" class="order-fab order-fab--pay">Оплата</a>
-  <% } %>
-</div>
 <% } %>
 
 <%- include('../partials/layout-bottom', { extraScripts: ['/js/catalog-autocomplete.js', '/js/work-type-picker.js'] }) %>

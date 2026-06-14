@@ -53,7 +53,7 @@
       <button type="submit" class="btn btn-primary">Сохранить</button>
       <a class="btn btn-secondary" href="/catalog">Назад</a>
       <% if (item.id) { %>
-      <button type="submit" class="btn btn-sm catalog-delete-btn" formaction="/catalog/<%= item.id %>?_method=DELETE" formmethod="post" onclick="return confirm('Удалить позицию из каталога?');" style="color:var(--danger, #c00);">Удалить</button>
+      <button type="submit" class="btn btn-sm btn-delete catalog-delete-btn" formaction="/catalog/<%= item.id %>?_method=DELETE" formmethod="post" onclick="return confirm('Удалить позицию из каталога?');">Удалить</button>
       <% } %>
     </div>
   </form>

@@ -61,7 +61,7 @@
             <div class="compact-actions">
               <a href="/catalog/<%= i.id %>/edit" class="btn btn-sm">Изм.</a>
               <form method="post" action="/catalog/<%= i.id %>/toggle"><button type="submit" class="btn btn-sm"><%= i.is_active ? 'Выкл' : 'Вкл' %></button></form>
-              <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');"><button type="submit" class="btn btn-sm">Удалить</button></form>
+              <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');"><button type="submit" class="btn btn-sm btn-delete">Удалить</button></form>
             </div>
           </td>
         </tr>
@@ -89,7 +89,7 @@
         <div class="catalog-card__actions">
           <a href="/catalog/<%= i.id %>/edit" class="btn btn-sm">Изменить</a>
           <form method="post" action="/catalog/<%= i.id %>/toggle"><button type="submit" class="btn btn-sm"><%= i.is_active ? 'Выкл' : 'Вкл' %></button></form>
-          <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');"><button type="submit" class="btn btn-sm">Удалить</button></form>
+          <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');"><button type="submit" class="btn btn-sm btn-delete">Удалить</button></form>
         </div>
       </article>
     <% }) %>

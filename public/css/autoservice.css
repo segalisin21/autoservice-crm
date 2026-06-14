@@ -323,6 +323,24 @@
   margin-top: 0.75rem;
 }
 
+.master-checkboxes--compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.65rem;
+  border: none;
+  padding: 0;
+  margin-top: 0.15rem;
+}
+
+.master-checkboxes--compact .master-checkboxes__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--gray-700, #374151);
+  margin: 0;
+  white-space: nowrap;
+}
+
 .master-checkboxes legend {
   font-size: 0.875rem;
   font-weight: 600;
@@ -336,19 +354,28 @@
   margin-top: 0.5rem;
 }
 
+.master-checkboxes--compact .master-checkboxes-list {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.65rem;
+  margin-top: 0;
+}
+
 .master-checkbox-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.35rem;
   margin-top: 0 !important;
-  min-height: 44px;
-  padding: 0.25rem 0;
+  min-height: auto;
+  padding: 0;
   cursor: pointer;
+  font-size: 0.8125rem;
+  white-space: nowrap;
 }
 
 .master-checkbox-item input {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1rem;
+  height: 1rem;
   margin: 0;
   flex-shrink: 0;
 }
@@ -385,10 +412,53 @@
 }
 
 .order-add-line-form,
-.order-payment-form {
-  margin-top: 12px;
+.order-payment-form,
+.order-quick-expense {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-subtle, #e5e7eb);
   display: grid;
-  gap: 8px;
+  gap: 0.4rem;
+}
+
+.order-add-line-form label,
+.order-payment-form label,
+.order-quick-expense label {
+  margin-top: 0;
+  font-size: 0.8125rem;
+}
+
+.order-add-line-form input,
+.order-add-line-form select,
+.order-payment-form input,
+.order-payment-form select,
+.order-quick-expense input {
+  margin-top: 0.15rem;
+  padding: 0.3rem 0.45rem;
+  min-height: 32px;
+}
+
+.order-add-line-form > .btn,
+.order-add-line-form > button[type="submit"],
+.order-payment-form > .btn,
+.order-payment-form > button[type="submit"] {
+  justify-self: start;
+  width: auto;
+  min-height: 32px;
+}
+
+.order-add-line-field--wide {
+  grid-column: 1 / -1;
+}
+
+.order-add-line-fields-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.4rem;
+}
+
+.order-accordion-body {
+  padding-top: 0.5rem;
 }
 
 .order-photos-grid {
@@ -418,9 +488,68 @@
   min-height: 44px;
 }
 
+.order-accordion-body .btn-primary,
+.order-accordion-body button[type="submit"].btn-primary,
+.work-lines-table .btn-primary {
+  min-height: 28px;
+}
+
+/* Удаление — красные кнопки и крестики */
+.btn-delete,
 .btn-line-delete {
-  min-width: 44px;
-  min-height: 44px;
+  color: #dc2626 !important;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.btn-delete:hover,
+.btn-line-delete:hover {
+  color: #b91c1c !important;
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.btn-line-delete {
+  min-width: 28px;
+  min-height: 28px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  line-height: 1;
+  font-size: 1.15rem;
+  font-weight: 700;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.table-row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.table-row-actions .line-delete-form {
+  margin: 0;
+  display: inline;
+}
+
+.table-actions-cell {
+  width: 1%;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.work-lines-table .table-row-actions .btn-primary {
+  min-width: 28px;
+  width: 28px;
+  padding: 0;
+  font-size: 0.95rem;
+  line-height: 1;
 }
 
 @media (max-width: 639px) {
@@ -663,8 +792,8 @@
 .status-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0;
+  gap: 6px;
+  margin: 8px 0;
 }
 
 .status-chip-form {
@@ -672,12 +801,12 @@
 }
 
 .status-chip {
-  min-height: 44px;
-  padding: 0.5rem 0.85rem;
+  min-height: 32px;
+  padding: 0.35rem 0.65rem;
   border-radius: 999px;
   border: 1px solid #d1d5db;
   background: #fff;
-  font-size: 0.85rem;
+  font-size: 0.8125rem;
   cursor: pointer;
 }
 
@@ -710,12 +839,13 @@
 }
 
 .order-accordion {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .order-accordion-summary {
   cursor: pointer;
   font-weight: 600;
+  padding: 0.25rem 0;
   padding: 0.25rem 0;
   list-style: none;
 }
@@ -724,76 +854,13 @@
   display: none;
 }
 
-.order-accordion-body {
-  padding-top: 0.75rem;
-}
-
 .form-row-2 {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
 }
 
-.order-fab-bar {
-  position: fixed;
-  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-  left: 12px;
-  right: 12px;
-  display: flex;
-  gap: 8px;
-  padding: 8px 0;
-  background: transparent;
-  border-top: none;
-  z-index: 110;
-  pointer-events: none;
-  justify-content: center;
-  max-width: 480px;
-  margin: 0 auto;
-}
-
-.order-fab {
-  flex: 1 1 0;
-  min-width: 0;
-  max-width: 220px;
-  text-align: center;
-  padding: 12px 16px;
-  background: #16a34a;
-  color: #fff;
-  text-decoration: none;
-  border-radius: 10px;
-  font-weight: 600;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: auto;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-}
-
-.order-fab-bar .order-fab:only-child {
-  flex: 0 1 auto;
-  min-width: 160px;
-  max-width: min(100%, 280px);
-}
-
-body.layout-nav-open .order-fab-bar {
-  display: none;
-}
-
-@media (min-width: 1280px) {
-  .order-fab-bar {
-    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    max-width: 420px;
-  }
-
-  body.page-orders .content {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
-  }
-}
-
-.order-fab--pay {
-  background: #1e40af;
-}
+/* order-fab removed — scroll to sections instead */
 
 /* Data tables (orders, economics, payroll) */
 .data-table {
@@ -1082,12 +1149,9 @@ body.layout-nav-open .order-fab-bar {
   body.page-payroll .content,
   body.page-users .content,
   body.page-expenses .content,
-  body.page-catalog .content {
-    padding-bottom: 1rem;
-  }
-
+  body.page-catalog .content,
   body.page-orders .content {
-    padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: 1rem;
   }
 
   .top-bar-user-name span,
@@ -1153,7 +1217,8 @@ body.layout-nav-open .order-fab-bar {
 }
 
 .line-delete-form {
-  margin-top: 6px;
+  margin: 0;
+  display: inline;
 }
 
 .text-due {
