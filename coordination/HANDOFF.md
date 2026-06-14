@@ -1,5 +1,31 @@
 # HANDOFF
 
+## 2026-06-14 — fix inline toolbar layout overlap
+
+### What changed
+- Исправлено налезание кнопок в фильтрах: глобальное правило `.content input/select { width: 100% }` больше не ломает горизонтальные toolbar-формы.
+- Добавлен класс `.form-inline` и исключения для `.orders-filter-form`, `.catalog-toolbar__filters`, `.finance-dashboard__toolbar`, `.filters-form`, `.plate-search-form`, `.staff-absences-form`.
+- На `/orders` кнопки «Найти» и «+ Заказ» вынесены в `.form-inline__actions` без перекрытия.
+- Аналогичный класс применён к фильтрам: каталог, зарплата, журнал, расходы, клиенты, авто, поиск по госномеру.
+- Карточки расписания переведены на flex-column, чтобы текст не наезжал друг на друга.
+
+### Key files
+- `public/css/autoservice.css`
+- `views/orders/list.ejs`, `views/catalog/list.ejs`, `views/admin/payroll.ejs`
+- `views/journal/index.ejs`, `views/expenses/index.ejs`, `views/clients/list.ejs`, `views/cars/list.ejs`
+- `views/orders/form.ejs`, `views/partials/plate-search-bar.ejs`
+
+### Verify
+```bash
+npm test
+```
+Визуально: `/orders`, `/catalog`, `/admin/payroll`, `/clients`, `/cars`, дашборд (поиск по номеру).
+
+### Risks / known limitations
+- На очень узких экранах фильтры переносятся на несколько строк — это ожидаемо; кнопки не должны перекрываться.
+
+---
+
 ## 2026-06-14 — compact UI pass (tables-first)
 
 ### What changed

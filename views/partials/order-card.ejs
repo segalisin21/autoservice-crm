@@ -5,7 +5,7 @@
     <span class="garage-order-status"><%= statusLabel(o.status) %></span>
     <% if (o.absence_conflict) { %><span class="order-absence-marker" title="Мастер отсутствует в это время">●</span><% } %>
   </div>
-  <div class="garage-order-car"><%= o.car_label || 'Авто' %><% if (o.license_plate) { %> · <%= o.license_plate %><% } %></div>
+  <div class="garage-order-car"><%= o.car_label || o.license_plate || 'Авто' %></div>
   <% if (!isCompactOrderCard) { %>
     <div class="garage-order-client"><%= o.client_name %><% if (o.client_phone) { %> · <%= o.client_phone %><% } %></div>
   <% } %>

@@ -1,7 +1,7 @@
 <%- include('../partials/layout-top', { title: 'Журнал учёта', user }) %>
 <section class="card">
   <p class="muted" style="margin:0 0 12px 0;">Как в таблице Excel: дата, тип работ, авто, мастер, услуга, цена, оплата.</p>
-  <form method="get" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+  <form method="get" class="form-inline">
     <label>С <input type="date" name="start_date" value="<%= filters.start_date || '' %>" /></label>
     <label>По <input type="date" name="end_date" value="<%= filters.end_date || '' %>" /></label>
     <label>Тип

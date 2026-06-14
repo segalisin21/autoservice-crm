@@ -3,8 +3,8 @@
 <section class="card plate-search-card">
   <h2 class="card-title-sm">Поиск по госномеру</h2>
   <p class="muted" style="margin-top:0;">Введите номер — если авто уже в базе, выберите его. Иначе создайте клиента и авто ниже.</p>
-  <form method="get" action="/orders/new" class="plate-search-form">
-    <input name="plate" class="plate-search-input" data-plate-input value="<%= typeof plateQuery !== 'undefined' ? plateQuery : '' %>" placeholder="А123ВС777" autocomplete="off" autofocus inputmode="text" />
+  <form method="get" action="/orders/new" class="plate-search-form form-inline">
+    <input name="plate" class="plate-search-input grow-field" data-plate-input value="<%= typeof plateQuery !== 'undefined' ? plateQuery : '' %>" placeholder="А123ВС777" autocomplete="off" autofocus inputmode="text" />
     <button type="submit" class="btn btn-primary">Найти</button>
   </form>
 

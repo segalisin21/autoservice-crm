@@ -173,6 +173,62 @@
   box-sizing: border-box;
 }
 
+/* Горизональные фильтры / toolbar — не растягивать поля на 100% */
+.content .form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.content .form-inline input,
+.content .form-inline select,
+.content .form-inline textarea,
+.content .orders-filter-form input,
+.content .orders-filter-form select,
+.content .catalog-toolbar__filters input,
+.content .catalog-toolbar__filters select,
+.content .finance-dashboard__toolbar input,
+.content .finance-dashboard__toolbar select,
+.content .filters-form input,
+.content .filters-form select,
+.content .plate-search-form input,
+.content .plate-search-bar input,
+.content .staff-absences-form input,
+.content .staff-absences-form select {
+  width: auto;
+  max-width: 100%;
+  margin-top: 0;
+}
+
+.content .form-inline > label,
+.content .form-inline label.inline-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.content .form-inline .btn,
+.content .form-inline .form-inline__actions,
+.content .form-inline .catalog-view-toggle {
+  flex: 0 0 auto;
+}
+
+.content .form-inline .form-inline__actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.content .form-inline .grow-field {
+  flex: 1 1 200px;
+  min-width: 140px;
+  width: auto;
+}
+
 .content .error {
   margin-bottom: 1rem;
   padding: 0.65rem 0.85rem;
@@ -1568,13 +1624,6 @@ body.layout-nav-open .order-fab-bar {
   min-width: 0;
 }
 
-.orders-filter-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
 .orders-filter-form--compact {
   gap: 0.4rem;
   margin-bottom: 0.5rem;
@@ -1586,20 +1635,23 @@ body.layout-nav-open .order-fab-bar {
   padding: 0.3rem 0.5rem;
 }
 
+.orders-filter-form select {
+  min-width: 150px;
+}
+
+.orders-filter-form .orders-search-input,
+.orders-filter-form .grow-field {
+  flex: 1 1 200px;
+  min-width: 140px;
+}
+
+.orders-filter-form .form-inline__actions {
+  margin-left: auto;
+}
+
 .orders-table td,
 .orders-table th {
   white-space: nowrap;
-}
-
-.orders-filter-form .orders-search-input {
-  flex: 1 1 200px;
-  min-width: 0;
-  max-width: 100%;
-}
-
-.orders-filter-form select {
-  flex: 0 1 auto;
-  min-width: 0;
 }
 
 .orders-filter-due {
@@ -1607,6 +1659,7 @@ body.layout-nav-open .order-fab-bar {
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+  margin-top: 0;
 }
 
 .dashboard-finance-head {
@@ -1725,9 +1778,9 @@ body.layout-nav-open .order-fab-bar {
 }
 
 .schedule-order-line {
-  display: grid;
-  grid-template-columns: auto minmax(90px, 1fr);
-  gap: 0.1rem 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
   padding: 0.25rem 0.35rem;
   margin-bottom: 0.25rem;
   border: 1px solid var(--gray-200, #e5e7eb);
@@ -1739,6 +1792,7 @@ body.layout-nav-open .order-fab-bar {
   line-height: 1.25;
   position: relative;
   z-index: 2;
+  overflow: hidden;
 }
 
 .schedule-order-line--spanning {
@@ -1776,16 +1830,38 @@ body.layout-nav-open .order-fab-bar {
 }
 
 .schedule-order-line__main {
-  font-weight: 600;
+  font-weight: 800;
+  color: var(--gray-900, #1a1f12);
   min-width: 0;
 }
 
 .schedule-order-line__meta {
-  grid-column: 1 / -1;
   color: var(--gray-500, #6b7256);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.catalog-toolbar__filters label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.staff-absences-form label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+  margin-top: 0;
+  min-width: 150px;
+}
+
+.compact-actions .btn,
+.compact-actions form {
+  flex: 0 0 auto;
 }
 
 .schedule-no-time-cards {
@@ -1860,10 +1936,6 @@ body.layout-nav-open .order-fab-bar {
   gap: 0.5rem;
   align-items: flex-end;
   margin-top: 0.5rem;
-}
-
-.staff-absences-form label {
-  min-width: 150px;
 }
 
 .staff-absences-table-wrap {

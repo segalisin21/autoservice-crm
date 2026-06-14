@@ -1,8 +1,8 @@
 <%- include('../partials/layout-top', { title: 'Клиенты', user }) %>
 <section class="card">
   <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-    <form method="get" action="/clients" style="display:flex; gap:8px; flex:1; min-width:200px;">
-      <input name="search" placeholder="Поиск: ФИО или телефон" value="<%= search || '' %>" />
+    <form method="get" action="/clients" class="form-inline" style="flex:1; min-width:200px;">
+      <input name="search" placeholder="Поиск: ФИО или телефон" value="<%= search || '' %>" class="grow-field" />
       <button type="submit">Найти</button>
     </form>
     <a class="btn btn-primary" href="/clients/new">Новый клиент</a>

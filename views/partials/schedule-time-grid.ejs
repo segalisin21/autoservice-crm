@@ -53,8 +53,8 @@
                 <% slotOrders.forEach(function(o) { %>
                   <a href="/orders/<%= o.id %>" class="schedule-order-line <%= (o.span_rows || 1) > 1 ? 'schedule-order-line--spanning' : '' %> status-<%= o.status %><% if (o.absence_conflict) { %> order-card--absence-conflict<% } %>" style="--span-rows:<%= o.span_rows || 1 %>;">
                     <span class="schedule-order-line__time"><%= o.start_time || slot.label %><% if (o.end_time) { %>–<%= o.end_time %><% } %></span>
-                    <span class="schedule-order-line__main">#<%= o.id %> · <%= o.license_plate || o.car_label || 'Авто' %></span>
-                    <span class="schedule-order-line__meta"><%= o.client_name || '—' %><% if (o.total_price > 0) { %> · <%= o.total_price.toLocaleString('ru-RU') %> ₽<% } %></span>
+                    <span class="schedule-order-line__main"><%= o.car_label || o.license_plate || 'Авто' %></span>
+                    <span class="schedule-order-line__meta">#<%= o.id %> · <%= o.client_name || '—' %><% if (o.total_price > 0) { %> · <%= o.total_price.toLocaleString('ru-RU') %> ₽<% } %></span>
                     <% if (o.absence_conflict) { %><span class="order-absence-marker" title="Мастер отсутствует в это время">●</span><% } %>
                   </a>
                 <% }); %>

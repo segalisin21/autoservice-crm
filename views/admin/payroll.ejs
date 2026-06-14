@@ -15,7 +15,7 @@
     <%- include('./_admin-subnav') %>
   </div>
 <section class="card">
-  <form method="get" class="compact-actions">
+  <form method="get" class="form-inline">
     <label>С <input type="date" name="start_date" value="<%= range.start_date %>" /></label>
     <label>По <input type="date" name="end_date" value="<%= range.end_date %>" /></label>
     <% if (user.role !== 'master') { %>

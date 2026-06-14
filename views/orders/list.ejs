@@ -1,7 +1,7 @@
 <%- include('../partials/layout-top', { title: 'Заказы', user, category: 'orders' }) %>
 <section class="card">
-  <form method="get" class="orders-filter-form orders-filter-form--compact">
-    <input name="search" placeholder="№, клиент, телефон, госномер" value="<%= filters.search || '' %>" class="orders-search-input" />
+  <form method="get" class="form-inline orders-filter-form orders-filter-form--compact">
+    <input name="search" placeholder="№, клиент, телефон, госномер" value="<%= filters.search || '' %>" class="orders-search-input grow-field" />
     <select name="status">
       <option value="">Все статусы</option>
       <% statuses.forEach(s => { %>
@@ -17,8 +17,10 @@
     <label class="orders-filter-due">
       <input type="checkbox" name="due_only" value="1" <%= filters.due_only ? 'checked' : '' %> /> С долгом
     </label>
-    <button type="submit" class="btn btn-primary btn-sm">Найти</button>
-    <a href="/orders/new" class="btn btn-secondary btn-sm">+ Заказ</a>
+    <div class="form-inline__actions">
+      <button type="submit" class="btn btn-primary btn-sm">Найти</button>
+      <a href="/orders/new" class="btn btn-secondary btn-sm">+ Заказ</a>
+    </div>
   </form>
 
   <% if (!orders.length) { %>

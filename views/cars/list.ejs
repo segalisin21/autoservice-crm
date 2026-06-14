@@ -1,8 +1,8 @@
 <%- include('../partials/layout-top', { title: 'Автомобили', user }) %>
 <section class="card">
   <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-    <form method="get" action="/cars" style="display:flex; gap:8px; flex:1; min-width:200px;">
-      <input name="search" placeholder="VIN, номер, марка, телефон" value="<%= search || '' %>" />
+    <form method="get" action="/cars" class="form-inline" style="flex:1; min-width:200px;">
+      <input name="search" placeholder="VIN, номер, марка, телефон" value="<%= search || '' %>" class="grow-field" />
       <button type="submit">Найти</button>
     </form>
     <a class="btn btn-primary" href="/cars/new">Новое авто</a>
