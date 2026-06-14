@@ -60,7 +60,11 @@
           href="/?mode=day&date=<%= d.date %>"
         >
           <div class="calendar-day-num"><%= d.day %></div>
-          <% if (d.has_absence) { %><span class="calendar-day-absence-dot" title="Есть отсутствия"></span><% } %>
+          <% if (d.absence_count > 0) { %>
+            <span class="calendar-day-absence-dots" title="Отсутствует сотрудников: <%= d.absence_count %>">
+              <% for (let i = 0; i < d.absence_count; i++) { %><span class="calendar-day-absence-dot"></span><% } %>
+            </span>
+          <% } %>
           <% if (d.booking_count > 0) { %>
             <div class="calendar-day-meta">
               <span class="calendar-day-count"><%= d.booking_count %></span>

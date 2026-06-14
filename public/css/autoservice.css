@@ -1575,6 +1575,22 @@ body.layout-nav-open .order-fab-bar {
   align-items: center;
 }
 
+.orders-filter-form--compact {
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.orders-filter-form--compact input,
+.orders-filter-form--compact select {
+  min-height: 32px;
+  padding: 0.3rem 0.5rem;
+}
+
+.orders-table td,
+.orders-table th {
+  white-space: nowrap;
+}
+
 .orders-filter-form .orders-search-input {
   flex: 1 1 200px;
   min-width: 0;
@@ -1658,6 +1674,8 @@ body.layout-nav-open .order-fab-bar {
   min-height: 36px;
   vertical-align: top;
   text-align: left;
+  position: relative;
+  overflow: visible;
 }
 
 .schedule-time-grid .garage-order-card {
@@ -1719,6 +1737,21 @@ body.layout-nav-open .order-fab-bar {
   color: inherit;
   font-size: 0.75rem;
   line-height: 1.25;
+  position: relative;
+  z-index: 2;
+}
+
+.schedule-order-line--spanning {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: 2px;
+  min-height: calc((var(--span-rows, 1) * 36px) - 4px);
+}
+
+.slot-covered {
+  display: block;
+  min-height: 0.9rem;
 }
 
 .schedule-order-line:hover {
@@ -1780,15 +1813,22 @@ body.layout-nav-open .order-fab-bar {
   }
 }
 
-.calendar-day-absence-dot {
+.calendar-day-absence-dots {
   position: absolute;
   top: 4px;
   right: 4px;
+  display: flex;
+  gap: 2px;
+  max-width: calc(100% - 14px);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.calendar-day-absence-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: #dc2626;
-  pointer-events: none;
 }
 
 .calendar-day-link {

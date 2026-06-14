@@ -206,6 +206,7 @@ async function list(req, res) {
   const db = await getDB();
   const status = String(req.query.status ?? "").trim();
   const search = String(req.query.search ?? "").trim();
+  const assigned_user_id = parseOptionalId(req.query.assigned_user_id);
   const due_only = req.query.due_only === "1" || req.query.due_only === "true";
   const page = Math.max(1, Number(req.query.page) || 1);
   const offset = (page - 1) * PAGE_SIZE;
@@ -215,6 +216,10 @@ async function list(req, res) {
   if (status) {
     where.push("o.status = ?");
     params.push(status);
+  }
+  if (assigned_user_id) {
+    where.push("o.assigned_user_id = ?");
+    params.push(assigned_user_id);
   }
   if (search) {
     const plateNorm = normalizePlate(search).license_plate_normalized;
@@ -239,11 +244,13 @@ async function list(req, res) {
 
   let orders = await db.query(
     `
-    SELECT o.id, o.opened_at, o.status, o.work_type, o.total_price,
+    SELECT o.id, o.opened_at, o.status, o.work_type, o.total_price, o.assigned_user_id,
+           au.name AS assigned_user_name,
            c.license_plate_raw, c.make AS car_make, cl.full_name AS client_name, cl.phone_raw AS client_phone
     FROM orders o
     JOIN cars c ON c.id = o.car_id
     JOIN clients cl ON cl.id = c.client_id
+    LEFT JOIN users au ON au.id = o.assigned_user_id
     ${whereSql}
     ORDER BY o.id DESC
     LIMIT ? OFFSET ?
@@ -258,10 +265,12 @@ async function list(req, res) {
   if (due_only) {
     orders = orders.filter((o) => o.due_amount > 0);
   }
+  const masters = await loadMasters(db);
 
   res.render("orders/list", {
     orders,
-    filters: { status, search, due_only },
+    filters: { status, search, due_only, assigned_user_id: assigned_user_id || "" },
+    masters,
     statuses: ORDER_STATUSES,
     statusLabels: ORDER_STATUS_LABELS,
     user: req.session.user,
@@ -378,7 +387,7 @@ async function resolveOrCreateCar(db, body) {
 }
 
 async function create(req, res) {
-  const work_type = normalizeWorkTypesFromBody(req.body);
+  const work_type = normalizeWorkTypesFromBody(req.body) || "Электрика";
   const notes = String(req.body.notes ?? "").trim() || null;
   const scheduled_date = String(req.body.scheduled_date ?? "").slice(0, 10) || new Date().toISOString().slice(0, 10);
   const assigned_user_id = normalizeUserId(req.body.assigned_user_id);
@@ -417,10 +426,6 @@ async function create(req, res) {
   const car_id = Number(resolved);
   if (!Number.isFinite(car_id) || car_id <= 0) {
     return renderError("Выберите автомобиль или заполните данные нового авто и владельца");
-  }
-
-  if (!work_type) {
-    return renderError("Выберите хотя бы один тип работ");
   }
 
   const absenceErr = await validateCanAssign(db, assigned_user_id, scheduled_date, start_time, end_time);

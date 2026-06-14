@@ -42,8 +42,7 @@
       <label>Начало <input type="time" name="start_time" value="<%= order.start_time || '' %>" /></label>
       <label>Окончание <input type="time" name="end_time" value="<%= order.end_time || '' %>" /></label>
     </div>
-    <label>Тип работ</label>
-    <%- include('../partials/work-type-checkboxes', { workTypes, selectedWorkTypes: typeof selectedWorkTypes !== 'undefined' ? selectedWorkTypes : ['Электрика'] }) %>
+    <input type="hidden" name="work_type" value="Электрика" />
 
     <% if (typeof plateMatches !== 'undefined' && plateMatches && plateMatches.length && order.car_id) { %>
       <% const selected = plateMatches.find(m => String(m.id) === String(order.car_id)); %>
@@ -86,4 +85,4 @@
     <button type="submit" class="btn btn-primary">Создать заказ</button>
   </form>
 </section>
-<%- include('../partials/layout-bottom', { extraScripts: ['/js/vehicle-autocomplete.js', '/js/work-type-picker.js'] }) %>
+<%- include('../partials/layout-bottom', { extraScripts: ['/js/vehicle-autocomplete.js'] }) %>
