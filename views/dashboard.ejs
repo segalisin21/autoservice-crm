@@ -99,56 +99,18 @@
       </div>
     </div>
 
+    <div class="day-summary-strip" aria-label="Показатели дня">
+      <span>Заказы <strong><%= viewDayStats.count %></strong></span>
+      <span>Сумма <strong><%= Math.round(viewDayStats.revenue).toLocaleString('ru-RU') %> ₽</strong></span>
+      <span>Сотрудники <strong><%= viewDayStats.employees_busy %>/<%= empTotal %></strong></span>
+      <% if (viewDayData.absences && viewDayData.absences.length) { %>
+        <span class="day-summary-strip__warn">Отсутствуют <strong><%= viewDayData.absences.length %></strong></span>
+      <% } %>
+    </div>
+
     <% if (!viewDayData.employees || !viewDayData.employees.length) { %>
       <p class="dashboard-empty muted">Нет активных сотрудников. Добавьте их в разделе «Сотрудники».</p>
     <% } %>
-
-    <section class="card staff-absences-panel">
-      <h4 style="margin:0 0 12px; font-size:15px;">Отсутствия на <%= formatDate(viewToday) %></h4>
-      <% if (typeof absenceError !== 'undefined' && absenceError === 'time') { %>
-        <div class="error" style="margin-bottom:8px;">Укажите время начала и окончания или отметьте «весь день».</div>
-      <% } %>
-      <% if (viewDayData.absences && viewDayData.absences.length) { %>
-        <ul class="staff-absences-list">
-          <% viewDayData.absences.forEach(function(a) { %>
-            <li class="staff-absences-item">
-              <span><strong><%= a.user_name %></strong> — <%= a.label %><% if (a.note) { %>: <%= a.note %><% } %></span>
-              <% if (typeof canManageAllAbsences !== 'undefined' && canManageAllAbsences || (typeof user !== 'undefined' && user && Number(user.id) === Number(a.user_id))) { %>
-              <form method="post" action="/schedule/absences/<%= a.id %>?_method=DELETE&date=<%= viewToday %>" style="display:inline;">
-                <button type="submit" class="btn btn-sm">Удалить</button>
-              </form>
-              <% } %>
-            </li>
-          <% }); %>
-        </ul>
-      <% } else { %>
-        <p class="muted" style="margin:0 0 12px;">Отсутствий не отмечено.</p>
-      <% } %>
-      <form method="post" action="/schedule/absences" class="staff-absences-form">
-        <input type="hidden" name="absence_date" value="<%= viewToday %>" />
-        <% if (typeof canManageAllAbsences !== 'undefined' && canManageAllAbsences) { %>
-          <label>Сотрудник
-            <select name="user_id" required>
-              <% (staffList || []).forEach(function(s) { %>
-                <option value="<%= s.id %>"><%= s.name %></option>
-              <% }); %>
-            </select>
-          </label>
-        <% } else { %>
-          <input type="hidden" name="user_id" value="<%= user.id %>" />
-        <% } %>
-        <label style="display:flex; align-items:center; gap:8px;">
-          <input type="checkbox" name="is_full_day" value="1" id="absence-full-day" />
-          <span>Весь день (10:00–20:00)</span>
-        </label>
-        <div class="form-row-2">
-          <label>С <input type="time" name="start_time" value="10:00" /></label>
-          <label>До <input type="time" name="end_time" value="16:00" /></label>
-        </div>
-        <label>Комментарий <input name="note" placeholder="Выходной, отпуск…" /></label>
-        <button type="submit" class="btn btn-primary btn-sm">Добавить отсутствие</button>
-      </form>
-    </section>
 
     <% if (viewTimeGrid) { %>
     <div class="schedule-time-grid-wrap">
@@ -193,9 +155,71 @@
         <% }); %>
       </div>
     </div>
+
+    <details class="card staff-absences-panel">
+      <summary class="compact-details-summary">
+        Отсутствия на <%= formatDate(viewToday) %>
+        <span class="muted">(<%= viewDayData.absences && viewDayData.absences.length ? viewDayData.absences.length : 0 %>)</span>
+      </summary>
+      <% if (typeof absenceError !== 'undefined' && absenceError === 'time') { %>
+        <div class="error" style="margin-bottom:8px;">Укажите время начала и окончания или отметьте «весь день».</div>
+      <% } %>
+      <% if (viewDayData.absences && viewDayData.absences.length) { %>
+        <div class="table-scroll staff-absences-table-wrap">
+          <table class="data-table-compact staff-absences-table">
+            <thead>
+              <tr><th>Сотрудник</th><th>Период</th><th>Комментарий</th><th></th></tr>
+            </thead>
+            <tbody>
+              <% viewDayData.absences.forEach(function(a) { %>
+                <tr>
+                  <td><strong><%= a.user_name %></strong></td>
+                  <td><%= a.label %></td>
+                  <td><%= a.note || '—' %></td>
+                  <td>
+                    <% if (typeof canManageAllAbsences !== 'undefined' && canManageAllAbsences || (typeof user !== 'undefined' && user && Number(user.id) === Number(a.user_id))) { %>
+                    <form method="post" action="/schedule/absences/<%= a.id %>?_method=DELETE&date=<%= viewToday %>" style="display:inline;">
+                      <button type="submit" class="btn btn-sm">Удалить</button>
+                    </form>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <p class="muted" style="margin:8px 0;">Отсутствий не отмечено.</p>
+      <% } %>
+      <form method="post" action="/schedule/absences" class="staff-absences-form">
+        <input type="hidden" name="absence_date" value="<%= viewToday %>" />
+        <% if (typeof canManageAllAbsences !== 'undefined' && canManageAllAbsences) { %>
+          <label>Сотрудник
+            <select name="user_id" required>
+              <% (staffList || []).forEach(function(s) { %>
+                <option value="<%= s.id %>"><%= s.name %></option>
+              <% }); %>
+            </select>
+          </label>
+        <% } else { %>
+          <input type="hidden" name="user_id" value="<%= user.id %>" />
+        <% } %>
+        <label class="inline-checkbox">
+          <input type="checkbox" name="is_full_day" value="1" id="absence-full-day" />
+          <span>Весь день</span>
+        </label>
+        <div class="form-row-2">
+          <label>С <input type="time" name="start_time" value="10:00" /></label>
+          <label>До <input type="time" name="end_time" value="16:00" /></label>
+        </div>
+        <label>Комментарий <input name="note" placeholder="Выходной, отпуск…" /></label>
+        <button type="submit" class="btn btn-primary btn-sm">Добавить</button>
+      </form>
+    </details>
   </div>
   <% } %>
 
+  <% if (!isDayView) { %>
   <div class="stats-grid stats-grid--compact dashboard-kpi-row">
     <div class="stat-card stat-card--compact">
       <div class="stat-icon bookings">
@@ -231,6 +255,7 @@
       </div>
     </div>
   </div>
+  <% } %>
 
   <% if (viewShowMoney && viewFinance) { %>
   <section class="dashboard-finance-panel dashboard-panel" aria-label="Финансы за месяц">

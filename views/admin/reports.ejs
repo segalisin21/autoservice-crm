@@ -43,28 +43,28 @@
     </div>
   </div>
 
-  <div class="stats-row" id="stats-overview">
-    <div class="stat-card stat-blue">
+  <div class="stats-row stats-grid--compact" id="stats-overview">
+    <div class="stat-card stat-card--compact stat-blue">
       <div class="stat-value"><%= overview.totalOrders %></div>
       <div class="stat-label">Заказов (не отменённых)</div>
     </div>
-    <div class="stat-card stat-green">
+    <div class="stat-card stat-card--compact stat-green">
       <div class="stat-value"><%= overview.totalRevenue.toLocaleString('ru-RU') %> ₽</div>
       <div class="stat-label">Выручка (завершённые)</div>
     </div>
-    <div class="stat-card stat-purple">
+    <div class="stat-card stat-card--compact stat-purple">
       <div class="stat-value"><%= overview.avgBookingValue.toLocaleString('ru-RU') %> ₽</div>
       <div class="stat-label">Средний чек</div>
     </div>
-    <div class="stat-card stat-orange">
+    <div class="stat-card stat-card--compact stat-orange">
       <div class="stat-value"><%= overview.completedBookings %></div>
       <div class="stat-label">Завершено</div>
     </div>
-    <div class="stat-card stat-analytics-retained">
+    <div class="stat-card stat-card--compact stat-analytics-retained">
       <div class="stat-value"><%= overview.cancelledBookings %></div>
       <div class="stat-label">Отменено</div>
     </div>
-    <div class="stat-card stat-analytics-retained-sum">
+    <div class="stat-card stat-card--compact stat-analytics-retained-sum">
       <div class="stat-value"><%= overview.cashIn.toLocaleString('ru-RU') %> ₽</div>
       <div class="stat-label">Касса</div>
     </div>

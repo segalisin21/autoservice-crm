@@ -20,11 +20,11 @@
       <label>Поиск
         <input name="search" value="<%= filters.search || '' %>" />
       </label>
-      <input type="hidden" name="view" value="<%= filters.view || 'cards' %>" id="catalog-view-input" />
+      <input type="hidden" name="view" value="<%= filters.view || 'table' %>" id="catalog-view-input" />
       <button type="submit">Фильтр</button>
       <div class="catalog-view-toggle" role="group" aria-label="Вид">
-        <button type="button" class="btn btn-sm catalog-view-btn <%= (filters.view || 'cards') === 'cards' ? 'active' : '' %>" data-view="cards">Карточки</button>
-        <button type="button" class="btn btn-sm catalog-view-btn <%= filters.view === 'table' ? 'active' : '' %>" data-view="table">Таблица</button>
+        <button type="button" class="btn btn-sm catalog-view-btn <%= filters.view === 'cards' ? 'active' : '' %>" data-view="cards">Карточки</button>
+        <button type="button" class="btn btn-sm catalog-view-btn <%= (filters.view || 'table') === 'table' ? 'active' : '' %>" data-view="table">Таблица</button>
       </div>
     </form>
     <div class="catalog-toolbar__actions">
@@ -35,9 +35,10 @@
     </div>
   </div>
 
-  <% const viewMode = filters.view || 'cards'; %>
+  <% const viewMode = filters.view || 'table'; %>
   <% if (viewMode === 'table') { %>
-  <table class="catalog-table">
+  <div class="table-scroll catalog-table-scroll">
+  <table class="catalog-table data-table-compact">
     <thead><tr><th>Артикул</th><th>Тип</th><th>Категория</th><th>Название</th><th>Цена</th><th>Расходник</th><th></th></tr></thead>
     <tbody>
       <% items.forEach(i => { %>
@@ -45,9 +46,9 @@
           <td><code><%= i.article || '—' %></code></td>
           <td><%= i.type === 'work' ? 'Работа' : 'Товар' %></td>
           <td><%= i.category %></td>
-          <td>
+          <td class="catalog-name-cell">
             <%= i.name %><% if (!i.is_active) { %> <span class="muted">(выкл)</span><% } %>
-            <% if (i.description) { %><div class="muted" style="font-size:12px; margin-top:2px;"><%= i.description.split('\n')[0].slice(0, 60) %><% if (i.description.length > 60) { %>…<% } %></div><% } %>
+            <% if (i.description) { %><details class="catalog-row-desc"><summary>описание</summary><div><%= i.description %></div></details><% } %>
           </td>
           <td>
             <%= Number(i.default_price).toFixed(0) %> ₽
@@ -56,15 +57,18 @@
             <% } %>
           </td>
           <td><%= Number(i.default_material_cost || 0) > 0 ? Number(i.default_material_cost).toFixed(0) + ' ₽' : '—' %></td>
-          <td style="display:flex; gap:4px; flex-wrap:wrap;">
-            <a href="/catalog/<%= i.id %>/edit">Изм.</a>
-            <form method="post" action="/catalog/<%= i.id %>/toggle" style="display:inline;"><button type="submit">⇄</button></form>
-            <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" style="display:inline;" onsubmit="return confirm('Удалить позицию?');"><button type="submit">Удалить</button></form>
+          <td>
+            <div class="compact-actions">
+              <a href="/catalog/<%= i.id %>/edit" class="btn btn-sm">Изм.</a>
+              <form method="post" action="/catalog/<%= i.id %>/toggle"><button type="submit" class="btn btn-sm"><%= i.is_active ? 'Выкл' : 'Вкл' %></button></form>
+              <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');"><button type="submit" class="btn btn-sm">Удалить</button></form>
+            </div>
           </td>
         </tr>
       <% }) %>
     </tbody>
   </table>
+  </div>
   <% } else { %>
   <div class="catalog-cards">
     <% items.forEach(i => { %>

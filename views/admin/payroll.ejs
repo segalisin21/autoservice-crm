@@ -15,7 +15,7 @@
     <%- include('./_admin-subnav') %>
   </div>
 <section class="card">
-  <form method="get" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+  <form method="get" class="compact-actions">
     <label>С <input type="date" name="start_date" value="<%= range.start_date %>" /></label>
     <label>По <input type="date" name="end_date" value="<%= range.end_date %>" /></label>
     <% if (user.role !== 'master') { %>
@@ -129,7 +129,7 @@
 <section class="card">
   <h2 style="margin:0 0 8px 0; font-size:16px;">Формула по умолчанию</h2>
   <p class="muted" style="margin-top:0;">Применяется, если у мастера нет своего правила. По умолчанию: 50% от (работы − расходники).</p>
-  <form method="post" action="/admin/payroll/default" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+  <form method="post" action="/admin/payroll/default" class="compact-actions">
     <label>Режим
       <select name="mode">
         <% modes.forEach(m => { %>
@@ -164,7 +164,8 @@
     <button type="submit" class="btn btn-primary" style="margin-top:12px;">Сохранить правило</button>
   </form>
   <% if (rules && rules.length) { %>
-  <table style="margin-top:16px;">
+  <div class="table-scroll">
+  <table class="data-table data-table-compact" style="margin-top:16px;">
     <thead><tr><th>Мастер</th><th>Режим</th><th>Значение</th><th>С даты</th></tr></thead>
     <tbody>
       <% rules.forEach(r => { %>
@@ -177,6 +178,7 @@
       <% }) %>
     </tbody>
   </table>
+  </div>
   <% } %>
 </section>
 
@@ -208,7 +210,8 @@
     <button type="submit" class="btn btn-primary" style="margin-top:12px;">Сохранить переопределение</button>
   </form>
   <% if (overrides && overrides.length) { %>
-  <table style="margin-top:16px;">
+  <div class="table-scroll">
+  <table class="data-table data-table-compact" style="margin-top:16px;">
     <thead><tr><th>Мастер</th><th>Работа</th><th>Режим</th><th>Значение</th><th></th></tr></thead>
     <tbody>
       <% overrides.forEach(o => { %>
@@ -226,6 +229,7 @@
       <% }) %>
     </tbody>
   </table>
+  </div>
   <% } %>
 </section>
 
@@ -262,7 +266,7 @@
   <h2 style="margin:0 0 8px 0; font-size:16px;">История выплат</h2>
   <% if (recentPayouts && recentPayouts.length) { %>
   <div class="table-scroll">
-    <table>
+    <table class="data-table data-table-compact">
       <thead><tr><th>Дата</th><th>Мастер</th><th>Сумма</th><th>Период ЗП</th><th>Способ</th><th>Комментарий</th></tr></thead>
       <tbody>
         <% recentPayouts.forEach(p => { %>

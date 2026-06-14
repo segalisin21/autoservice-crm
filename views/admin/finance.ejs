@@ -92,22 +92,33 @@
     <% if (!orderEconomics || !orderEconomics.length) { %>
       <p class="finance-panel__empty muted">Нет завершённых заказов за выбранный период.</p>
     <% } else { %>
-      <div class="finance-order-cards">
-        <% orderEconomics.forEach(row => { %>
-          <a href="/orders/<%= row.order_id %>" class="finance-order-card">
-            <div class="foc-head">
-              <div>
-                <strong>#<%= row.order_id %></strong>
-                <span class="status-badge status-<%= row.status || 'completed' %>"><%= statusLabels[row.status] || statusLabel(row.status) %></span>
-              </div>
-              <span class="muted"><%= (row.closed_at || '').toString().slice(0, 10) %></span>
-            </div>
-            <div class="foc-row"><span>Выручка</span><strong><%= Number(row.revenue).toLocaleString('ru-RU') %> ₽</strong></div>
-            <div class="foc-row"><span>Расходники</span><span><%= Number(row.materials).toLocaleString('ru-RU') %> ₽</span></div>
-            <div class="foc-row"><span>ЗП</span><span><%= Number(row.payroll).toLocaleString('ru-RU') %> ₽</span></div>
-            <div class="foc-row foc-profit"><span>Прибыль</span><strong><%= Number(row.profit).toLocaleString('ru-RU') %> ₽</strong></div>
-          </a>
-        <% }) %>
+      <div class="table-scroll order-econ-table-wrap">
+        <table class="data-table data-table-compact order-econ-table">
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>Дата</th>
+              <th>Статус</th>
+              <th class="num">Выручка</th>
+              <th class="num">Расходники</th>
+              <th class="num">ЗП</th>
+              <th class="num">Прибыль</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% orderEconomics.forEach(row => { %>
+              <tr>
+                <td><a href="/orders/<%= row.order_id %>">#<%= row.order_id %></a></td>
+                <td><%= (row.closed_at || '').toString().slice(0, 10) %></td>
+                <td><span class="status-badge status-<%= row.status || 'completed' %>"><%= statusLabels[row.status] || statusLabel(row.status) %></span></td>
+                <td class="num"><%= Number(row.revenue).toLocaleString('ru-RU') %> ₽</td>
+                <td class="num muted">−<%= Number(row.materials).toLocaleString('ru-RU') %> ₽</td>
+                <td class="num muted">−<%= Number(row.payroll).toLocaleString('ru-RU') %> ₽</td>
+                <td class="num"><strong><%= Number(row.profit).toLocaleString('ru-RU') %> ₽</strong></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
       </div>
     <% } %>
   </section>

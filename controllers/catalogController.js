@@ -72,7 +72,7 @@ async function list(req, res) {
   }
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
-  const view = String(req.query.view ?? "cards").trim() === "table" ? "table" : "cards";
+  const view = String(req.query.view ?? "table").trim() === "cards" ? "cards" : "table";
 
   const items = await db.query(
     `

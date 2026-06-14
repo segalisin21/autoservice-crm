@@ -65,49 +65,73 @@
   <summary class="order-accordion-summary">Работы<% if (typeof isMasterView !== 'undefined' && isMasterView) { %> <span class="muted">(ваши)</span><% } %></summary>
   <div class="order-accordion-body">
     <% const canEditLines = order.status !== 'cancelled' && !(typeof isMasterView !== 'undefined' && isMasterView); %>
-    <div class="work-lines-list">
+    <div class="work-lines-table-wrap table-scroll">
       <% works.forEach(l => { %>
-        <div class="line-edit-card">
-          <div class="line-edit-head">
-            <strong><%= l.name %></strong>
-            <span><%= Number(l.total).toFixed(2) %> ₽</span>
-          </div>
-          <% if (l.notes) { %><p class="muted line-notes-preview" style="margin:4px 0 8px; font-size:13px; white-space:pre-line;"><%= l.notes %></p><% } %>
-          <% if (l.vehicle_tier && Number(l.vehicle_tier) > 1) { %><p class="muted" style="margin:0 0 8px; font-size:12px;">Кат. авто: <%= l.vehicle_tier %> (внутр.)</p><% } %>
-          <% if (typeof isMasterView !== 'undefined' && isMasterView && l.payroll_estimate != null) { %>
-            <p class="muted" style="margin:4px 0;">≈ ЗП <%= Number(l.payroll_estimate).toFixed(0) %> ₽</p>
-          <% } %>
-          <% if (typeof isOwnerView !== 'undefined' && isOwnerView && Number(l.cost_price || 0) > 0) { %>
-            <p class="muted" style="margin:4px 0; font-size:12px;">Расходник: <%= Number(l.cost_price).toFixed(2) %> ₽/ед.</p>
-          <% } %>
-          <% if (canEditLines) { %>
-          <form method="post" action="/orders/lines/<%= l.id %>?_method=PUT" class="line-edit-form">
-            <div class="form-row-2">
-              <label>Кол-во <input name="quantity" value="<%= l.quantity %>" inputmode="decimal" /></label>
-              <label>Цена <input name="unit_price" value="<%= l.unit_price %>" inputmode="decimal" /></label>
-            </div>
-            <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
-            <label>Расходник (закупка/ед.) <input name="material_cost" value="<%= l.cost_price || 0 %>" inputmode="decimal" /></label>
-            <% } %>
-            <label>Мастер
-              <select name="master_id">
-                <option value="">— не назначен —</option>
-                <% (masters || []).forEach(m => { %>
-                  <option value="<%= m.id %>" <%= Number(l.master_id) === m.id ? 'selected' : '' %>><%= m.name %></option>
-                <% }) %>
-              </select>
-            </label>
-            <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
-          </form>
-          <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" class="line-delete-form">
-            <button type="submit" class="btn btn-sm">Удалить</button>
-          </form>
-          <% } else { %>
-            <p class="muted" style="margin:4px 0;">Мастер: <%= l.master_name || '—' %></p>
-          <% } %>
-        </div>
+        <% if (canEditLines) { %>
+          <form id="work-line-form-<%= l.id %>" method="post" action="/orders/lines/<%= l.id %>?_method=PUT"></form>
+        <% } %>
       <% }) %>
-      <% if (!works.length) { %><p class="muted">Работ пока нет.</p><% } %>
+      <table class="data-table-compact work-lines-table">
+        <thead>
+          <tr>
+            <th>Работа</th>
+            <th>Кол-во</th>
+            <th>Цена</th>
+            <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %><th>Расходник</th><% } %>
+            <th>Мастер</th>
+            <th>Сумма</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% works.forEach(l => { %>
+            <tr>
+              <td class="work-line-name-cell">
+                <strong><%= l.name %></strong>
+                <% if (l.notes) { %><div class="muted table-sub" style="white-space:pre-line;"><%= l.notes %></div><% } %>
+                <% if (l.vehicle_tier && Number(l.vehicle_tier) > 1) { %><div class="muted table-sub">Кат. авто: <%= l.vehicle_tier %></div><% } %>
+                <% if (typeof isMasterView !== 'undefined' && isMasterView && l.payroll_estimate != null) { %>
+                  <div class="muted table-sub">≈ ЗП <%= Number(l.payroll_estimate).toFixed(0) %> ₽</div>
+                <% } %>
+              </td>
+              <% if (canEditLines) { %>
+                <td><input class="table-input" form="work-line-form-<%= l.id %>" name="quantity" value="<%= l.quantity %>" inputmode="decimal" /></td>
+                <td><input class="table-input" form="work-line-form-<%= l.id %>" name="unit_price" value="<%= l.unit_price %>" inputmode="decimal" /></td>
+                <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
+                  <td><input class="table-input" form="work-line-form-<%= l.id %>" name="material_cost" value="<%= l.cost_price || 0 %>" inputmode="decimal" /></td>
+                <% } %>
+                <td>
+                  <select class="table-input" form="work-line-form-<%= l.id %>" name="master_id">
+                    <option value="">—</option>
+                    <% (masters || []).forEach(m => { %>
+                      <option value="<%= m.id %>" <%= Number(l.master_id) === m.id ? 'selected' : '' %>><%= m.name %></option>
+                    <% }) %>
+                  </select>
+                </td>
+              <% } else { %>
+                <td><%= l.quantity %></td>
+                <td><%= Number(l.unit_price).toFixed(2) %></td>
+                <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %><td><%= Number(l.cost_price || 0).toFixed(2) %></td><% } %>
+                <td><%= l.master_name || '—' %></td>
+              <% } %>
+              <td><strong><%= Number(l.total).toFixed(2) %> ₽</strong></td>
+              <td>
+                <% if (canEditLines) { %>
+                  <div class="compact-actions">
+                    <button type="submit" form="work-line-form-<%= l.id %>" class="btn btn-primary btn-sm">ОК</button>
+                    <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" class="line-delete-form">
+                      <button type="submit" class="btn btn-sm">Удалить</button>
+                    </form>
+                  </div>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+          <% if (!works.length) { %>
+            <tr><td colspan="<%= typeof isOwnerView !== 'undefined' && isOwnerView ? 7 : 6 %>" class="muted">Работ пока нет.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
     </div>
     <% if (order.status !== 'completed' && order.status !== 'cancelled') { %>
     <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" id="form-add-work" data-catalog-ac data-work-category="<%= typeof catalogWorkCategory !== 'undefined' ? catalogWorkCategory : (order.work_type || '') %>">

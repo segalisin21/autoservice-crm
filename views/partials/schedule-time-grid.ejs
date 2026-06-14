@@ -4,11 +4,18 @@
     <span>Без времени</span>
     <span class="garage-bay-count"><%= timeGrid.noTime.length %></span>
   </div>
-  <div class="schedule-no-time-cards">
-    <% timeGrid.noTime.forEach(function(o) { %>
-      <%- include('order-card', { o: o, statusLabel: statusLabel }) %>
-    <% }); %>
-  </div>
+  <table class="data-table-compact schedule-no-time-table">
+    <tbody>
+      <% timeGrid.noTime.forEach(function(o) { %>
+        <tr>
+          <td><a href="/orders/<%= o.id %>">#<%= o.id %></a></td>
+          <td><%= o.license_plate || o.car_label || 'Авто' %></td>
+          <td><%= o.client_name || '—' %></td>
+          <td><span class="status-badge status-<%= o.status %>"><%= statusLabel(o.status) %></span></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
 </div>
 <% } %>
 
@@ -41,7 +48,12 @@
                 <span class="slot-free">—</span>
               <% } else { %>
                 <% slotOrders.forEach(function(o) { %>
-                  <%- include('order-card', { o: o, statusLabel: statusLabel }) %>
+                  <a href="/orders/<%= o.id %>" class="schedule-order-line status-<%= o.status %><% if (o.absence_conflict) { %> order-card--absence-conflict<% } %>">
+                    <span class="schedule-order-line__time"><%= o.start_time || slot.label %><% if (o.end_time) { %>–<%= o.end_time %><% } %></span>
+                    <span class="schedule-order-line__main">#<%= o.id %> · <%= o.license_plate || o.car_label || 'Авто' %></span>
+                    <span class="schedule-order-line__meta"><%= o.client_name || '—' %><% if (o.total_price > 0) { %> · <%= o.total_price.toLocaleString('ru-RU') %> ₽<% } %></span>
+                    <% if (o.absence_conflict) { %><span class="order-absence-marker" title="Мастер отсутствует в это время">●</span><% } %>
+                  </a>
                 <% }); %>
               <% } %>
             </td>
