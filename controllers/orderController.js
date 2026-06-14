@@ -22,7 +22,7 @@ const { normalizePlate, normalizePlateStrict, normalizePhone, normalizeVin } = r
 const { likePattern, likePatternFolded, lcLike, foldSearchCase } = require("../lib/sqlSearch");
 const { relativePathFor, absolutePathFor } = require("../lib/upload");
 const { loadOrderEconomics } = require("../lib/orderEconomics");
-const { priceForVehicleTier, normalizeVehicleTier } = require("../lib/catalogPricing");
+const { priceForVehicleTier, materialForVehicleTier, normalizeVehicleTier } = require("../lib/catalogPricing");
 const { statusLabel, ORDER_STATUS_LABELS } = require("../lib/orderStatusLabels");
 const {
   validateCanAssign,
@@ -792,18 +792,20 @@ async function addLine(req, res) {
   let catalogMaterialCost = 0;
   if (catalogId) {
     const cat = await db.query(
-      `SELECT name, description, default_price, price_tier_2, price_tier_3, type, default_material_cost
+      `SELECT name, description, default_price, price_tier_2, price_tier_3, type,
+              default_material_cost, material_cost_tier_2, material_cost_tier_3
        FROM catalog_items WHERE id = ?`,
       [catalogId]
     );
     if (cat[0]) {
       name = cat[0].name;
-      catalogMaterialCost = parseMoney(cat[0].default_material_cost);
       if (!lineNotes && cat[0].description) lineNotes = cat[0].description;
       if (!req.body.unit_price) {
         vehicle_tier = normalizeVehicleTier(vehicle_tier);
         unit_price = priceForVehicleTier(cat[0], vehicle_tier);
       }
+      if (vehicle_tier != null) vehicle_tier = normalizeVehicleTier(vehicle_tier);
+      catalogMaterialCost = materialForVehicleTier(cat[0], vehicle_tier);
       if (cat[0].type !== line_type) line_type = cat[0].type;
     }
   }

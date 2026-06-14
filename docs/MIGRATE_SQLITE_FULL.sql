@@ -1,5 +1,5 @@
 -- =============================================================================
--- AUTOSERVICE CRM — полная миграция SQLite (001_init.sql … 021_orders_annotation_notes.sql)
+-- AUTOSERVICE CRM — полная миграция SQLite (001_init.sql … 022_catalog_material_tiers.sql)
 -- =============================================================================
 -- Назначение: развернуть схему на пустой базе SQLite (локально, тесты).
 --
@@ -33,6 +33,7 @@
 --   019_manager_role.sql
 --   020_orders_car_nullable.sql
 --   021_orders_annotation_notes.sql
+--   022_catalog_material_tiers.sql
 -- =============================================================================
 
 PRAGMA foreign_keys = ON;
@@ -493,6 +494,10 @@ PRAGMA foreign_keys=ON;
 -- ---------- 021_orders_annotation_notes.sql ----------
 ALTER TABLE orders ADD COLUMN annotation_notes TEXT;
 
+-- ---------- 022_catalog_material_tiers.sql ----------
+ALTER TABLE catalog_items ADD COLUMN material_cost_tier_2 NUMERIC(12,2);
+ALTER TABLE catalog_items ADD COLUMN material_cost_tier_3 NUMERIC(12,2);
+
 -- ---------- migrations registry (после ручного прогона) ----------
 CREATE TABLE IF NOT EXISTS migrations (
   id TEXT PRIMARY KEY,
@@ -518,3 +523,4 @@ INSERT OR IGNORE INTO migrations(id) VALUES ('018_search_lc.sql');
 INSERT OR IGNORE INTO migrations(id) VALUES ('019_manager_role.sql');
 INSERT OR IGNORE INTO migrations(id) VALUES ('020_orders_car_nullable.sql');
 INSERT OR IGNORE INTO migrations(id) VALUES ('021_orders_annotation_notes.sql');
+INSERT OR IGNORE INTO migrations(id) VALUES ('022_catalog_material_tiers.sql');

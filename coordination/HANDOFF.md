@@ -702,3 +702,22 @@ npm test
 ```bash
 npm test
 ```
+
+---
+
+### What changed (2026-06-14 catalog material tiers)
+- Каталог (мойка): для каждой категории авто (1/2/3) — отдельное поле **расходник** рядом с ценой.
+- При добавлении работы в заказ расходник подставляется по выбранной категории (`materialForVehicleTier`).
+- Миграция **022**: `material_cost_tier_2`, `material_cost_tier_3` в `catalog_items`.
+
+### Key files
+- `migrations/022_catalog_material_tiers.sql`, `lib/catalogPricing.js`, `views/catalog/form.ejs`
+- `public/js/catalog-autocomplete.js`, `controllers/orderController.js`, `tests/catalog-pricing.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+### Railway
+Если автомиграция не сработала: `docs/MIGRATE_POSTGRES_RAILWAY_022.sql`

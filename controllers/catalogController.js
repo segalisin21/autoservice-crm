@@ -1,7 +1,7 @@
 const { getDB } = require("../config/database");
 const { sqlNow } = require("../config/sqlDialect");
 const { parseMoney } = require("../lib/money");
-const { parseOptionalTierPrice } = require("../lib/catalogPricing");
+const { parseOptionalTierPrice, parseOptionalTierMaterial } = require("../lib/catalogPricing");
 const {
   normalizeArticle,
   validateArticleFormat,
@@ -23,6 +23,8 @@ function parseCatalogBody(body) {
     price_tier_2: parseOptionalTierPrice(body.price_tier_2),
     price_tier_3: parseOptionalTierPrice(body.price_tier_3),
     default_material_cost: parseMoney(body.default_material_cost),
+    material_cost_tier_2: parseOptionalTierMaterial(body.material_cost_tier_2),
+    material_cost_tier_3: parseOptionalTierMaterial(body.material_cost_tier_3),
     unit: String(body.unit ?? "").trim(),
     sort_order: Number(body.sort_order) || 0,
     is_active: body.is_active === "0" || body.is_active === 0 ? 0 : 1
@@ -127,8 +129,8 @@ async function create(req, res) {
     `
     INSERT INTO catalog_items(
       type, category, name, name_lc, article, description,
-      default_price, price_tier_2, price_tier_3, default_material_cost, unit, is_active, sort_order
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      default_price, price_tier_2, price_tier_3, default_material_cost, material_cost_tier_2, material_cost_tier_3, unit, is_active, sort_order
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       data.type,
@@ -141,6 +143,8 @@ async function create(req, res) {
       data.price_tier_2,
       data.price_tier_3,
       data.default_material_cost,
+      data.material_cost_tier_2,
+      data.material_cost_tier_3,
       data.unit,
       data.is_active,
       data.sort_order
@@ -181,8 +185,9 @@ async function update(req, res) {
     `
     UPDATE catalog_items SET
       type = ?, category = ?, name = ?, name_lc = ?, article = ?, description = ?,
-      default_price = ?, price_tier_2 = ?, price_tier_3 = ?, default_material_cost = ?, unit = ?,
-      is_active = ?, sort_order = ?, updated_at = ${now}
+      default_price = ?, price_tier_2 = ?, price_tier_3 = ?,
+      default_material_cost = ?, material_cost_tier_2 = ?, material_cost_tier_3 = ?,
+      unit = ?, is_active = ?, sort_order = ?, updated_at = ${now}
     WHERE id = ?
   `,
     [
@@ -196,6 +201,8 @@ async function update(req, res) {
       data.price_tier_2,
       data.price_tier_3,
       data.default_material_cost,
+      data.material_cost_tier_2,
+      data.material_cost_tier_3,
       data.unit,
       data.is_active,
       data.sort_order,

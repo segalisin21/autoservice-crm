@@ -1816,6 +1816,35 @@
   margin-top: 0.5rem;
 }
 
+.catalog-price-grid--tiers {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.catalog-tier-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border: 1px solid var(--gray-100, #f3f4f6);
+  border-radius: 6px;
+  background: var(--gray-50, #f9fafb);
+}
+
+.catalog-tier-column__title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted, #6b7280);
+  margin-bottom: 0.15rem;
+}
+
+.catalog-tier-column label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
 .catalog-form-actions {
   margin-top: 0.75rem;
 }

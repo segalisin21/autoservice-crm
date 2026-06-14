@@ -28,6 +28,25 @@
     return Number(item.default_price) || 0;
   }
 
+  function tierMaterial(item, tier) {
+    var t = Number(tier) || 1;
+    if (t === 2 && item.material_cost_tier_2 != null && item.material_cost_tier_2 !== "") {
+      return Number(item.material_cost_tier_2) || 0;
+    }
+    if (t === 3 && item.material_cost_tier_3 != null && item.material_cost_tier_3 !== "") {
+      return Number(item.material_cost_tier_3) || 0;
+    }
+    return Number(item.default_material_cost) || 0;
+  }
+
+  function applyMaterialCost(form, item, tier) {
+    var materialCost = tierMaterial(item, tier);
+    var materialInput = form.querySelector('input[name="material_cost"]');
+    var costPriceInput = form.querySelector('input[name="cost_price"]');
+    if (materialInput) materialInput.value = String(materialCost);
+    if (costPriceInput) costPriceInput.value = String(materialCost);
+  }
+
   function createDropdown(input) {
     var wrap = input.closest(".ac-wrap") || input.parentElement;
     if (!wrap.classList.contains("ac-wrap")) {
@@ -95,13 +114,12 @@
         tierBlock.hidden = false;
         var tier = tierSelect ? tierSelect.value : "1";
         if (priceInput) priceInput.value = String(tierPrice(item, tier));
+        applyMaterialCost(form, item, tier);
       } else {
         tierBlock.hidden = true;
         if (priceInput) priceInput.value = String(item.default_price);
+        applyMaterialCost(form, item, 1);
       }
-      var materialCost = Number(item.default_material_cost) || 0;
-      if (materialInput) materialInput.value = String(materialCost);
-      if (costPriceInput) costPriceInput.value = String(materialCost);
       list.hidden = true;
     }
 
@@ -109,6 +127,7 @@
       tierSelect.addEventListener("change", function () {
         if (selectedItem && priceInput) {
           priceInput.value = String(tierPrice(selectedItem, tierSelect.value));
+          applyMaterialCost(form, selectedItem, tierSelect.value);
         }
       });
     }
@@ -131,10 +150,21 @@
             Number(item.price_tier_3 || 0).toLocaleString("ru-RU") +
             ")";
         }
-        var materialCost = Number(item.default_material_cost) || 0;
+        var materialCost = tierMaterial(item, 1);
         var label = item.name + " — " + priceLabel;
-        if (materialCost > 0) {
-          label += ", расх. " + materialCost.toLocaleString("ru-RU") + " ₽";
+        if (materialCost > 0 || hasTiers(item)) {
+          if (hasTiers(item)) {
+            label +=
+              ", расх. " +
+              tierMaterial(item, 1).toLocaleString("ru-RU") +
+              " / " +
+              tierMaterial(item, 2).toLocaleString("ru-RU") +
+              " / " +
+              tierMaterial(item, 3).toLocaleString("ru-RU") +
+              " ₽";
+          } else if (materialCost > 0) {
+            label += ", расх. " + materialCost.toLocaleString("ru-RU") + " ₽";
+          }
         }
         li.textContent = label;
         li.addEventListener("mousedown", function (e) {

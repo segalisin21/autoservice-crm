@@ -24,10 +24,6 @@
         </datalist>
       </label>
       <label>Название <input name="name" required value="<%= item.name || '' %>" /></label>
-      <label>Расходный материал (закупка, ₽)
-        <input name="default_material_cost" value="<%= item.default_material_cost != null && Number(item.default_material_cost) ? item.default_material_cost : '' %>" inputmode="decimal" placeholder="0" />
-        <span class="muted catalog-field-hint">Учитывается в расходниках заказа и при расчёте ЗП (net %)</span>
-      </label>
       <label>Ед. <input name="unit" value="<%= item.unit || '' %>" placeholder="шт, усл." /></label>
       <label>Сортировка <input name="sort_order" type="number" value="<%= item.sort_order || 0 %>" /></label>
       <label>Активна
@@ -42,12 +38,31 @@
       <textarea name="description" rows="4" placeholder="Состав комплекса, пункты через строку"><%= item.description || '' %></textarea>
     </label>
     <fieldset class="catalog-price-fieldset">
-      <legend>Цены (для мойки — по категории авто, клиент не видит)</legend>
-      <div class="catalog-price-grid">
-        <label>1 кат. (седан) <input name="default_price" value="<%= item.default_price != null ? item.default_price : '' %>" inputmode="decimal" /></label>
-        <label>2 кат. (паркетник) <input name="price_tier_2" value="<%= item.price_tier_2 != null ? item.price_tier_2 : '' %>" inputmode="decimal" placeholder="необязательно" /></label>
-        <label>3 кат. (внедорожник) <input name="price_tier_3" value="<%= item.price_tier_3 != null ? item.price_tier_3 : '' %>" inputmode="decimal" placeholder="необязательно" /></label>
+      <legend>Цены и расходники (для мойки — по категории авто, клиент не видит)</legend>
+      <div class="catalog-price-grid catalog-price-grid--tiers">
+        <div class="catalog-tier-column">
+          <span class="catalog-tier-column__title">1 кат. (седан)</span>
+          <label>Цена, ₽ <input name="default_price" value="<%= item.default_price != null ? item.default_price : '' %>" inputmode="decimal" /></label>
+          <label>Расходник, ₽
+            <input name="default_material_cost" value="<%= item.default_material_cost != null && Number(item.default_material_cost) ? item.default_material_cost : '' %>" inputmode="decimal" placeholder="0" />
+          </label>
+        </div>
+        <div class="catalog-tier-column">
+          <span class="catalog-tier-column__title">2 кат. (паркетник)</span>
+          <label>Цена, ₽ <input name="price_tier_2" value="<%= item.price_tier_2 != null ? item.price_tier_2 : '' %>" inputmode="decimal" placeholder="необязательно" /></label>
+          <label>Расходник, ₽
+            <input name="material_cost_tier_2" value="<%= item.material_cost_tier_2 != null && Number(item.material_cost_tier_2) ? item.material_cost_tier_2 : '' %>" inputmode="decimal" placeholder="необязательно" />
+          </label>
+        </div>
+        <div class="catalog-tier-column">
+          <span class="catalog-tier-column__title">3 кат. (внедорожник)</span>
+          <label>Цена, ₽ <input name="price_tier_3" value="<%= item.price_tier_3 != null ? item.price_tier_3 : '' %>" inputmode="decimal" placeholder="необязательно" /></label>
+          <label>Расходник, ₽
+            <input name="material_cost_tier_3" value="<%= item.material_cost_tier_3 != null && Number(item.material_cost_tier_3) ? item.material_cost_tier_3 : '' %>" inputmode="decimal" placeholder="необязательно" />
+          </label>
+        </div>
       </div>
+      <p class="muted catalog-field-hint">Расходник подставляется в заказ при выборе категории авто и учитывается при расчёте ЗП (net %). Если для 2/3 кат. не указан — берётся расходник 1 кат.</p>
     </fieldset>
     <div class="compact-actions catalog-form-actions">
       <button type="submit" class="btn btn-primary">Сохранить</button>
