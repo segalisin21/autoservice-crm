@@ -79,6 +79,8 @@
     var list = createDropdown(nameInput);
     var tierBlock = ensureTierBlock(form);
     var tierSelect = tierBlock.querySelector('select[name="vehicle_tier"]');
+    var materialInput = form.querySelector('input[name="material_cost"]');
+    var costPriceInput = form.querySelector('input[name="cost_price"]');
     var lineType = form.querySelector('input[name="line_type"]');
     var type = lineType ? lineType.value : "work";
     var categoryRaw = form.dataset.workCategory || "";
@@ -97,6 +99,9 @@
         tierBlock.hidden = true;
         if (priceInput) priceInput.value = String(item.default_price);
       }
+      var materialCost = Number(item.default_material_cost) || 0;
+      if (materialInput) materialInput.value = String(materialCost);
+      if (costPriceInput) costPriceInput.value = String(materialCost);
       list.hidden = true;
     }
 
@@ -126,7 +131,12 @@
             Number(item.price_tier_3 || 0).toLocaleString("ru-RU") +
             ")";
         }
-        li.textContent = item.name + " — " + priceLabel;
+        var materialCost = Number(item.default_material_cost) || 0;
+        var label = item.name + " — " + priceLabel;
+        if (materialCost > 0) {
+          label += ", расх. " + materialCost.toLocaleString("ru-RU") + " ₽";
+        }
+        li.textContent = label;
         li.addEventListener("mousedown", function (e) {
           e.preventDefault();
           applyItem(item);
@@ -161,6 +171,8 @@
       if (hiddenId) hiddenId.value = "";
       selectedItem = null;
       tierBlock.hidden = true;
+      if (materialInput) materialInput.value = "0";
+      if (costPriceInput) costPriceInput.value = "0";
       runSearch();
     });
     nameInput.addEventListener("focus", runSearch);
