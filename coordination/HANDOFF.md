@@ -1,5 +1,39 @@
 # HANDOFF
 
+## 2026-06-14 — order consumables from catalog
+
+### What changed
+- Расходник работы подтягивается из `catalog_items.default_material_cost` при выборе услуги из прайса (UI + бэкенд); поле «Расходник» на строке работы редактируемое.
+- Убран блок «Расходники по заказу» (ручной ввод через `expenses` на карточке заказа). Доп. закупки — через вкладку «Товары».
+
+### Key files
+- `views/orders/show.ejs`, `public/js/catalog-autocomplete.js`, `controllers/orderController.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
+## 2026-06-14 — order create without car
+
+### What changed
+- При создании заказа достаточно **даты, времени начала и сотрудника**; комментарий и авто — необязательны.
+- `orders.car_id` nullable (migration `020_orders_car_nullable.sql`).
+- На карточке заказа без авто — блок «Авто и клиент» (`POST /orders/:id/car`).
+
+### Key files
+- `migrations/020_orders_car_nullable.sql`, `controllers/orderController.js`, `views/orders/form.ejs`, `views/orders/show.ejs`
+- `lib/calendarData.js`, `tests/orders-carfirst.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-14 — minimal new order form
 
 ### What changed

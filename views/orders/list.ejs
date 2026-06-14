@@ -49,8 +49,8 @@
             <td><a href="/orders/<%= o.id %>" onclick="event.stopPropagation()"><%= o.id %></a></td>
             <td><%= (o.opened_at || '').toString().slice(0, 10) %></td>
             <td><%= o.assigned_user_name || '—' %></td>
-            <td><%= o.license_plate_raw || o.car_make || '—' %></td>
-            <td><%= o.client_name %></td>
+            <td><%= o.license_plate_raw || o.car_make || (o.car_id ? '—' : 'не указано') %></td>
+            <td><%= o.client_name || '—' %></td>
             <td class="muted"><%= o.client_phone || '—' %></td>
             <td><span class="status-badge status-<%= o.status %>"><%= (statusLabels && statusLabels[o.status]) || o.status %></span></td>
             <% if (typeof showMoney !== 'undefined' && showMoney) { %>

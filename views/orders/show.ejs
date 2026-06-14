@@ -2,10 +2,15 @@
 
 <% if (typeof scheduleError !== 'undefined' && scheduleError) { %><div class="error" style="margin-bottom:12px;"><%= scheduleError %></div><% } %>
 <% if (typeof workTypeError !== 'undefined' && workTypeError) { %><div class="error" style="margin-bottom:12px;"><%= workTypeError %></div><% } %>
+<% if (typeof carError !== 'undefined' && carError) { %><div class="error" style="margin-bottom:12px;"><%= carError %></div><% } %>
 
 <section class="card order-summary-card">
-  <h1 class="order-title">#<%= order.id %> · <%= [order.make, order.model].filter(Boolean).join(' ') || 'Авто' %></h1>
-  <p class="order-subtitle"><%= order.client_name %> · <%= order.client_phone %></p>
+  <h1 class="order-title">#<%= order.id %> · <%= [order.make, order.model].filter(Boolean).join(' ') || (order.car_id ? 'Авто' : 'Авто не указано') %></h1>
+  <% if (order.client_name) { %>
+  <p class="order-subtitle"><%= order.client_name %><% if (order.client_phone) { %> · <%= order.client_phone %><% } %></p>
+  <% } else if (!order.car_id) { %>
+  <p class="order-subtitle muted">Клиент и авто будут указаны при приёмке</p>
+  <% } %>
   <% if (order.license_plate_raw) { %><p class="muted"><%= order.license_plate_raw %></p><% } %>
 
   <% if (typeof due_amount !== 'undefined' && due_amount > 0 && order.status !== 'cancelled' && !(typeof isMasterView !== 'undefined' && isMasterView)) { %>
@@ -146,7 +151,7 @@
         <label class="order-add-line-field">Кол-во <input name="quantity" value="1" inputmode="decimal" /></label>
         <label class="order-add-line-field">Цена <input name="unit_price" inputmode="decimal" /></label>
         <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
-        <label class="order-add-line-field">Расходник <input name="material_cost" value="0" inputmode="decimal" placeholder="закупка/ед." /></label>
+        <label class="order-add-line-field">Расходник <input name="material_cost" value="0" inputmode="decimal" placeholder="из прайса, можно изменить" /></label>
         <% } %>
       </div>
       <div class="master-checkboxes master-checkboxes--compact">
@@ -218,35 +223,6 @@
     <% } %>
   </div>
 </details>
-
-<% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %>
-<details class="order-accordion card">
-  <summary class="order-accordion-summary">Расходники по заказу</summary>
-  <div class="order-accordion-body">
-    <% if (orderExpenses && orderExpenses.length) { %>
-    <ul class="order-expense-list">
-      <% orderExpenses.forEach(e => { %>
-        <li><%= e.expense_date %> — <%= Number(e.amount).toFixed(0) %> ₽ <%= e.note || '' %></li>
-      <% }) %>
-    </ul>
-    <% } else { %>
-    <p class="muted">Нет привязанных расходов.</p>
-    <% } %>
-    <% if (order.status !== 'completed') { %>
-    <form method="post" action="/expenses" class="order-quick-expense">
-      <input type="hidden" name="order_id" value="<%= order.id %>" />
-      <input type="hidden" name="category" value="materials" />
-      <div class="form-row-2">
-        <label>Сумма <input name="amount" required inputmode="decimal" placeholder="₽" /></label>
-        <label>Дата <input type="date" name="expense_date" value="<%= new Date().toISOString().slice(0,10) %>" /></label>
-      </div>
-      <label>Заметка <input name="note" placeholder="Масло, фильтр…" /></label>
-      <button type="submit" class="btn btn-secondary btn-sm">+ Расходник</button>
-    </form>
-    <% } %>
-  </div>
-</details>
-<% } %>
 
 <% if (!(typeof isMasterView !== 'undefined' && isMasterView)) { %>
 <details class="order-accordion card" open>
@@ -324,6 +300,33 @@
 </details>
 <% } %>
 
+<% if (!isMasterView && !order.car_id) { %>
+<details class="order-accordion card" open>
+  <summary class="order-accordion-summary">Авто и клиент</summary>
+  <div class="order-accordion-body">
+    <form method="post" action="/orders/<%= order.id %>/car" class="order-car-assign-form" data-vehicle-autocomplete>
+      <label style="display:block;margin-bottom:8px;">Автомобиль из базы
+        <select name="car_id">
+          <option value="">— новый по данным ниже —</option>
+          <% (cars || []).forEach(c => { %>
+            <option value="<%= c.id %>"><%= c.license_plate_raw || 'б/н' %> — <%= [c.make, c.model].filter(Boolean).join(' ') %> · <%= c.full_name %></option>
+          <% }) %>
+        </select>
+      </label>
+      <div class="order-form-grid">
+        <input type="hidden" name="vehicle_model_id" value="" />
+        <label>Госномер <input name="new_plate" class="plate-search-input" data-plate-input placeholder="А123ВС777" /></label>
+        <label>Марка <input name="new_make" data-ac-mark autocomplete="off" /></label>
+        <label>Модель <input name="new_model" data-ac-model autocomplete="off" /></label>
+        <label>ФИО владельца <input name="new_owner_name" /></label>
+        <label>Телефон <input name="new_owner_phone" inputmode="tel" placeholder="+7…" /></label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm" style="margin-top:8px;">Привязать авто</button>
+    </form>
+  </div>
+</details>
+<% } %>
+
 <% if (!isMasterView) { %>
 <details class="order-accordion card">
   <summary class="order-accordion-summary">Детали заказа</summary>
@@ -362,4 +365,4 @@
 </details>
 <% } %>
 
-<%- include('../partials/layout-bottom', { extraScripts: ['/js/catalog-autocomplete.js', '/js/work-type-picker.js'] }) %>
+<%- include('../partials/layout-bottom', { extraScripts: ['/js/catalog-autocomplete.js', '/js/work-type-picker.js', '/js/vehicle-autocomplete.js'] }) %>

@@ -22,7 +22,7 @@ const {
 const { normalizePlate, normalizePlateStrict, normalizePhone, normalizeVin } = require("../lib/normalize");
 const { likePattern, likePatternFolded, lcLike, foldSearchCase } = require("../lib/sqlSearch");
 const { relativePathFor, absolutePathFor } = require("../lib/upload");
-const { loadOrderEconomics, loadOrderLinkedExpenses } = require("../lib/orderEconomics");
+const { loadOrderEconomics } = require("../lib/orderEconomics");
 const { priceForVehicleTier, normalizeVehicleTier } = require("../lib/catalogPricing");
 const { statusLabel, ORDER_STATUS_LABELS } = require("../lib/orderStatusLabels");
 const {
@@ -178,8 +178,8 @@ async function getOrderContext(db, orderId) {
            c.make, c.model, c.license_plate_raw, c.vin,
            cl.id AS client_id, cl.full_name AS client_name, cl.phone_raw AS client_phone
     FROM orders o
-    JOIN cars c ON c.id = o.car_id
-    JOIN clients cl ON cl.id = c.client_id
+    LEFT JOIN cars c ON c.id = o.car_id
+    LEFT JOIN clients cl ON cl.id = c.client_id
     WHERE o.id = ?
   `,
     [orderId]
@@ -249,12 +249,12 @@ async function list(req, res) {
 
   let orders = await db.query(
     `
-    SELECT o.id, o.opened_at, o.status, o.work_type, o.total_price, o.assigned_user_id,
+    SELECT o.id, o.opened_at, o.status, o.work_type, o.total_price, o.assigned_user_id, o.car_id,
            au.name AS assigned_user_name,
            c.license_plate_raw, c.make AS car_make, cl.full_name AS client_name, cl.phone_raw AS client_phone
     FROM orders o
-    JOIN cars c ON c.id = o.car_id
-    JOIN clients cl ON cl.id = c.client_id
+    LEFT JOIN cars c ON c.id = o.car_id
+    LEFT JOIN clients cl ON cl.id = c.client_id
     LEFT JOIN users au ON au.id = o.assigned_user_id
     ${whereSql}
     ORDER BY o.id DESC
@@ -371,11 +371,16 @@ async function resolveOrCreateCar(db, body) {
   const existingId = Number(body.car_id);
   if (Number.isFinite(existingId) && existingId > 0) return existingId;
 
+  const plateRaw = String(body.new_plate ?? "").trim();
+  const makeEarly = String(body.new_make ?? "").trim();
+  const modelEarly = String(body.new_model ?? "").trim();
+  if (!plateRaw && !makeEarly && !modelEarly) return null;
+
   const plate = normalizePlateStrict(body.new_plate);
   if (plate.error) return { error: plate.error };
 
-  const make = String(body.new_make ?? "").trim() || null;
-  const model = String(body.new_model ?? "").trim() || null;
+  const make = makeEarly || null;
+  const model = modelEarly || null;
   const body_type = String(body.new_body_type ?? "").trim() || null;
   const vehicle_model_id = body.vehicle_model_id ? Number(body.vehicle_model_id) : null;
   const yearRaw = String(body.new_year ?? "").trim();
@@ -385,8 +390,7 @@ async function resolveOrCreateCar(db, body) {
   const { phone_raw, phone_normalized } = normalizePhone(body.new_owner_phone);
 
   const hasPlate = !!plate.license_plate_normalized;
-  const hasCarData = hasPlate || make || model;
-  if (!hasCarData) return null;
+  if (!hasPlate && !make && !model) return null;
 
   if (hasPlate) {
     const existingCarId = await findCarByExactPlate(db, plate.license_plate_normalized);
@@ -481,10 +485,8 @@ async function create(req, res) {
   if (resolved && typeof resolved === "object" && resolved.error) {
     return renderError(resolved.error);
   }
-  const car_id = Number(resolved);
-  if (!Number.isFinite(car_id) || car_id <= 0) {
-    return renderError("Укажите госномер или выберите автомобиль из базы");
-  }
+  const car_id =
+    Number.isFinite(Number(resolved)) && Number(resolved) > 0 ? Number(resolved) : null;
 
   const absenceErr = await validateCanAssign(db, assigned_user_id, scheduled_date, start_time, end_time);
   if (absenceErr) return renderError(absenceErr);
@@ -546,6 +548,7 @@ async function show(req, res) {
   const isOwnerView = role === "owner" || role === "admin";
   const isManagerView = role === "manager";
   const isMasterView = role === "master";
+  const cars = !ctx.order.car_id && !isMasterView ? await loadCarsForSelect(db) : [];
   const { roleHasPermission } = require("../config/permissions");
   const canAnnotateOrder =
     role === "owner" || (await roleHasPermission(db, role, "orders:annotate"));
@@ -555,10 +558,8 @@ async function show(req, res) {
   }
 
   let economics = null;
-  let orderExpenses = [];
   if (isOwnerView) {
     economics = await loadOrderEconomics(db, Number(req.params.id));
-    orderExpenses = await loadOrderLinkedExpenses(db, Number(req.params.id));
   }
 
   if (isMasterView && req.session.user?.id) {
@@ -585,8 +586,8 @@ async function show(req, res) {
     catalogProducts,
     masters,
     photos,
+    cars,
     economics,
-    orderExpenses,
     isOwnerView,
     isManagerView,
     isMasterView,
@@ -600,6 +601,7 @@ async function show(req, res) {
     category: "orders",
     scheduleError: req.query.schedule_error === "1" ? "Мастер отсутствует в это время" : null,
     workTypeError: req.query.work_type_error === "1" ? "Выберите хотя бы один тип работ" : null,
+    carError: req.query.car_error === "1" ? "Укажите авто из базы или данные нового авто" : null,
     workTypes: WORK_TYPES,
     selectedWorkTypes: parseWorkTypes(ctx.order.work_type),
     catalogWorkCategory:
@@ -671,6 +673,29 @@ async function update(req, res) {
 
   await recomputeOrderTotals(id);
   await onOrderStatusChange(id, previousStatus, status);
+  return res.redirect(`/orders/${id}`);
+}
+
+async function assignCar(req, res) {
+  const id = Number(req.params.id);
+  const db = await getDB();
+  const rows = await db.query("SELECT id, status FROM orders WHERE id = ?", [id]);
+  if (!rows.length) return res.status(404).send("Not found");
+  if (rows[0].status === "completed") {
+    return res.redirect(`/orders/${id}`);
+  }
+
+  const resolved = await resolveOrCreateCar(db, req.body);
+  if (resolved && typeof resolved === "object" && resolved.error) {
+    return res.redirect(`/orders/${id}?car_error=1`);
+  }
+  const car_id = Number(resolved);
+  if (!Number.isFinite(car_id) || car_id <= 0) {
+    return res.redirect(`/orders/${id}?car_error=1`);
+  }
+
+  const now = sqlNow(db.dialect);
+  await db.query(`UPDATE orders SET car_id = ?, updated_at = ${now} WHERE id = ?`, [car_id, id]);
   return res.redirect(`/orders/${id}`);
 }
 
@@ -1053,6 +1078,7 @@ module.exports = {
   create,
   update,
   updateNotes,
+  assignCar,
   changeStatus,
   show,
   addLine,

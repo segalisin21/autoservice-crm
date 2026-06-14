@@ -75,19 +75,19 @@ test("order form finds car by plate", async (t) => {
   assert.match(res.text, /Петров/);
 });
 
-test("new order without car shows error", async (t) => {
+test("new order without car creates scheduled order", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
 
   const agent = request.agent(ctx.app);
   await ctx.loginAs(agent, "admin", "admin");
-  const res = await agent.post("/orders").type("form").send(
-    minimalOrderPayload(ctx, {
-      car_id: ""
-    })
-  );
-  assert.equal(res.status, 400);
-  assert.match(res.text, /госномер/i);
+  const res = await agent.post("/orders").type("form").send(minimalOrderPayload(ctx, { notes: "walk-in" }));
+  assert.equal(res.status, 302);
+
+  const order = (await ctx.db.query("SELECT * FROM orders ORDER BY id DESC LIMIT 1"))[0];
+  assert.ok(order);
+  assert.equal(order.car_id, null);
+  assert.equal(order.notes, "walk-in");
 });
 
 test("new order requires date, start time, and employee", async (t) => {
@@ -173,6 +173,28 @@ test("create order without work types is allowed", async (t) => {
 
   const order = (await ctx.db.query("SELECT work_type FROM orders WHERE car_id = ?", [carId]))[0];
   assert.equal(order.work_type, null);
+});
+
+test("assign car to order without car", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(`INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('Assign','+7','79990007788')`);
+  const clientId = (await ctx.db.query("SELECT id FROM clients ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, make, license_plate_raw, license_plate_normalized) VALUES (?, 'Toyota', 'А111АА77', 'А111АА77')`, [
+    clientId
+  ]);
+  const carId = (await ctx.db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  await agent.post("/orders").type("form").send(minimalOrderPayload(ctx));
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const res = await agent.post(`/orders/${orderId}/car`).type("form").send({ car_id: String(carId) });
+  assert.equal(res.status, 302);
+  const order = (await ctx.db.query("SELECT car_id FROM orders WHERE id = ?", [orderId]))[0];
+  assert.equal(order.car_id, carId);
 });
 
 test("update order without work types returns validation error", async (t) => {
