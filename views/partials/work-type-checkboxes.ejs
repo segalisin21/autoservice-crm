@@ -1,7 +1,7 @@
 <% const selected = Array.isArray(selectedWorkTypes) ? selectedWorkTypes : []; %>
-<% const workTypeRequired = typeof workTypeRequired !== 'undefined' && workTypeRequired; %>
-<div class="work-type-checkboxes" data-work-type-picker<%= workTypeRequired ? ' data-work-type-required' : '' %>>
-  <span class="work-type-checkboxes__label">Тип работ<% if (!workTypeRequired) { %> <span class="muted">(необязательно)</span><% } %></span>
+<% const isWorkTypeRequired = typeof workTypeRequired !== 'undefined' && workTypeRequired; %>
+<div class="work-type-checkboxes" data-work-type-picker<%= isWorkTypeRequired ? ' data-work-type-required' : '' %>>
+  <span class="work-type-checkboxes__label">Тип работ<% if (!isWorkTypeRequired) { %> <span class="muted">(необязательно)</span><% } %></span>
   <input type="hidden" name="work_type" value="<%= selected.length ? selected.join(', ') : '' %>" />
   <div class="work-type-checkboxes__options">
     <% workTypes.forEach(function(t) { %>
