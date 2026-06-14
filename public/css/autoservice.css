@@ -940,7 +940,187 @@
   }
 }
 
-/* Payroll accordion */
+/* Payroll — compact tables */
+.payroll-page .payroll-card {
+  margin-bottom: var(--density-gap, 0.75rem);
+}
+
+.payroll-card__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.payroll-filter {
+  margin-bottom: 0.5rem;
+}
+
+.payroll-empty {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+}
+
+.payroll-table-wrap {
+  margin-top: 0.35rem;
+}
+
+.payroll-table {
+  min-width: 640px;
+}
+
+.payroll-table__group + .payroll-table__group {
+  border-top: 2px solid var(--border-subtle, #e5e7eb);
+}
+
+.payroll-table__expand-cell {
+  padding: 0 !important;
+  border-bottom: none;
+}
+
+.payroll-table__summary {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(5, minmax(72px, 1fr));
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.8125rem;
+}
+
+.payroll-row-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.payroll-table__summary::before {
+  content: "▸";
+  margin-right: 0.25rem;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.75rem;
+}
+
+.payroll-row-details[open] > .payroll-table__summary::before {
+  content: "▾";
+}
+
+.payroll-table__name {
+  font-weight: 600;
+  min-width: 0;
+}
+
+.payroll-table__totals {
+  font-size: 0.75rem;
+}
+
+.payroll-table__detail {
+  padding: 0.35rem 0.5rem 0.5rem;
+  border-top: 1px solid var(--gray-100, #f3f4f6);
+  background: #fafafa;
+}
+
+.payroll-nested-table {
+  min-width: 520px;
+  margin-bottom: 0.35rem;
+}
+
+.payroll-nested-caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-600, #4b5563);
+  padding: 0.25rem 0;
+}
+
+.payroll-nested-empty {
+  margin: 0.25rem 0 0.35rem;
+  font-size: 0.8125rem;
+}
+
+.payroll-inline-payout-form {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed var(--gray-200, #e5e7eb);
+}
+
+.payroll-inline-payout-form__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gray-600, #4b5563);
+}
+
+.payroll-settings-block {
+  margin-top: 0.65rem;
+}
+
+.payroll-settings-table {
+  min-width: 560px;
+}
+
+.payroll-settings-form-cell {
+  padding: 0.35rem 0.5rem !important;
+  background: #f9fafb;
+}
+
+.payroll-settings-form label {
+  font-size: 0.75rem;
+}
+
+.payroll-settings-form input,
+.payroll-settings-form select {
+  min-height: 30px;
+  font-size: 0.8125rem;
+}
+
+.payroll-payout-form {
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle, #e5e7eb);
+}
+
+.content .payroll-settings-form input,
+.content .payroll-settings-form select,
+.content .payroll-inline-payout-form input,
+.content .payroll-inline-payout-form select,
+.content .payroll-filter input,
+.content .payroll-filter select {
+  width: auto;
+  max-width: 100%;
+  margin-top: 0;
+}
+
+.content .payroll-settings-form > label,
+.content .payroll-inline-payout-form > label,
+.content .payroll-filter > label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0;
+  white-space: nowrap;
+}
+
+.payroll-accordion__body {
+  padding: 0;
+  border-top: none;
+}
+
+@media (max-width: 767px) {
+  .payroll-table__summary {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.25rem;
+  }
+
+  .payroll-table__name {
+    grid-column: 1 / -1;
+  }
+
+  .payroll-table__totals {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}
+
+/* Legacy payroll accordion (kept for tests / compat) */
 .payroll-accordion-list {
   display: flex;
   flex-direction: column;
@@ -948,98 +1128,10 @@
 }
 
 .payroll-accordion {
-  border: 1px solid var(--border-subtle, #e5e7eb);
-  border-radius: 10px;
-  background: #fff;
-  overflow: hidden;
-}
-
-.payroll-accordion__summary {
-  display: grid;
-  grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  align-items: center;
-  padding: 12px 14px;
-  cursor: pointer;
-  list-style: none;
-  font-size: 0.875rem;
-}
-
-.payroll-accordion__summary::-webkit-details-marker {
-  display: none;
-}
-
-.payroll-accordion__summary::before {
-  content: "▸";
-  margin-right: 6px;
-  color: var(--text-muted, #6b7280);
-  transition: transform 0.15s;
-}
-
-.payroll-accordion[open] .payroll-accordion__summary::before {
-  content: "▾";
-}
-
-.payroll-accordion__name {
-  font-weight: 600;
-}
-
-.payroll-accordion__body {
-  padding: 0 14px 14px;
-  border-top: 1px solid var(--border-subtle, #e5e7eb);
-}
-
-.payroll-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  padding: 12px 0;
-  font-size: 0.875rem;
-}
-
-.payroll-detail-title {
-  margin: 12px 0 6px;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.payroll-inline-payout-form {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: flex-end;
-  margin-top: 8px;
-}
-
-.payroll-inline-payout-form label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.8rem;
-}
-
-.payroll-inline-payout-form input,
-.payroll-inline-payout-form select {
-  min-width: 120px;
-}
-
-@media (max-width: 767px) {
-  .payroll-accordion__summary {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .payroll-accordion__name {
-    grid-column: 1 / -1;
-  }
-
-  .payroll-kpi-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .orders-table th:nth-child(5),
-  .orders-table td:nth-child(5) {
-    display: none;
-  }
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
 }
 
 .schedule-day-scroll {

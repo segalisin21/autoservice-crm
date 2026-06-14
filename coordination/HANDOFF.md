@@ -1,5 +1,25 @@
 # HANDOFF
 
+## 2026-06-14 — compact payroll tables
+
+### What changed
+- Страница `/admin/payroll`: сводка по сотрудникам — компактная таблица с раскрытием строк (начисления, выплаты, быстрая выплата).
+- Блоки правил объединены: формула по умолчанию, правила мастеров, переопределения — таблицы с inline-формами в `tfoot`.
+- Выплаты: компактная форма + таблица истории в одной секции.
+- Удаление переопределений — красный крестик.
+
+### Key files
+- `views/admin/payroll.ejs`
+- `public/css/autoservice.css`
+
+### Verify
+```bash
+npm test
+```
+Визуально: `/admin/payroll`.
+
+---
+
 ## 2026-06-14 — compact order detail page
 
 ### What changed

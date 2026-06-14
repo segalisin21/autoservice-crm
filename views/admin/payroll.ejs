@@ -9,13 +9,14 @@
   }
 %>
 <%- include('../partials/layout-top', { title: 'Зарплата', user, category: 'payroll', adminSection: 'payroll' }) %>
-<div class="admin-page finance-dashboard">
+<div class="admin-page finance-dashboard payroll-page">
   <div class="finance-dashboard__head">
     <h1 class="finance-dashboard__title">Зарплата</h1>
     <%- include('./_admin-subnav') %>
   </div>
-<section class="card">
-  <form method="get" class="form-inline">
+
+<section class="card payroll-card">
+  <form method="get" class="form-inline payroll-filter">
     <label>С <input type="date" name="start_date" value="<%= range.start_date %>" /></label>
     <label>По <input type="date" name="end_date" value="<%= range.end_date %>" /></label>
     <% if (user.role !== 'master') { %>
@@ -30,216 +31,262 @@
     <% } %>
     <button type="submit" class="btn btn-primary btn-sm">Показать</button>
   </form>
-  <p class="muted" style="margin:8px 0 0;">Разверните сотрудника — начисления по работам, выплаты и быстрая запись выплаты на остаток.</p>
-  <div class="payroll-accordion-list" style="margin-top:12px;">
-    <% summary.forEach(s => {
-      const detail = payrollDetails[s.id] || { earnedLines: [], payouts: [] };
-    %>
-      <details class="payroll-accordion">
-        <summary class="payroll-accordion__summary">
-          <span class="payroll-accordion__name"><%= s.name %></span>
-          <span class="payroll-accordion__cell muted">Период: <%= (s.earned_period || 0).toFixed(0) %> / −<%= (s.paid_period || 0).toFixed(0) %></span>
-          <span class="payroll-accordion__cell">К выплате <strong><%= (s.due_period || 0).toFixed(2) %> ₽</strong></span>
-          <span class="payroll-accordion__cell <%= s.due_total > 0 ? 'text-due' : '' %>">Остаток <strong><%= s.due_total.toFixed(2) %> ₽</strong></span>
-        </summary>
-        <div class="payroll-accordion__body">
-          <div class="payroll-kpi-row">
-            <div><span class="muted">Начислено (период)</span><br /><strong><%= (s.earned_period || 0).toFixed(2) %> ₽</strong></div>
-            <div><span class="muted">Выплачено (период)</span><br /><strong><%= (s.paid_period || 0).toFixed(2) %> ₽</strong></div>
-            <div><span class="muted">Всего начислено</span><br /><%= s.earned_total.toFixed(2) %> ₽</div>
-            <div><span class="muted">Всего выплачено</span><br /><%= s.paid_total.toFixed(2) %> ₽</div>
-          </div>
 
-          <% if (detail.earnedLines.length) { %>
-          <h3 class="payroll-detail-title">Начисления по работам</h3>
-          <div class="table-scroll">
-            <table class="data-table data-table-compact">
-              <thead>
-                <tr><th>Дата</th><th>Заказ</th><th>Работа</th><th>Авто</th><th class="num">ЗП</th></tr>
-              </thead>
-              <tbody>
-                <% detail.earnedLines.forEach(l => { %>
-                  <tr>
-                    <td><%= (l.closed_at || '').toString().slice(0, 10) %></td>
-                    <td><a href="/orders/<%= l.order_id %>">#<%= l.order_id %></a></td>
-                    <td><%= l.line_name %></td>
-                    <td class="muted"><%= l.license_plate_raw || l.car_make || '—' %></td>
-                    <td class="num"><%= Number(l.earned).toFixed(2) %> ₽</td>
-                  </tr>
-                <% }) %>
-              </tbody>
-            </table>
-          </div>
-          <% } else { %>
-          <p class="muted">Нет начислений за выбранный период.</p>
-          <% } %>
-
-          <% if (detail.payouts.length) { %>
-          <h3 class="payroll-detail-title">Выплаты за период</h3>
-          <div class="table-scroll">
-            <table class="data-table data-table-compact">
-              <thead><tr><th>Дата</th><th class="num">Сумма</th><th>Способ</th><th>Комментарий</th></tr></thead>
-              <tbody>
-                <% detail.payouts.forEach(p => { %>
-                  <tr>
-                    <td><%= (p.paid_at || '').toString().slice(0, 16) %></td>
-                    <td class="num"><%= Number(p.amount).toFixed(2) %> ₽</td>
-                    <td><%= p.method %></td>
-                    <td><%= p.note || '—' %></td>
-                  </tr>
-                <% }) %>
-              </tbody>
-            </table>
-          </div>
-          <% } %>
-
-          <% if (canMutate) { %>
-          <div class="payroll-quick-payout">
-            <h3 class="payroll-detail-title">Быстрая выплата</h3>
-            <form method="post" action="/admin/payroll/payouts" class="payroll-inline-payout-form">
-              <input type="hidden" name="user_id" value="<%= s.id %>" />
-              <label>Сумма
-                <input name="amount" required inputmode="decimal" value="<%= s.due_total > 0 ? s.due_total.toFixed(2) : '' %>" placeholder="0" />
-              </label>
-              <label>Способ
-                <select name="method">
-                  <option value="cash">Наличные</option>
-                  <option value="transfer">Перевод</option>
-                  <option value="card">Карта</option>
-                  <option value="other">Другое</option>
-                </select>
-              </label>
-              <label>Период с <input type="date" name="period_start" value="<%= range.start_date %>" /></label>
-              <label>по <input type="date" name="period_end" value="<%= range.end_date %>" /></label>
-              <label>Комментарий <input name="note" placeholder="Расчёт, аванс…" /></label>
-              <button type="submit" class="btn btn-primary btn-sm">Записать <%= s.due_total > 0 ? s.due_total.toFixed(0) + ' ₽' : 'выплату' %></button>
-            </form>
-          </div>
-          <% } %>
-        </div>
-      </details>
-    <% }) %>
-  </div>
   <% if (!summary.length) { %>
-    <p class="muted">Нет сотрудников для отображения.</p>
+    <p class="muted payroll-empty">Нет сотрудников для отображения.</p>
+  <% } else { %>
+  <div class="table-scroll payroll-table-wrap">
+    <table class="data-table data-table-compact payroll-table">
+      <thead>
+        <tr>
+          <th>Сотрудник</th>
+          <th class="num">Начисл.</th>
+          <th class="num">Выпл.</th>
+          <th class="num">К выплате</th>
+          <th class="num">Остаток</th>
+          <th class="num">Всего +/−</th>
+        </tr>
+      </thead>
+      <% summary.forEach(s => {
+        const detail = payrollDetails[s.id] || { earnedLines: [], payouts: [] };
+      %>
+      <tbody class="payroll-table__group">
+        <tr>
+          <td colspan="6" class="payroll-table__expand-cell">
+            <details class="payroll-accordion payroll-row-details">
+              <summary class="payroll-table__summary">
+                <span class="payroll-table__name"><%= s.name %></span>
+                <span class="num"><%= (s.earned_period || 0).toFixed(0) %></span>
+                <span class="num muted">−<%= (s.paid_period || 0).toFixed(0) %></span>
+                <span class="num"><strong><%= (s.due_period || 0).toFixed(0) %></strong></span>
+                <span class="num <%= s.due_total > 0 ? 'text-due' : '' %>"><strong><%= s.due_total.toFixed(0) %></strong></span>
+                <span class="num muted payroll-table__totals"><%= s.earned_total.toFixed(0) %> / −<%= s.paid_total.toFixed(0) %></span>
+              </summary>
+              <div class="payroll-accordion__body payroll-table__detail">
+                <div class="table-scroll">
+                  <table class="data-table data-table-compact payroll-nested-table">
+                    <caption class="payroll-nested-caption">Начисления по работам</caption>
+                    <thead>
+                      <tr><th>Дата</th><th>Заказ</th><th>Работа</th><th>Авто</th><th class="num">ЗП</th></tr>
+                    </thead>
+                    <tbody>
+                      <% if (detail.earnedLines.length) { %>
+                        <% detail.earnedLines.forEach(l => { %>
+                          <tr>
+                            <td><%= (l.closed_at || '').toString().slice(0, 10) %></td>
+                            <td><a href="/orders/<%= l.order_id %>">#<%= l.order_id %></a></td>
+                            <td><%= l.line_name %></td>
+                            <td class="muted"><%= l.license_plate_raw || l.car_make || '—' %></td>
+                            <td class="num"><%= Number(l.earned).toFixed(2) %></td>
+                          </tr>
+                        <% }) %>
+                      <% } else { %>
+                        <tr><td colspan="5" class="muted">Нет начислений за период.</td></tr>
+                      <% } %>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="table-scroll">
+                  <table class="data-table data-table-compact payroll-nested-table">
+                    <caption class="payroll-nested-caption">Выплаты за период</caption>
+                    <thead>
+                      <tr><th>Дата</th><th class="num">Сумма</th><th>Способ</th><th>Комментарий</th></tr>
+                    </thead>
+                    <tbody>
+                      <% if (detail.payouts.length) { %>
+                        <% detail.payouts.forEach(p => { %>
+                          <tr>
+                            <td><%= (p.paid_at || '').toString().slice(0, 16) %></td>
+                            <td class="num"><%= Number(p.amount).toFixed(2) %></td>
+                            <td><%= p.method %></td>
+                            <td><%= p.note || '—' %></td>
+                          </tr>
+                        <% }) %>
+                      <% } else { %>
+                        <tr><td colspan="4" class="muted">Нет выплат за период.</td></tr>
+                      <% } %>
+                    </tbody>
+                  </table>
+                </div>
+
+                <% if (canMutate) { %>
+                <form method="post" action="/admin/payroll/payouts" class="form-inline payroll-inline-payout-form">
+                  <input type="hidden" name="user_id" value="<%= s.id %>" />
+                  <span class="payroll-inline-payout-form__label">Быстрая выплата</span>
+                  <label>Сумма
+                    <input name="amount" required inputmode="decimal" value="<%= s.due_total > 0 ? s.due_total.toFixed(2) : '' %>" placeholder="0" />
+                  </label>
+                  <label>Способ
+                    <select name="method">
+                      <option value="cash">Наличные</option>
+                      <option value="transfer">Перевод</option>
+                      <option value="card">Карта</option>
+                      <option value="other">Другое</option>
+                    </select>
+                  </label>
+                  <label>с <input type="date" name="period_start" value="<%= range.start_date %>" /></label>
+                  <label>по <input type="date" name="period_end" value="<%= range.end_date %>" /></label>
+                  <label>Комм. <input name="note" placeholder="Расчёт…" /></label>
+                  <button type="submit" class="btn btn-primary btn-sm">Записать</button>
+                </form>
+                <% } %>
+              </div>
+            </details>
+          </td>
+        </tr>
+      </tbody>
+      <% }) %>
+    </table>
+  </div>
   <% } %>
 </section>
 
 <% if (canMutate) { %>
-<section class="card">
-  <h2 style="margin:0 0 8px 0; font-size:16px;">Формула по умолчанию</h2>
-  <p class="muted" style="margin-top:0;">Применяется, если у мастера нет своего правила. По умолчанию: 50% от (работы − расходники).</p>
-  <form method="post" action="/admin/payroll/default" class="compact-actions">
-    <label>Режим
-      <select name="mode">
-        <% modes.forEach(m => { %>
-          <option value="<%= m %>" <%= payrollDefault.mode === m ? 'selected' : '' %>><%= modeLabel(m) %></option>
-        <% }) %>
-      </select>
-    </label>
-    <label>Значение <input name="value" value="<%= payrollDefault.value %>" /></label>
-    <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
-  </form>
-</section>
+<section class="card payroll-card">
+  <h2 class="payroll-card__title">Настройки расчёта</h2>
 
-<section class="card">
-  <h2 style="margin:0 0 8px 0; font-size:16px;">Правило по мастеру (деактивирует предыдущее)</h2>
-  <form method="post" action="/admin/payroll/rules">
-    <label>Мастер
-      <select name="user_id" required>
-        <% masters.forEach(m => { %>
-          <option value="<%= m.id %>"><%= m.name %></option>
-        <% }) %>
-      </select>
-    </label>
-    <label>Режим
-      <select name="mode">
-        <% modes.forEach(m => { %>
-          <option value="<%= m %>"><%= modeLabel(m) %></option>
-        <% }) %>
-      </select>
-    </label>
-    <label>Значение <input name="value" required /></label>
-    <label>С даты <input type="date" name="effective_from" value="<%= range.start_date %>" /></label>
-    <button type="submit" class="btn btn-primary" style="margin-top:12px;">Сохранить правило</button>
-  </form>
-  <% if (rules && rules.length) { %>
   <div class="table-scroll">
-  <table class="data-table data-table-compact" style="margin-top:16px;">
-    <thead><tr><th>Мастер</th><th>Режим</th><th>Значение</th><th>С даты</th></tr></thead>
-    <tbody>
-      <% rules.forEach(r => { %>
+    <table class="data-table data-table-compact payroll-settings-table">
+      <caption class="payroll-nested-caption">Формула по умолчанию (если у мастера нет своего правила)</caption>
+      <thead>
+        <tr><th>Режим</th><th>Значение</th><th></th></tr>
+      </thead>
+      <tbody>
         <tr>
-          <td><%= r.user_name %></td>
-          <td><%= modeLabel(r.mode) %></td>
-          <td><%= Number(r.value) %></td>
-          <td><%= r.effective_from %></td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
-  </div>
-  <% } %>
-</section>
-
-<section class="card">
-  <h2 style="margin:0 0 8px 0; font-size:16px;">Оплата за конкретную работу (фикс/процент)</h2>
-  <form method="post" action="/admin/payroll/overrides">
-    <label>Мастер
-      <select name="user_id" required>
-        <% masters.forEach(m => { %>
-          <option value="<%= m.id %>"><%= m.name %></option>
-        <% }) %>
-      </select>
-    </label>
-    <label>Работа
-      <select name="catalog_item_id" required>
-        <% works.forEach(w => { %>
-          <option value="<%= w.id %>"><%= w.name %></option>
-        <% }) %>
-      </select>
-    </label>
-    <label>Режим
-      <select name="mode">
-        <% modes.forEach(m => { %>
-          <option value="<%= m %>"><%= modeLabel(m) %></option>
-        <% }) %>
-      </select>
-    </label>
-    <label>Значение <input name="value" required /></label>
-    <button type="submit" class="btn btn-primary" style="margin-top:12px;">Сохранить переопределение</button>
-  </form>
-  <% if (overrides && overrides.length) { %>
-  <div class="table-scroll">
-  <table class="data-table data-table-compact" style="margin-top:16px;">
-    <thead><tr><th>Мастер</th><th>Работа</th><th>Режим</th><th>Значение</th><th></th></tr></thead>
-    <tbody>
-      <% overrides.forEach(o => { %>
-        <tr>
-          <td><%= o.user_name %></td>
-          <td><%= o.item_name %></td>
-          <td><%= modeLabel(o.mode) %></td>
-          <td><%= Number(o.value) %></td>
-          <td>
-            <form method="post" action="/admin/payroll/overrides/<%= o.id %>?_method=DELETE" style="display:inline;">
-              <button type="submit">×</button>
+          <td colspan="3" class="payroll-settings-form-cell">
+            <form method="post" action="/admin/payroll/default" class="form-inline payroll-settings-form">
+              <label>Режим
+                <select name="mode">
+                  <% modes.forEach(m => { %>
+                    <option value="<%= m %>" <%= payrollDefault.mode === m ? 'selected' : '' %>><%= modeLabel(m) %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <label>Значение <input name="value" value="<%= payrollDefault.value %>" inputmode="decimal" /></label>
+              <button type="submit" class="btn btn-primary btn-sm">Сохранить</button>
             </form>
           </td>
         </tr>
-      <% }) %>
-    </tbody>
-  </table>
+      </tbody>
+    </table>
   </div>
-  <% } %>
+
+  <div class="table-scroll payroll-settings-block">
+    <table class="data-table data-table-compact payroll-settings-table">
+      <caption class="payroll-nested-caption">Правила по мастерам</caption>
+      <thead>
+        <tr><th>Мастер</th><th>Режим</th><th>Значение</th><th>С даты</th></tr>
+      </thead>
+      <tbody>
+        <% if (rules && rules.length) { %>
+          <% rules.forEach(r => { %>
+            <tr>
+              <td><%= r.user_name %></td>
+              <td><%= modeLabel(r.mode) %></td>
+              <td class="num"><%= Number(r.value) %></td>
+              <td><%= r.effective_from %></td>
+            </tr>
+          <% }) %>
+        <% } else { %>
+          <tr><td colspan="4" class="muted">Правил пока нет.</td></tr>
+        <% } %>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" class="payroll-settings-form-cell">
+            <form method="post" action="/admin/payroll/rules" class="form-inline payroll-settings-form">
+              <label>Мастер
+                <select name="user_id" required>
+                  <% masters.forEach(m => { %>
+                    <option value="<%= m.id %>"><%= m.name %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <label>Режим
+                <select name="mode">
+                  <% modes.forEach(m => { %>
+                    <option value="<%= m %>"><%= modeLabel(m) %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <label>Значение <input name="value" required inputmode="decimal" /></label>
+              <label>С <input type="date" name="effective_from" value="<%= range.start_date %>" /></label>
+              <button type="submit" class="btn btn-primary btn-sm">+ Правило</button>
+            </form>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <div class="table-scroll payroll-settings-block">
+    <table class="data-table data-table-compact payroll-settings-table">
+      <caption class="payroll-nested-caption">Переопределения по работам</caption>
+      <thead>
+        <tr><th>Мастер</th><th>Работа</th><th>Режим</th><th class="num">Значение</th><th></th></tr>
+      </thead>
+      <tbody>
+        <% if (overrides && overrides.length) { %>
+          <% overrides.forEach(o => { %>
+            <tr>
+              <td><%= o.user_name %></td>
+              <td><%= o.item_name %></td>
+              <td><%= modeLabel(o.mode) %></td>
+              <td class="num"><%= Number(o.value) %></td>
+              <td class="table-actions-cell">
+                <form method="post" action="/admin/payroll/overrides/<%= o.id %>?_method=DELETE" class="line-delete-form">
+                  <button type="submit" class="btn btn-sm btn-delete btn-line-delete" title="Удалить">×</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        <% } else { %>
+          <tr><td colspan="5" class="muted">Переопределений нет.</td></tr>
+        <% } %>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5" class="payroll-settings-form-cell">
+            <form method="post" action="/admin/payroll/overrides" class="form-inline payroll-settings-form">
+              <label>Мастер
+                <select name="user_id" required>
+                  <% masters.forEach(m => { %>
+                    <option value="<%= m.id %>"><%= m.name %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <label>Работа
+                <select name="catalog_item_id" required>
+                  <% works.forEach(w => { %>
+                    <option value="<%= w.id %>"><%= w.name %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <label>Режим
+                <select name="mode">
+                  <% modes.forEach(m => { %>
+                    <option value="<%= m %>"><%= modeLabel(m) %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <label>Значение <input name="value" required inputmode="decimal" /></label>
+              <button type="submit" class="btn btn-primary btn-sm">+ Переопределение</button>
+            </form>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
 </section>
 
-<section class="card">
-  <h2 style="margin:0 0 8px 0; font-size:16px;">Записать выплату</h2>
-  <form method="post" action="/admin/payroll/payouts" class="payout-form">
+<section class="card payroll-card">
+  <h2 class="payroll-card__title">Выплаты</h2>
+  <form method="post" action="/admin/payroll/payouts" class="form-inline payroll-settings-form payroll-payout-form">
     <label>Мастер
       <select name="user_id" required id="payout-user-select">
         <% summary.forEach(s => { %>
-          <option value="<%= s.id %>" data-due="<%= s.due_total %>"><%= s.name %> (остаток <%= s.due_total.toFixed(0) %> ₽)</option>
+          <option value="<%= s.id %>" data-due="<%= s.due_total %>"><%= s.name %> (<%= s.due_total.toFixed(0) %> ₽)</option>
         <% }) %>
         <% if (!summary.length) { masters.forEach(m => { %>
           <option value="<%= m.id %>"><%= m.name %></option>
@@ -255,25 +302,25 @@
         <option value="other">Другое</option>
       </select>
     </label>
-    <label>Период ЗП с <input type="date" name="period_start" value="<%= range.start_date %>" /></label>
+    <label>Период с <input type="date" name="period_start" value="<%= range.start_date %>" /></label>
     <label>по <input type="date" name="period_end" value="<%= range.end_date %>" /></label>
-    <label>Комментарий <input name="note" placeholder="Аванс, расчёт…" /></label>
-    <button type="submit" class="btn btn-primary" style="margin-top:12px;">Записать выплату</button>
+    <label>Комм. <input name="note" placeholder="Аванс…" /></label>
+    <button type="submit" class="btn btn-primary btn-sm">Записать выплату</button>
   </form>
-</section>
 
-<section class="card">
-  <h2 style="margin:0 0 8px 0; font-size:16px;">История выплат</h2>
   <% if (recentPayouts && recentPayouts.length) { %>
-  <div class="table-scroll">
-    <table class="data-table data-table-compact">
-      <thead><tr><th>Дата</th><th>Мастер</th><th>Сумма</th><th>Период ЗП</th><th>Способ</th><th>Комментарий</th></tr></thead>
+  <div class="table-scroll payroll-settings-block">
+    <table class="data-table data-table-compact payroll-settings-table">
+      <caption class="payroll-nested-caption">История выплат</caption>
+      <thead>
+        <tr><th>Дата</th><th>Мастер</th><th class="num">Сумма</th><th>Период</th><th>Способ</th><th>Комментарий</th></tr>
+      </thead>
       <tbody>
         <% recentPayouts.forEach(p => { %>
           <tr>
             <td><%= (p.paid_at || '').toString().slice(0, 16) %></td>
             <td><%= p.user_name %></td>
-            <td><%= Number(p.amount).toFixed(2) %> ₽</td>
+            <td class="num"><%= Number(p.amount).toFixed(2) %></td>
             <td class="muted"><% if (p.period_start && p.period_end) { %><%= p.period_start %> — <%= p.period_end %><% } else { %>—<% } %></td>
             <td><%= p.method %></td>
             <td><%= p.note || '—' %></td>
@@ -283,10 +330,11 @@
     </table>
   </div>
   <% } else { %>
-  <p class="muted">Выплат пока нет.</p>
+  <p class="muted payroll-empty">Выплат пока нет.</p>
   <% } %>
 </section>
 <% } %>
+
 <script>
 (function () {
   var sel = document.getElementById("payout-user-select");
