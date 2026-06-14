@@ -20,7 +20,7 @@
     if (form) {
       form.addEventListener("submit", function (e) {
         syncHidden();
-        if (!hidden.value.trim()) {
+        if (root.hasAttribute("data-work-type-required") && !hidden.value.trim()) {
           e.preventDefault();
           alert("Выберите хотя бы один тип работ");
         }

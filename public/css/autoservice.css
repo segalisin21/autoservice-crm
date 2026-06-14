@@ -779,6 +779,49 @@
 }
 
 /* Order page mobile-first */
+.order-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  justify-content: space-between;
+}
+
+.order-title-row .order-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.order-mileage-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.35rem 0.5rem;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.order-mileage-form__label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #6b7280);
+  margin: 0;
+}
+
+.order-mileage-form__input {
+  width: 7rem;
+  min-height: 32px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+}
+
+.order-mileage-readonly {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
 .order-title {
   margin: 0;
   font-size: 1.15rem;

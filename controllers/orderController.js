@@ -174,7 +174,7 @@ async function getOrderContext(db, orderId) {
   const rows = await db.query(
     `
     SELECT o.*,
-           c.make, c.model, c.license_plate_raw, c.vin,
+           c.make, c.model, c.license_plate_raw, c.vin, c.year, c.mileage,
            cl.id AS client_id, cl.full_name AS client_name, cl.phone_raw AS client_phone
     FROM orders o
     LEFT JOIN cars c ON c.id = o.car_id
@@ -250,7 +250,7 @@ async function list(req, res) {
     `
     SELECT o.id, o.opened_at, o.status, o.work_type, o.total_price, o.assigned_user_id, o.car_id,
            au.name AS assigned_user_name,
-           c.license_plate_raw, c.make AS car_make, cl.full_name AS client_name, cl.phone_raw AS client_phone
+           c.license_plate_raw, c.make AS car_make, c.model AS car_model, cl.full_name AS client_name, cl.phone_raw AS client_phone
     FROM orders o
     LEFT JOIN cars c ON c.id = o.car_id
     LEFT JOIN clients cl ON cl.id = c.client_id
@@ -551,6 +551,11 @@ async function show(req, res) {
   const { roleHasPermission } = require("../config/permissions");
   const canAnnotateOrder =
     role === "owner" || (await roleHasPermission(db, role, "orders:annotate"));
+  const canEditMileage =
+    !!ctx.order.car_id &&
+    (role === "owner" ||
+      (await roleHasPermission(db, role, "orders:mutate")) ||
+      canAnnotateOrder);
   let works = ctx.works;
   if (isMasterView && req.session.user?.id) {
     works = works.filter((l) => Number(l.master_id) === Number(req.session.user.id));
@@ -589,6 +594,7 @@ async function show(req, res) {
     isManagerView,
     isMasterView,
     canAnnotateOrder,
+    canEditMileage,
     canChangeOrderStatus: canManageOrderStatus(role),
     statusOptions: canManageOrderStatus(role) ? ORDER_STATUSES : ACTIVE_STATUS_OPTIONS,
     statuses: ORDER_STATUSES,
@@ -599,6 +605,7 @@ async function show(req, res) {
     scheduleError: req.query.schedule_error === "1" ? "Мастер отсутствует в это время" : null,
     workTypeError: req.query.work_type_error === "1" ? "Выберите хотя бы один тип работ" : null,
     carError: req.query.car_error === "1" ? "Укажите авто из базы или данные нового авто" : null,
+    mileageError: req.query.mileage_error === "1",
     workTypes: WORK_TYPES,
     selectedWorkTypes: parseWorkTypes(ctx.order.work_type),
     catalogWorkCategory:
@@ -708,6 +715,28 @@ async function updateNotes(req, res) {
     annotation_notes,
     id
   ]);
+  return res.redirect(`/orders/${id}`);
+}
+
+async function updateCarMileage(req, res) {
+  const id = Number(req.params.id);
+  const db = await getDB();
+  const rows = await db.query("SELECT car_id FROM orders WHERE id = ?", [id]);
+  if (!rows.length) return res.status(404).send("Not found");
+  const car_id = rows[0].car_id;
+  if (!car_id) return res.redirect(`/orders/${id}?mileage_error=1`);
+
+  const mileageRaw = String(req.body.mileage ?? "").trim();
+  let mileage = null;
+  if (mileageRaw) {
+    mileage = Number(mileageRaw.replace(/\s/g, ""));
+    if (!Number.isFinite(mileage) || mileage < 0 || !Number.isInteger(mileage)) {
+      return res.redirect(`/orders/${id}?mileage_error=1`);
+    }
+  }
+
+  const now = sqlNow(db.dialect);
+  await db.query(`UPDATE cars SET mileage = ?, updated_at = ${now} WHERE id = ?`, [mileage, car_id]);
   return res.redirect(`/orders/${id}`);
 }
 
@@ -1097,6 +1126,7 @@ module.exports = {
   create,
   update,
   updateNotes,
+  updateCarMileage,
   assignCar,
   changeStatus,
   show,

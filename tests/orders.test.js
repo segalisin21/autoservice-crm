@@ -499,3 +499,30 @@ test("master cannot delete order", async (t) => {
   assert.equal(del.status, 403);
   assert.equal((await ctx.db.query("SELECT id FROM orders WHERE id = ?", [orderId])).length, 1);
 });
+
+test("order mileage saves to car and appears on print", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('Mile', '+7', '79990000097')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, make, model) VALUES (?, 'Toyota', 'Camry')`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO orders(car_id, status) VALUES (?, 'in_progress')`, [carId]);
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const save = await agent.post(`/orders/${orderId}/mileage`).type("form").send({ mileage: "125500" });
+  assert.equal(save.status, 302);
+
+  const car = (await ctx.db.query("SELECT mileage FROM cars WHERE id = ?", [carId]))[0];
+  assert.equal(Number(car.mileage), 125500);
+
+  const print = await agent.get(`/orders/${orderId}/print`);
+  assert.equal(print.status, 200);
+  assert.match(print.text, /125[\s\u00a0]?500/);
+});

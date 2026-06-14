@@ -1,5 +1,54 @@
 # HANDOFF
 
+## 2026-06-14 — orders list make and model columns
+
+### What changed
+- Список заказов: отдельные колонки «Госномер», «Марка», «Модель» (данные из `cars`).
+
+### Key files
+- `controllers/orderController.js`, `views/orders/list.ejs`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
+## 2026-06-14 — optional work type on order create
+
+### What changed
+- При создании заказа тип работ необязателен (в т.ч. клиентская валидация `work-type-picker.js`).
+- При сохранении «Детали заказа» на карточке — по-прежнему обязателен.
+
+### Key files
+- `public/js/work-type-picker.js`, `views/partials/work-type-checkboxes.ejs`
+- `views/orders/form.ejs`, `views/orders/show.ejs`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
+## 2026-06-14 — order card mileage
+
+### What changed
+- На карточке заказа справа от авто — поле «Пробег, км»; сохраняется в `cars.mileage` (`POST /orders/:id/mileage`).
+- Заказ-наряд и акт приёма показывают пробег из карточки авто.
+
+### Key files
+- `controllers/orderController.js`, `routes/orders.js`, `views/orders/show.ejs`, `views/orders/print.ejs`
+- `tests/orders.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-14 — payroll excludes product-tab materials
 
 ### What changed

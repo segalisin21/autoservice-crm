@@ -49,7 +49,8 @@
         <label>Окончание <input type="time" name="end_time" value="<%= order.end_time || '' %>" /></label>
         <%- include('../partials/work-type-checkboxes', {
           workTypes: typeof workTypes !== 'undefined' ? workTypes : [],
-          selectedWorkTypes: typeof selectedWorkTypes !== 'undefined' ? selectedWorkTypes : []
+          selectedWorkTypes: typeof selectedWorkTypes !== 'undefined' ? selectedWorkTypes : [],
+          workTypeRequired: false
         }) %>
 
         <% if (!hasSelectedCar) { %>

@@ -32,6 +32,7 @@
     <div><strong>Автомобиль:</strong> <%= [order.make, order.model].filter(Boolean).join(' ') %><%= order.year ? ', ' + order.year + ' г.' : '' %></div>
     <div><strong>Госномер:</strong> <%= order.license_plate_raw || '—' %></div>
     <div><strong>VIN:</strong> <%= order.vin || '—' %></div>
+    <div><strong>Пробег:</strong> <%= order.mileage != null && order.mileage !== '' ? Number(order.mileage).toLocaleString('ru-RU') + ' км' : '—' %></div>
     <div><strong>Дата приёма:</strong> <%= (order.scheduled_date || order.opened_at || '').toString().slice(0,10) %></div>
   </div>
 

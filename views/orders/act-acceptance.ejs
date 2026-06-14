@@ -36,7 +36,7 @@
 
   <div class="block">
     <h3>Состояние при приёме</h3>
-    <div class="row"><span>Пробег, км:</span><span class="fill"></span></div>
+    <div class="row"><span>Пробег, км:</span><span class="fill"><%= order.mileage != null && order.mileage !== '' ? Number(order.mileage).toLocaleString('ru-RU') : '' %></span></div>
     <div class="row"><span>Уровень топлива:</span><span class="fill"></span></div>
     <div class="row"><span>Комплектность / ценные вещи:</span><span class="fill"></span></div>
     <div class="row"><span>Видимые повреждения:</span><span class="fill"></span></div>

@@ -16,6 +16,11 @@ router.get("/:id", requirePermission("orders:view"), orderController.show);
 router.put("/:id", requirePermission("orders:mutate"), orderController.update);
 router.delete("/:id", requirePermission("orders:mutate"), orderController.remove);
 router.post("/:id/car", requirePermission("orders:mutate"), orderController.assignCar);
+router.post(
+  "/:id/mileage",
+  requireAnyPermission("orders:mutate", "orders:annotate"),
+  orderController.updateCarMileage
+);
 router.post("/:id/notes", requirePermission("orders:annotate"), orderController.updateNotes);
 router.post("/:id/status", requirePermission("orders:mutate"), orderController.changeStatus);
 router.post("/:id/lines", requirePermission("orders:mutate"), orderController.addLine);

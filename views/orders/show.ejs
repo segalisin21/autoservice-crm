@@ -4,8 +4,24 @@
 <% if (typeof workTypeError !== 'undefined' && workTypeError) { %><div class="error" style="margin-bottom:12px;"><%= workTypeError %></div><% } %>
 <% if (typeof carError !== 'undefined' && carError) { %><div class="error" style="margin-bottom:12px;"><%= carError %></div><% } %>
 
+<% if (typeof mileageError !== 'undefined' && mileageError) { %><div class="error" style="margin-bottom:12px;">Укажите пробег целым числом км (или оставьте пустым).</div><% } %>
+
 <section class="card order-summary-card">
-  <h1 class="order-title">#<%= order.id %> · <%= [order.make, order.model].filter(Boolean).join(' ') || (order.car_id ? 'Авто' : 'Авто не указано') %></h1>
+  <div class="order-title-row">
+    <h1 class="order-title">#<%= order.id %> · <%= [order.make, order.model].filter(Boolean).join(' ') || (order.car_id ? 'Авто' : 'Авто не указано') %></h1>
+    <% if (order.car_id) { %>
+      <% if (typeof canEditMileage !== 'undefined' && canEditMileage) { %>
+      <form method="post" action="/orders/<%= order.id %>/mileage" class="order-mileage-form">
+        <label class="order-mileage-form__label">Пробег, км
+          <input class="order-mileage-form__input" name="mileage" type="number" min="0" step="1" inputmode="numeric" placeholder="—" value="<%= order.mileage != null && order.mileage !== '' ? order.mileage : '' %>" />
+        </label>
+        <button type="submit" class="btn btn-primary btn-sm" title="Сохранить пробег">✓</button>
+      </form>
+      <% } else if (order.mileage != null && order.mileage !== '') { %>
+      <span class="order-mileage-readonly muted">Пробег: <%= Number(order.mileage).toLocaleString('ru-RU') %> км</span>
+      <% } %>
+    <% } %>
+  </div>
   <% if (order.client_name) { %>
   <p class="order-subtitle"><%= order.client_name %><% if (order.client_phone) { %> · <%= order.client_phone %><% } %></p>
   <% } else if (!order.car_id) { %>
@@ -345,7 +361,7 @@
     <form method="post" action="/orders/<%= order.id %>?_method=PUT" class="order-header-form">
       <div class="order-form-grid">
         <% if (order.status !== 'completed') { %>
-        <%- include('../partials/work-type-checkboxes', { workTypes, selectedWorkTypes: typeof selectedWorkTypes !== 'undefined' ? selectedWorkTypes : [] }) %>
+        <%- include('../partials/work-type-checkboxes', { workTypes, selectedWorkTypes: typeof selectedWorkTypes !== 'undefined' ? selectedWorkTypes : [], workTypeRequired: true }) %>
         <% } else { %>
         <label>Тип работ <input value="<%= order.work_type || '—' %>" disabled /></label>
         <% } %>
