@@ -435,3 +435,67 @@ test("orders list renders data table on mobile width markup", async (t) => {
   assert.match(res.text, /class="data-table orders-table"/);
   assert.ok(!res.text.includes("order-list-card"));
 });
+
+test("admin can delete order and related lines", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const { agent, orderId, catId } = await seedOrderWithAgent(ctx);
+  await agent.post(`/orders/${orderId}/lines`).type("form").send({
+    line_type: "work",
+    catalog_item_id: String(catId),
+    quantity: "1"
+  });
+  await agent.post(`/orders/${orderId}/payments`).type("form").send({ amount: "100", method: "cash" });
+
+  const del = await agent.post(`/orders/${orderId}?_method=DELETE`);
+  assert.equal(del.status, 302);
+  assert.match(del.headers.location, /\/orders$/);
+
+  const rows = await ctx.db.query("SELECT id FROM orders WHERE id = ?", [orderId]);
+  assert.equal(rows.length, 0);
+  const lines = await ctx.db.query("SELECT id FROM order_lines WHERE order_id = ?", [orderId]);
+  assert.equal(lines.length, 0);
+  const payments = await ctx.db.query("SELECT id FROM payments WHERE order_id = ?", [orderId]);
+  assert.equal(payments.length, 0);
+});
+
+test("manager can delete order", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('T', '1', '79990000099')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id) VALUES (?)`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO orders(car_id, status) VALUES (?, 'scheduled')`, [carId]);
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "manager", "manager");
+  const del = await agent.post(`/orders/${orderId}?_method=DELETE`);
+  assert.equal(del.status, 302);
+  assert.equal((await ctx.db.query("SELECT id FROM orders WHERE id = ?", [orderId])).length, 0);
+});
+
+test("master cannot delete order", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('T', '1', '79990000098')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id) VALUES (?)`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO orders(car_id, status) VALUES (?, 'scheduled')`, [carId]);
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "master", "master");
+  const del = await agent.post(`/orders/${orderId}?_method=DELETE`);
+  assert.equal(del.status, 403);
+  assert.equal((await ctx.db.query("SELECT id FROM orders WHERE id = ?", [orderId])).length, 1);
+});

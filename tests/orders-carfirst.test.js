@@ -88,6 +88,29 @@ test("new order without car creates scheduled order", async (t) => {
   assert.ok(order);
   assert.equal(order.car_id, null);
   assert.equal(order.notes, "walk-in");
+  assert.equal(order.annotation_notes, null);
+});
+
+test("intake notes and annotation notes are stored separately", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const createRes = await agent.post("/orders").type("form").send(minimalOrderPayload(ctx, { notes: "клиент просил к вечеру" }));
+  assert.equal(createRes.status, 302);
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+
+  await ctx.loginAs(agent, "master", "master");
+  const notesRes = await agent
+    .post(`/orders/${orderId}/notes`)
+    .type("form")
+    .send({ annotation_notes: "заменили фильтр" });
+  assert.equal(notesRes.status, 302);
+
+  const order = (await ctx.db.query("SELECT notes, annotation_notes FROM orders WHERE id = ?", [orderId]))[0];
+  assert.equal(order.notes, "клиент просил к вечеру");
+  assert.equal(order.annotation_notes, "заменили фильтр");
 });
 
 test("new order requires date, start time, and employee", async (t) => {

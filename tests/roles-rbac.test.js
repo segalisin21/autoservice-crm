@@ -35,10 +35,11 @@ test("master: calendar ok, orders list redirects, annotate notes, no line mutate
   assert.equal(showRes.status, 200);
   assert.match(showRes.text, /Комментарий и фото/);
 
-  const notesRes = await agent.post(`/orders/${orderId}/notes`).type("form").send({ notes: "master note" });
+  const notesRes = await agent.post(`/orders/${orderId}/notes`).type("form").send({ annotation_notes: "master note" });
   assert.equal(notesRes.status, 302);
-  const order = (await ctx.db.query("SELECT notes FROM orders WHERE id = ?", [orderId]))[0];
-  assert.equal(order.notes, "master note");
+  const order = (await ctx.db.query("SELECT notes, annotation_notes FROM orders WHERE id = ?", [orderId]))[0];
+  assert.equal(order.notes, "old note");
+  assert.equal(order.annotation_notes, "master note");
 
   const lineRes = await agent.post(`/orders/${orderId}/lines`).type("form").send({
     line_type: "work",

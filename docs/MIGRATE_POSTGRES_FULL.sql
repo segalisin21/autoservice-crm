@@ -1,5 +1,5 @@
 -- =============================================================================
--- AUTOSERVICE CRM — полная миграция PostgreSQL (001_init.sql … 018_search_lc.sql)
+-- AUTOSERVICE CRM — полная миграция PostgreSQL (001_init.sql … 021_orders_annotation_notes.sql)
 -- =============================================================================
 -- Назначение: развернуть схему на пустой БД (Railway, VPS, локальный Postgres).
 --
@@ -37,6 +37,9 @@
 --   016_staff_absences.sql
 --   017_work_type_widen.sql
 --   018_search_lc.sql
+--   019_manager_role.sql
+--   020_orders_car_nullable.sql
+--   021_orders_annotation_notes.sql
 -- =============================================================================
 
 
@@ -465,6 +468,15 @@ ALTER TABLE order_lines ADD COLUMN IF NOT EXISTS name_lc VARCHAR(200);
 CREATE INDEX IF NOT EXISTS idx_clients_full_name_lc ON clients(full_name_lc);
 CREATE INDEX IF NOT EXISTS idx_catalog_name_lc ON catalog_items(name_lc);
 
+-- ---------- 019_manager_role.sql ----------
+-- Role manager + permission orders:annotate seeded via config/permissions.js on login
+
+-- ---------- 020_orders_car_nullable.sql ----------
+ALTER TABLE orders ALTER COLUMN car_id DROP NOT NULL;
+
+-- ---------- 021_orders_annotation_notes.sql ----------
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS annotation_notes TEXT;
+
 -- ---------- migrations registry (после ручного прогона) ----------
 CREATE TABLE IF NOT EXISTS migrations (
   id TEXT PRIMARY KEY,
@@ -488,3 +500,6 @@ INSERT INTO migrations(id) VALUES ('015_catalog_material_cost.sql') ON CONFLICT 
 INSERT INTO migrations(id) VALUES ('016_staff_absences.sql') ON CONFLICT (id) DO NOTHING;
 INSERT INTO migrations(id) VALUES ('017_work_type_widen.sql') ON CONFLICT (id) DO NOTHING;
 INSERT INTO migrations(id) VALUES ('018_search_lc.sql') ON CONFLICT (id) DO NOTHING;
+INSERT INTO migrations(id) VALUES ('019_manager_role.sql') ON CONFLICT (id) DO NOTHING;
+INSERT INTO migrations(id) VALUES ('020_orders_car_nullable.sql') ON CONFLICT (id) DO NOTHING;
+INSERT INTO migrations(id) VALUES ('021_orders_annotation_notes.sql') ON CONFLICT (id) DO NOTHING;

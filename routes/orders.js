@@ -14,6 +14,7 @@ router.get("/:id/act-acceptance", requirePermission("orders:view"), orderControl
 router.get("/:id/act-completion", requirePermission("orders:view"), orderController.actCompletion);
 router.get("/:id", requirePermission("orders:view"), orderController.show);
 router.put("/:id", requirePermission("orders:mutate"), orderController.update);
+router.delete("/:id", requirePermission("orders:mutate"), orderController.remove);
 router.post("/:id/car", requirePermission("orders:mutate"), orderController.assignCar);
 router.post("/:id/notes", requirePermission("orders:annotate"), orderController.updateNotes);
 router.post("/:id/status", requirePermission("orders:mutate"), orderController.changeStatus);

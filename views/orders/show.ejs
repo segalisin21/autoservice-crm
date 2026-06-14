@@ -12,6 +12,9 @@
   <p class="order-subtitle muted">Клиент и авто будут указаны при приёмке</p>
   <% } %>
   <% if (order.license_plate_raw) { %><p class="muted"><%= order.license_plate_raw %></p><% } %>
+  <% if (order.notes) { %>
+  <p class="order-intake-note"><span class="muted">При записи:</span> <%= order.notes %></p>
+  <% } %>
 
   <% if (typeof due_amount !== 'undefined' && due_amount > 0 && order.status !== 'cancelled' && !(typeof isMasterView !== 'undefined' && isMasterView)) { %>
   <div class="order-due-alert" role="status">
@@ -63,6 +66,11 @@
         <a class="print-menu__item" role="menuitem" href="/orders/<%= order.id %>/act-completion" target="_blank" rel="noopener">Акт выполненных работ</a>
       </div>
     </details>
+    <% if (typeof can !== 'undefined' && can('orders:mutate')) { %>
+    <form method="post" action="/orders/<%= order.id %>?_method=DELETE" class="order-delete-form" onsubmit="return confirm('Удалить заказ #<%= order.id %> безвозвратно?');">
+      <button type="submit" class="btn btn-sm btn-delete">Удалить заказ</button>
+    </form>
+    <% } %>
   </div>
 </section>
 
@@ -257,8 +265,8 @@
   <summary class="order-accordion-summary">Комментарий и фото</summary>
   <div class="order-accordion-body">
     <form method="post" action="/orders/<%= order.id %>/notes" class="order-master-notes-form">
-      <label>Комментарий к заказу
-        <textarea name="notes" rows="3"><%= order.notes || '' %></textarea>
+      <label>Комментарий по работе
+        <textarea name="annotation_notes" rows="3" placeholder="Заметки мастера, дефекты, что сделано…"><%= order.annotation_notes || '' %></textarea>
       </label>
       <button type="submit" class="btn btn-primary btn-sm">Сохранить комментарий</button>
     </form>
@@ -281,6 +289,9 @@
 <details class="order-accordion card">
   <summary class="order-accordion-summary">Фото</summary>
   <div class="order-accordion-body">
+    <% if (order.annotation_notes) { %>
+    <p class="order-annotation-note" style="white-space:pre-line;"><%= order.annotation_notes %></p>
+    <% } %>
     <% if (photos && photos.length) { %>
     <div class="order-photos-grid">
       <% photos.forEach(p => { %>
@@ -356,7 +367,7 @@
         </label>
         <label>Значение <input name="discount_value" value="<%= order.discount_value %>" /></label>
       </div>
-      <label>Комментарий <textarea name="notes" rows="2"><%= order.notes || '' %></textarea></label>
+      <label>Комментарий при записи <textarea name="notes" rows="2" placeholder="Что сказал клиент при записи"><%= order.notes || '' %></textarea></label>
       <% if (order.status !== 'completed') { %>
         <button type="submit" class="btn-secondary">Сохранить детали</button>
       <% } %>

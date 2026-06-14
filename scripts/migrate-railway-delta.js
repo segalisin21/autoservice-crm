@@ -1,7 +1,9 @@
 /**
- * Дельта-миграция для Railway Postgres: 016–018 + backfill *_lc.
+ * Дельта-миграция для Railway Postgres: все неприменённые migrations/postgres/*.sql + backfill *_lc.
  * Запуск на Railway (Shell) или локально с DATABASE_URL:
  *   npm run migrate:railway-delta
+ *
+ * Ручной SQL только для 021: docs/MIGRATE_POSTGRES_RAILWAY_021.sql
  */
 const { getDB } = require("../config/database");
 const { applyMigrations } = require("../config/migrations");

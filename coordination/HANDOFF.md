@@ -1,5 +1,57 @@
 # HANDOFF
 
+## 2026-06-14 — payroll excludes product-tab materials
+
+### What changed
+- ЗП (`net_percent`): из базы вычитается только `cost_price` на **строке работы** (расходник из прайса).
+- Товары во вкладке «Товары» и привязанные `expenses.materials` влияют на P&L, но **не уменьшают** начисление мастеру.
+
+### Key files
+- `lib/payroll.js`, `controllers/orderController.js`, `tests/payroll-net.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
+## 2026-06-14 — separate order comments
+
+### What changed
+- `orders.notes` — комментарий при записи (форма создания, блок «Детали заказа»); показывается в шапке карточки.
+- `orders.annotation_notes` — комментарий мастера в блоке «Комментарий и фото»; поля не пересекаются.
+
+### Key files
+- `migrations/021_orders_annotation_notes.sql`, `controllers/orderController.js`
+- `views/orders/form.ejs`, `views/orders/show.ejs`
+- `tests/roles-rbac.test.js`, `tests/orders-carfirst.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
+## 2026-06-14 — delete order
+
+### What changed
+- `DELETE /orders/:id` (`orders:mutate`): удаление заказа с каскадом строк/оплат и очисткой файлов фото.
+- Кнопка «Удалить заказ» на карточке и в списке (менеджер/admin/owner); мастер — 403.
+
+### Key files
+- `controllers/orderController.js`, `routes/orders.js`
+- `views/orders/show.ejs`, `views/orders/list.ejs`
+- `tests/orders.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-14 — order consumables from catalog
 
 ### What changed

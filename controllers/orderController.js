@@ -8,8 +8,7 @@ const {
   freezeOrderEarned,
   computeEarnedForLine,
   resolveCompRule,
-  getSharedMaterialsCost,
-  allocateMaterialsToLine
+  payrollMaterialsForWorkLine
 } = require("../lib/payroll");
 const { loadPayrollSettings } = require("../lib/settings");
 const {
@@ -564,10 +563,8 @@ async function show(req, res) {
 
   if (isMasterView && req.session.user?.id) {
     const fallback = await loadPayrollSettings(db);
-    const sharedMaterials = await getSharedMaterialsCost(db, Number(req.params.id));
-    const worksTotal = works.reduce((s, l) => s + (Number(l.total) || 0), 0);
     for (const line of works) {
-      const allocatedMaterials = allocateMaterialsToLine(line, sharedMaterials, worksTotal);
+      const lineMaterials = payrollMaterialsForWorkLine(line);
       const rule = await resolveCompRule(
         db,
         line.master_id,
@@ -575,7 +572,7 @@ async function show(req, res) {
         new Date().toISOString().slice(0, 10),
         fallback
       );
-      line.payroll_estimate = computeEarnedForLine(line, rule, { allocatedMaterials }).earned;
+      line.payroll_estimate = computeEarnedForLine(line, rule, { allocatedMaterials: lineMaterials }).earned;
     }
   }
 
@@ -705,9 +702,12 @@ async function updateNotes(req, res) {
   const rows = await db.query("SELECT id FROM orders WHERE id = ?", [id]);
   if (!rows.length) return res.status(404).send("Not found");
 
-  const notes = String(req.body.notes ?? "").trim() || null;
+  const annotation_notes = String(req.body.annotation_notes ?? "").trim() || null;
   const now = sqlNow(db.dialect);
-  await db.query(`UPDATE orders SET notes = ?, updated_at = ${now} WHERE id = ?`, [notes, id]);
+  await db.query(`UPDATE orders SET annotation_notes = ?, updated_at = ${now} WHERE id = ?`, [
+    annotation_notes,
+    id
+  ]);
   return res.redirect(`/orders/${id}`);
 }
 
@@ -1052,6 +1052,25 @@ async function servePhoto(req, res) {
   return res.sendFile(abs);
 }
 
+async function remove(req, res) {
+  const id = Number(req.params.id);
+  const db = await getDB();
+  const rows = await db.query("SELECT id FROM orders WHERE id = ?", [id]);
+  if (!rows.length) return res.status(404).send("Not found");
+
+  const photos = await db.query("SELECT file_path FROM order_photos WHERE order_id = ?", [id]);
+  for (const p of photos) {
+    const abs = absolutePathFor(p.file_path);
+    try {
+      fs.unlinkSync(abs);
+    } catch {
+      // ignore missing file
+    }
+  }
+  await db.query("DELETE FROM orders WHERE id = ?", [id]);
+  return res.redirect("/orders");
+}
+
 async function deletePhoto(req, res) {
   const orderId = Number(req.params.id);
   const photoId = Number(req.params.photoId);
@@ -1090,5 +1109,6 @@ module.exports = {
   actCompletion,
   uploadPhotos,
   servePhoto,
-  deletePhoto
+  deletePhoto,
+  remove
 };
