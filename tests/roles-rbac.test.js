@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const request = require("supertest");
 
 const { createTestApp } = require("./helpers/testApp");
+const { minimalOrderPayload } = require("./helpers/orderCreate");
 
 async function seedOrder(ctx) {
   await ctx.db.query(
@@ -129,7 +130,7 @@ test("manager: clients and orders mutate, no journal or finance", async (t) => {
   await ctx.db.query(`INSERT INTO cars(client_id) VALUES (?)`, [clientId]);
   const carId = (await ctx.db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1"))[0].id;
 
-  const createRes = await agent.post("/orders").type("form").send({ car_id: String(carId), notes: "mgr" });
+  const createRes = await agent.post("/orders").type("form").send(minimalOrderPayload(ctx, { car_id: String(carId), notes: "mgr" }));
   assert.equal(createRes.status, 302);
 
   const catId = (await ctx.db.query("SELECT id FROM catalog_items LIMIT 1"))[0].id;

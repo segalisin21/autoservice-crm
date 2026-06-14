@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const request = require("supertest");
 
 const { createTestApp } = require("./helpers/testApp");
+const { minimalOrderPayload } = require("./helpers/orderCreate");
 const { recomputeOrderTotals } = require("../lib/orderTotals");
 
 test("create order, add work line, totals recalculated", async (t) => {
@@ -25,7 +26,7 @@ test("create order, add work line, totals recalculated", async (t) => {
   const agent = request.agent(ctx.app);
   await ctx.loginAs(agent, "admin", "admin");
 
-  const createOrder = await agent.post("/orders").type("form").send({ car_id: String(carId), notes: "" });
+  const createOrder = await agent.post("/orders").type("form").send(minimalOrderPayload(ctx, { car_id: String(carId), notes: "" }));
   assert.equal(createOrder.status, 302);
   const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
 
@@ -139,7 +140,7 @@ async function seedOrderWithAgent(ctx) {
   const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
   const agent = request.agent(ctx.app);
   await ctx.loginAs(agent, "admin", "admin");
-  await agent.post("/orders").type("form").send({ car_id: String(carId), notes: "" });
+  await agent.post("/orders").type("form").send(minimalOrderPayload(ctx, { car_id: String(carId), notes: "" }));
   const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
   const catId = (await ctx.db.query("SELECT id FROM catalog_items LIMIT 1"))[0].id;
   return { agent, orderId, catId };

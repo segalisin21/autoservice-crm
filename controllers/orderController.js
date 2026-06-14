@@ -300,6 +300,30 @@ async function findCarsByPlate(db, plateRaw) {
   );
 }
 
+async function findCarByExactPlate(db, normalizedPlate) {
+  if (!normalizedPlate) return null;
+  const rows = await db.query(
+    `SELECT id FROM cars WHERE license_plate_normalized = ? ORDER BY id DESC LIMIT 1`,
+    [normalizedPlate]
+  );
+  return rows[0]?.id || null;
+}
+
+async function loadSelectedCar(db, carId) {
+  if (!carId) return null;
+  const rows = await db.query(
+    `
+    SELECT c.id, c.make, c.model, c.year, c.license_plate_raw,
+           cl.full_name AS client_name, cl.phone_raw AS client_phone
+    FROM cars c
+    JOIN clients cl ON cl.id = c.client_id
+    WHERE c.id = ?
+  `,
+    [carId]
+  );
+  return rows[0] || null;
+}
+
 async function showNew(req, res) {
   const db = await getDB();
   const today = new Date().toISOString().slice(0, 10);
@@ -318,12 +342,12 @@ async function showNew(req, res) {
     if (plateMatches.length === 1 && !req.query.car_id) selectedCarId = String(plateMatches[0].id);
   }
 
+  const selectedCar = selectedCarId ? await loadSelectedCar(db, Number(selectedCarId)) : null;
   const cars = await loadCarsForSelect(db);
   res.render("orders/form", {
     order: {
       car_id: selectedCarId,
       status: "scheduled",
-      work_type: "Электрика",
       scheduled_date: req.query.scheduled_date || today,
       assigned_user_id: req.query.assigned_user_id || "",
       start_time: req.query.start_time || "",
@@ -334,8 +358,9 @@ async function showNew(req, res) {
     masters,
     plateQuery,
     plateMatches,
+    selectedCar,
     workTypes: WORK_TYPES,
-    selectedWorkTypes: ["Электрика"],
+    selectedWorkTypes: [],
     error: null,
     user: req.session.user,
     category: "orders"
@@ -348,6 +373,7 @@ async function resolveOrCreateCar(db, body) {
 
   const plate = normalizePlateStrict(body.new_plate);
   if (plate.error) return { error: plate.error };
+
   const make = String(body.new_make ?? "").trim() || null;
   const model = String(body.new_model ?? "").trim() || null;
   const body_type = String(body.new_body_type ?? "").trim() || null;
@@ -358,15 +384,28 @@ async function resolveOrCreateCar(db, body) {
   const ownerName = String(body.new_owner_name ?? "").trim();
   const { phone_raw, phone_normalized } = normalizePhone(body.new_owner_phone);
 
-  const hasCarData = plate.license_plate_normalized || make || model;
+  const hasPlate = !!plate.license_plate_normalized;
+  const hasCarData = hasPlate || make || model;
   if (!hasCarData) return null;
-  if (!ownerName || phone_normalized.length < 10) {
-    return { error: "Для нового авто укажите ФИО владельца и телефон" };
+
+  if (hasPlate) {
+    const existingCarId = await findCarByExactPlate(db, plate.license_plate_normalized);
+    if (existingCarId) return existingCarId;
   }
+
+  const hasOwnerName = !!ownerName;
+  const hasValidPhone = phone_normalized.length >= 10;
+  if (hasOwnerName !== hasValidPhone) {
+    return { error: "Для нового владельца укажите и ФИО, и телефон" };
+  }
+
+  const clientName = ownerName || "Уточнить при приёмке";
+  const clientPhoneRaw = hasValidPhone ? phone_raw : "70000000000";
+  const clientPhoneNorm = hasValidPhone ? phone_normalized : "70000000000";
 
   const clientId = await db.insertReturning(
     `INSERT INTO clients(full_name, full_name_lc, phone_raw, phone_normalized) VALUES (?, ?, ?, ?)`,
-    [ownerName, foldSearchCase(ownerName), phone_raw, phone_normalized]
+    [clientName, foldSearchCase(clientName), clientPhoneRaw, clientPhoneNorm]
   );
 
   const carId = await db.insertReturning(
@@ -381,8 +420,8 @@ async function resolveOrCreateCar(db, body) {
       make ? foldSearchCase(make) : null,
       model ? foldSearchCase(model) : null,
       vin,
-      plate.license_plate_raw,
-      plate.license_plate_normalized,
+      plate.license_plate_raw || null,
+      plate.license_plate_normalized || null,
       year,
       body_type,
       Number.isFinite(vehicle_model_id) ? vehicle_model_id : null
@@ -392,9 +431,9 @@ async function resolveOrCreateCar(db, body) {
 }
 
 async function create(req, res) {
-  const work_type = normalizeWorkTypesFromBody(req.body) || "Электрика";
+  const work_type = normalizeWorkTypesFromBody(req.body) || null;
   const notes = String(req.body.notes ?? "").trim() || null;
-  const scheduled_date = String(req.body.scheduled_date ?? "").slice(0, 10) || new Date().toISOString().slice(0, 10);
+  const scheduled_date = String(req.body.scheduled_date ?? "").slice(0, 10);
   const assigned_user_id = normalizeUserId(req.body.assigned_user_id);
   const start_time = normalizeTime(req.body.start_time);
   const end_time = normalizeTime(req.body.end_time);
@@ -405,17 +444,21 @@ async function create(req, res) {
     const cars = await loadCarsForSelect(db);
     const masters = await loadMastersForSchedule(
       db,
-      scheduled_date,
+      scheduled_date || new Date().toISOString().slice(0, 10),
       start_time,
       end_time,
       assigned_user_id
     );
+    const carId = Number(req.body.car_id);
+    const selectedCar =
+      Number.isFinite(carId) && carId > 0 ? await loadSelectedCar(db, carId) : null;
     return res.status(400).render("orders/form", {
       order: req.body,
       cars,
       masters,
-      plateQuery: "",
+      plateQuery: String(req.body.new_plate ?? "").trim(),
       plateMatches: [],
+      selectedCar,
       workTypes: WORK_TYPES,
       selectedWorkTypes: parseWorkTypes(req.body.work_type),
       error,
@@ -424,13 +467,23 @@ async function create(req, res) {
     });
   }
 
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(scheduled_date)) {
+    return renderError("Укажите дату");
+  }
+  if (!start_time) {
+    return renderError("Укажите время начала");
+  }
+  if (!assigned_user_id) {
+    return renderError("Выберите сотрудника");
+  }
+
   const resolved = await resolveOrCreateCar(db, req.body);
   if (resolved && typeof resolved === "object" && resolved.error) {
     return renderError(resolved.error);
   }
   const car_id = Number(resolved);
   if (!Number.isFinite(car_id) || car_id <= 0) {
-    return renderError("Выберите автомобиль или заполните данные нового авто и владельца");
+    return renderError("Укажите госномер или выберите автомобиль из базы");
   }
 
   const absenceErr = await validateCanAssign(db, assigned_user_id, scheduled_date, start_time, end_time);

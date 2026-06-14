@@ -1,5 +1,24 @@
 # HANDOFF
 
+## 2026-06-14 — minimal new order form
+
+### What changed
+- `/orders/new`: обязательны дата, время начала, сотрудник и идентификатор авто (поиск по госномеру или выбор из базы).
+- Комментарий и прочие поля (окончание, тип работ, марка/владелец) — опционально, в блоке «Дополнительно (заполнить при приёмке)».
+- Новый авто по одному госномеру: stub-клиент «Уточнить при приёмке» без обязательного ФИО/телефона.
+- `work_type` при создании может быть пустым; при редактировании заказа — по-прежнему обязателен.
+
+### Key files
+- `views/orders/form.ejs`, `controllers/orderController.js`
+- `tests/orders-carfirst.test.js`, `tests/helpers/orderCreate.js`, `tests/orders.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-14 — hide order money for staff
 
 ### What changed

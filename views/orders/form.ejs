@@ -1,9 +1,24 @@
+<%
+  function newOrderCarLink(carId) {
+    const q = new URLSearchParams();
+    q.set('car_id', String(carId));
+    if (order.scheduled_date) q.set('scheduled_date', order.scheduled_date);
+    if (order.start_time) q.set('start_time', order.start_time);
+    if (order.assigned_user_id) q.set('assigned_user_id', order.assigned_user_id);
+    if (typeof plateQuery !== 'undefined' && plateQuery) q.set('plate', plateQuery);
+    return '/orders/new?' + q.toString();
+  }
+  const hasSelectedCar = !!(order.car_id && (typeof selectedCar !== 'undefined' && selectedCar));
+%>
 <%- include('../partials/layout-top', { title: 'Новый заказ', user, category: 'orders' }) %>
 
 <section class="card plate-search-card">
   <h2 class="card-title-sm">Поиск по госномеру</h2>
-  <p class="muted" style="margin-top:0;">Введите номер — если авто уже в базе, выберите его. Иначе создайте клиента и авто ниже.</p>
+  <p class="muted" style="margin-top:0;">Введите номер — если авто уже в базе, выберите его. Иначе укажите номер в форме ниже.</p>
   <form method="get" action="/orders/new" class="plate-search-form form-inline">
+    <input type="hidden" name="scheduled_date" value="<%= order.scheduled_date || '' %>" />
+    <input type="hidden" name="start_time" value="<%= order.start_time || '' %>" />
+    <input type="hidden" name="assigned_user_id" value="<%= order.assigned_user_id || '' %>" />
     <input name="plate" class="plate-search-input grow-field" data-plate-input value="<%= typeof plateQuery !== 'undefined' ? plateQuery : '' %>" placeholder="А123ВС777" autocomplete="off" autofocus inputmode="text" />
     <button type="submit" class="btn btn-primary">Найти</button>
   </form>
@@ -11,7 +26,7 @@
   <% if (typeof plateMatches !== 'undefined' && plateMatches && plateMatches.length) { %>
     <div class="plate-results">
       <% plateMatches.forEach(m => { %>
-        <a href="/orders/new?car_id=<%= m.id %>" class="plate-result-card">
+        <a href="<%= newOrderCarLink(m.id) %>" class="plate-result-card">
           <div class="prc-plate"><%= m.license_plate_raw || '—' %></div>
           <div class="prc-car"><%= [m.make, m.model, m.year].filter(Boolean).join(' ') %></div>
           <div class="prc-owner muted"><%= m.client_name %> · <%= m.client_phone %></div>
@@ -20,7 +35,7 @@
       <% }) %>
     </div>
   <% } else if (typeof plateQuery !== 'undefined' && plateQuery) { %>
-    <p class="plate-not-found">Не найдено. Заполните блок «Новый авто + владелец» — госномер подставится из поиска.</p>
+    <p class="plate-not-found">Не найдено. Укажите госномер в форме ниже — остальное можно заполнить при приёмке.</p>
   <% } %>
 </section>
 
@@ -31,58 +46,70 @@
       <label>Дата
         <input type="date" name="scheduled_date" value="<%= order.scheduled_date || '' %>" required />
       </label>
+      <label>Начало
+        <input type="time" name="start_time" value="<%= order.start_time || '' %>" required />
+      </label>
       <label>Сотрудник
-        <select name="assigned_user_id">
-          <option value="">— не назначен —</option>
+        <select name="assigned_user_id" required>
+          <option value="" disabled <%= !order.assigned_user_id ? 'selected' : '' %>>Выберите…</option>
           <% (masters || []).forEach(m => { %>
             <option value="<%= m.id %>" <%= String(order.assigned_user_id) === String(m.id) ? 'selected' : '' %><%= m.absent ? ' disabled' : '' %>><%= m.name %><% if (m.absent) { %> (отсутствует)<% } %></option>
           <% }) %>
         </select>
       </label>
-      <label>Начало <input type="time" name="start_time" value="<%= order.start_time || '' %>" /></label>
-      <label>Окончание <input type="time" name="end_time" value="<%= order.end_time || '' %>" /></label>
     </div>
-    <input type="hidden" name="work_type" value="Электрика" />
 
-    <% if (typeof plateMatches !== 'undefined' && plateMatches && plateMatches.length && order.car_id) { %>
-      <% const selected = plateMatches.find(m => String(m.id) === String(order.car_id)); %>
-      <% if (selected) { %>
-        <div class="selected-car-banner">
-          <strong><%= selected.license_plate_raw %></strong> — <%= [selected.make, selected.model].filter(Boolean).join(' ') %>
-          · <%= selected.client_name %>
-        </div>
-        <input type="hidden" name="car_id" value="<%= order.car_id %>" />
-      <% } %>
-    <% } else { %>
-    <label>Автомобиль из базы
-      <select name="car_id">
-        <option value="">— новый авто (заполните ниже) —</option>
-        <% cars.forEach(c => { %>
-          <option value="<%= c.id %>" <%= String(order.car_id) === String(c.id) ? 'selected' : '' %>>
-            <%= c.license_plate_raw || 'б/н' %> — <%= [c.make, c.model].filter(Boolean).join(' ') %> · <%= c.full_name %>
-          </option>
-        <% }) %>
-      </select>
-    </label>
+    <% if (hasSelectedCar) { %>
+      <div class="selected-car-banner">
+        <strong><%= selectedCar.license_plate_raw || '—' %></strong> — <%= [selectedCar.make, selectedCar.model].filter(Boolean).join(' ') || 'Авто' %>
+        · <%= selectedCar.client_name %>
+      </div>
+      <input type="hidden" name="car_id" value="<%= order.car_id %>" />
+    <% } else if (typeof plateQuery !== 'undefined' && plateQuery && !order.car_id) { %>
+      <input type="hidden" name="new_plate" value="<%= order.new_plate || plateQuery || '' %>" />
+      <p class="muted" style="margin:8px 0 0;">Госномер: <strong><%= order.new_plate || plateQuery %></strong></p>
     <% } %>
 
-    <details class="order-accordion-inline" <%= (typeof plateQuery !== 'undefined' && plateQuery && !(plateMatches && plateMatches.length)) ? 'open' : '' %>>
-      <summary>Новый авто и владелец</summary>
-      <div class="order-form-grid" style="margin-top:8px;">
-        <input type="hidden" name="vehicle_model_id" value="<%= order.vehicle_model_id || '' %>" />
-        <label>Госномер <input name="new_plate" class="plate-search-input" data-plate-input value="<%= order.new_plate || plateQuery || '' %>" placeholder="А123ВС777" /></label>
-        <label>Марка <input name="new_make" data-ac-mark value="<%= order.new_make || '' %>" autocomplete="off" /></label>
-        <label>Модель <input name="new_model" data-ac-model value="<%= order.new_model || '' %>" autocomplete="off" /></label>
-        <label>Кузов <input name="new_body_type" data-ac-body value="<%= order.new_body_type || '' %>" placeholder="Седан, SUV…" /></label>
-        <label>Год <input name="new_year" data-ac-year value="<%= order.new_year || '' %>" inputmode="numeric" /></label>
-        <label>VIN <input name="new_vin" value="<%= order.new_vin || '' %>" /></label>
-        <label>ФИО владельца <input name="new_owner_name" value="<%= order.new_owner_name || '' %>" /></label>
-        <label>Телефон <input name="new_owner_phone" value="<%= order.new_owner_phone || '' %>" inputmode="tel" placeholder="+7…" /></label>
+    <label>Комментарий <textarea name="notes" rows="2" placeholder="Необязательно"><%= order.notes || '' %></textarea></label>
+
+    <details class="order-accordion-inline" <%= !hasSelectedCar ? 'open' : '' %>>
+      <summary>Дополнительно (заполнить при приёмке)</summary>
+      <div style="margin-top:8px;">
+        <label>Окончание <input type="time" name="end_time" value="<%= order.end_time || '' %>" /></label>
+        <%- include('../partials/work-type-checkboxes', {
+          workTypes: typeof workTypes !== 'undefined' ? workTypes : [],
+          selectedWorkTypes: typeof selectedWorkTypes !== 'undefined' ? selectedWorkTypes : []
+        }) %>
+
+        <% if (!hasSelectedCar) { %>
+        <label style="display:block;margin-top:12px;">Автомобиль из базы
+          <select name="car_id">
+            <option value="">— новый авто по госномеру —</option>
+            <% cars.forEach(c => { %>
+              <option value="<%= c.id %>" <%= String(order.car_id) === String(c.id) ? 'selected' : '' %>>
+                <%= c.license_plate_raw || 'б/н' %> — <%= [c.make, c.model].filter(Boolean).join(' ') %> · <%= c.full_name %>
+              </option>
+            <% }) %>
+          </select>
+        </label>
+        <div class="order-form-grid" style="margin-top:8px;">
+          <input type="hidden" name="vehicle_model_id" value="<%= order.vehicle_model_id || '' %>" />
+          <% if (!(typeof plateQuery !== 'undefined' && plateQuery && !order.car_id)) { %>
+          <label>Госномер <input name="new_plate" class="plate-search-input" data-plate-input value="<%= order.new_plate || plateQuery || '' %>" placeholder="А123ВС777" /></label>
+          <% } %>
+          <label>Марка <input name="new_make" data-ac-mark value="<%= order.new_make || '' %>" autocomplete="off" /></label>
+          <label>Модель <input name="new_model" data-ac-model value="<%= order.new_model || '' %>" autocomplete="off" /></label>
+          <label>Кузов <input name="new_body_type" data-ac-body value="<%= order.new_body_type || '' %>" placeholder="Седан, SUV…" /></label>
+          <label>Год <input name="new_year" data-ac-year value="<%= order.new_year || '' %>" inputmode="numeric" /></label>
+          <label>VIN <input name="new_vin" value="<%= order.new_vin || '' %>" /></label>
+          <label>ФИО владельца <input name="new_owner_name" value="<%= order.new_owner_name || '' %>" /></label>
+          <label>Телефон <input name="new_owner_phone" value="<%= order.new_owner_phone || '' %>" inputmode="tel" placeholder="+7…" /></label>
+        </div>
+        <% } %>
       </div>
     </details>
 
-    <label>Комментарий <textarea name="notes" rows="2"><%= order.notes || '' %></textarea></label>
-    <button type="submit" class="btn btn-primary">Создать заказ</button>
+    <button type="submit" class="btn btn-primary" style="margin-top:12px;">Создать заказ</button>
   </form>
 </section>
-<%- include('../partials/layout-bottom', { extraScripts: ['/js/vehicle-autocomplete.js'] }) %>
+<%- include('../partials/layout-bottom', { extraScripts: ['/js/vehicle-autocomplete.js', '/js/work-type-picker.js'] }) %>
