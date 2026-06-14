@@ -623,10 +623,11 @@ async function update(req, res) {
   }
 
   const previousStatus = rows[0].status;
-  const work_type = normalizeWorkTypesFromBody(req.body);
-  if (!work_type) {
+  const bodyWorkType = normalizeWorkTypesFromBody(req.body);
+  if (rows[0].work_type && !bodyWorkType) {
     return res.redirect(`/orders/${id}?work_type_error=1`);
   }
+  const work_type = bodyWorkType || rows[0].work_type || null;
   const discount_type = String(req.body.discount_type ?? "none");
   const discount_value = parseMoney(req.body.discount_value);
   const discount_scope = String(req.body.discount_scope ?? "order_total");

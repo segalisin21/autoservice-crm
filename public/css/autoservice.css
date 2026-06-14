@@ -822,6 +822,16 @@
   white-space: nowrap;
 }
 
+.order-schedule-strip {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+}
+
+.order-schedule-missing {
+  color: var(--danger, #dc2626);
+  font-weight: 500;
+}
+
 .order-title {
   margin: 0;
   font-size: 1.15rem;

@@ -526,3 +526,40 @@ test("order mileage saves to car and appears on print", async (t) => {
   assert.equal(print.status, 200);
   assert.match(print.text, /125[\s\u00a0]?500/);
 });
+
+test("order card update sets start and end time without work type", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('Sched', '+7', '79990000098')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, make) VALUES (?, 'Kia')`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, scheduled_date, work_type) VALUES (?, 'scheduled', '2026-06-20', NULL)`,
+    [carId]
+  );
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const res = await agent.put(`/orders/${orderId}`).type("form").send({
+    scheduled_date: "2026-06-20",
+    start_time: "11:30",
+    end_time: "13:00",
+    assigned_user_id: String(ctx.users.master.id),
+    discount_type: "none",
+    discount_value: "0",
+    work_type: "",
+    notes: ""
+  });
+  assert.equal(res.status, 302);
+  assert.doesNotMatch(res.headers.location, /work_type_error=1/);
+
+  const order = (await ctx.db.query("SELECT start_time, end_time FROM orders WHERE id = ?", [orderId]))[0];
+  assert.equal(order.start_time, "11:30");
+  assert.equal(order.end_time, "13:00");
+});
