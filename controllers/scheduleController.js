@@ -1,5 +1,5 @@
 const { getDB } = require("../config/database");
-const { loadStaff } = require("../lib/calendarData");
+const { loadScheduleMasters } = require("../lib/calendarData");
 const {
   normalizeTime,
   canManageAbsenceForUser,
@@ -47,7 +47,7 @@ async function createAbsence(req, res) {
     return res.status(403).send("Forbidden");
   }
 
-  const staff = await loadStaff(db);
+  const staff = await loadScheduleMasters(db);
   if (!staff.some((s) => Number(s.id) === Number(user_id))) {
     return res.status(400).send("Недопустимый сотрудник");
   }
@@ -89,4 +89,31 @@ async function deleteAbsence(req, res) {
   return res.redirect(`/?mode=day&date=${redirectDate}`);
 }
 
-module.exports = { listAbsences, createAbsence, deleteAbsence };
+async function reorderColumns(req, res) {
+  const db = await getDB();
+  const user_id = Number(req.body.user_id);
+  const direction = String(req.body.direction || "").toLowerCase();
+  const date = parseDateParam(req.body.date || req.query.date);
+
+  if (!user_id || !["left", "right"].includes(direction)) {
+    return res.status(400).send("Bad request");
+  }
+
+  const masters = await loadScheduleMasters(db);
+  const idx = masters.findIndex((m) => Number(m.id) === user_id);
+  if (idx < 0) return res.status(404).send("Not found");
+
+  const swapIdx = direction === "left" ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= masters.length) {
+    return res.redirect(`/?mode=day&date=${date}`);
+  }
+
+  const current = masters[idx];
+  const neighbor = masters[swapIdx];
+  await db.query("UPDATE users SET schedule_order = ? WHERE id = ?", [neighbor.schedule_order, current.id]);
+  await db.query("UPDATE users SET schedule_order = ? WHERE id = ?", [current.schedule_order, neighbor.id]);
+
+  return res.redirect(`/?mode=day&date=${date}`);
+}
+
+module.exports = { listAbsences, createAbsence, deleteAbsence, reorderColumns };

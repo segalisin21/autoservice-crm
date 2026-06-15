@@ -681,6 +681,59 @@ async function update(req, res) {
   return res.redirect(`/orders/${id}`);
 }
 
+async function patchSchedule(req, res) {
+  const id = Number(req.params.id);
+  const db = await getDB();
+  const rows = await db.query(
+    "SELECT id, status, scheduled_date, start_time, end_time, assigned_user_id FROM orders WHERE id = ?",
+    [id]
+  );
+  if (!rows.length) return res.status(404).json({ error: "Not found" });
+  const order = rows[0];
+  if (order.status === "completed" || order.status === "cancelled") {
+    return res.status(400).json({ error: "Заказ завершён или отменён" });
+  }
+
+  const assigned_user_id = normalizeUserId(req.body.assigned_user_id);
+  if (!assigned_user_id) {
+    return res.status(400).json({ error: "Выберите мастера" });
+  }
+
+  const masterRows = await db.query(
+    "SELECT id FROM users WHERE id = ? AND role = 'master' AND is_active = 1",
+    [assigned_user_id]
+  );
+  if (!masterRows.length) {
+    return res.status(400).json({ error: "Недопустимый мастер" });
+  }
+
+  const scheduled_date = String(order.scheduled_date || "").slice(0, 10);
+  const start_time =
+    req.body.start_time !== undefined ? normalizeTime(req.body.start_time) : normalizeTime(order.start_time);
+  const end_time =
+    req.body.end_time !== undefined ? normalizeTime(req.body.end_time) : normalizeTime(order.end_time);
+
+  const absenceErr = await validateCanAssign(db, assigned_user_id, scheduled_date, start_time, end_time);
+  if (absenceErr) {
+    return res.status(400).json({ error: absenceErr });
+  }
+
+  const now = sqlNow(db.dialect);
+  await db.query(
+    `UPDATE orders SET assigned_user_id = ?, start_time = ?, end_time = ?, updated_at = ${now} WHERE id = ?`,
+    [assigned_user_id, start_time, end_time, id]
+  );
+  await db.query(
+    "UPDATE order_lines SET master_id = ? WHERE order_id = ? AND line_type = 'work'",
+    [assigned_user_id, id]
+  );
+
+  return res.json({
+    ok: true,
+    order: { id, assigned_user_id, start_time, end_time }
+  });
+}
+
 async function assignCar(req, res) {
   const id = Number(req.params.id);
   const db = await getDB();
@@ -1128,6 +1181,7 @@ module.exports = {
   showNew,
   create,
   update,
+  patchSchedule,
   updateNotes,
   updateCarMileage,
   assignCar,

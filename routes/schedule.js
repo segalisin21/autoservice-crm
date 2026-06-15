@@ -13,5 +13,6 @@ function asyncRoute(handler) {
 router.get("/absences", requirePermission("dashboard:view"), asyncRoute(scheduleController.listAbsences));
 router.post("/absences", requirePermission("dashboard:view"), scheduleController.createAbsence);
 router.delete("/absences/:id", requirePermission("dashboard:view"), scheduleController.deleteAbsence);
+router.post("/columns/reorder", requirePermission("orders:mutate"), scheduleController.reorderColumns);
 
 module.exports = router;

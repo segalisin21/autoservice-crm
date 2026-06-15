@@ -1,5 +1,50 @@
 # HANDOFF
 
+## 2026-06-15 — расписание: rowspan для многочасовых карточек
+
+### What changed
+- Многочасовые заказы в почасовой сетке (`schedule-time-grid`) используют `rowspan` на `<td>` вместо `position: absolute` + фиксированной высоты 36px.
+- Ячейки, покрытые span (`coveredBySpan`), больше не рендерятся отдельно.
+- Регрессионный тест: заказ 10:00–13:00 → `span_rows=3`, `rowspan="3"` в HTML.
+
+### Key files
+- `views/partials/schedule-time-grid.ejs`, `public/css/autoservice.css`, `lib/calendarData.js`, `tests/calendar.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+### Risks
+- При нескольких заказах в одном часовом слоте `rowspan` не применяется (как и раньше — только одиночный span).
+
+---
+
+## 2026-06-15 — расписание: порядок мастеров, перенос заказов
+
+### What changed
+- В таблице дня колонки только для мастеров (менеджеры скрыты).
+- Порядок колонок: `users.schedule_order`, стрелки ← → в заголовках (`POST /schedule/columns/reorder`).
+- Перенос заказа в сетке: drag-and-drop и выпадающий список мастера → `PATCH /orders/:id/schedule`.
+- Миграция `023_users_schedule_order.sql`.
+
+### Key files
+- `lib/calendarData.js`, `controllers/scheduleController.js`, `controllers/orderController.js`, `controllers/dashboardController.js`
+- `views/partials/schedule-time-grid.ejs`, `views/dashboard.ejs`, `views/partials/order-card.ejs`, `public/js/schedule-day.js`
+- `migrations/023_users_schedule_order.sql`, `docs/MIGRATE_POSTGRES_RAILWAY_023.sql`
+- `tests/calendar.test.js`, `tests/orders-schedule.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+### Risks
+- Заказы с `assigned_user_id` = менеджер попадают в «Без сотрудника».
+- Drag на другой час ставит `start_time` на `HH:00` (без минут).
+
+---
+
 ## 2026-06-14 — orders list make and model columns
 
 ### What changed

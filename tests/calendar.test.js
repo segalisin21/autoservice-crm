@@ -64,6 +64,7 @@ test("dashboard day view shows employee columns", async (t) => {
   assert.equal(res.status, 200);
   assert.match(res.text, /garage-day-grid/);
   assert.match(res.text, /Master/);
+  assert.doesNotMatch(res.text, />\s*Manager\s*</);
 });
 
 test("order at 14:00 lands in correct time slot", async (t) => {
@@ -96,4 +97,39 @@ test("order at 14:00 lands in correct time slot", async (t) => {
   assert.equal(html.status, 200);
   assert.match(html.text, /schedule-time-grid/);
   assert.match(html.text, /data-hour="14"/);
+});
+
+test("multi-hour order spans three rows for 10:00–13:00", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  await ctx.db.query(`INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('Span', '+7', '79991114455')`);
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, make) VALUES (?, 'VW')`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+
+  const day = "2026-06-16";
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, scheduled_date, assigned_user_id, start_time, end_time, total_price) VALUES (?, 'scheduled', ?, ?, '10:00', '13:00', 1500)`,
+    [carId, day, masterId]
+  );
+
+  const dayData = await getDayByEmployees(day);
+  const grid = assignOrdersToTimeSlots(dayData);
+  const col = grid.columns.find((c) => c.id === masterId);
+  assert.ok(col);
+  assert.equal(col.byHour[10].length, 1);
+  assert.equal(col.byHour[10][0].span_rows, 3);
+  assert.equal(col.byHour[10][0].end_time, "13:00");
+  assert.equal(col.coveredBySpan[11], true);
+  assert.equal(col.coveredBySpan[12], true);
+  assert.equal(col.coveredBySpan[13], false);
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const html = await agent.get(`/?mode=day&date=${day}`);
+  assert.equal(html.status, 200);
+  assert.match(html.text, /rowspan="3"/);
+  assert.match(html.text, /10:00–13:00/);
 });

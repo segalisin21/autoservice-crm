@@ -1,4 +1,13 @@
 <% const isCompactOrderCard = typeof compact !== 'undefined' && compact; %>
+<% const orderDraggable = typeof canMutateOrders !== 'undefined' && canMutateOrders; %>
+<% if (orderDraggable) { %>
+<div class="garage-order-block schedule-order-block--draggable"
+  draggable="true"
+  data-order-id="<%= o.id %>"
+  data-assigned-user-id="<%= o.assigned_user_id || '' %>"
+  data-start-time="<%= o.start_time || '' %>"
+  data-end-time="<%= o.end_time || '' %>">
+<% } %>
 <a href="/orders/<%= o.id %>" class="garage-order-card <%= isCompactOrderCard ? 'garage-order-card--compact' : '' %> status-<%= o.status %><% if (o.absence_conflict) { %> order-card--absence-conflict<% } %>">
   <div class="garage-order-head">
     <span class="garage-order-id">#<%= o.id %></span>
@@ -15,3 +24,7 @@
     <% if (typeof showMoney !== 'undefined' && showMoney && o.total_price > 0) { %><span><%= o.total_price.toLocaleString('ru-RU') %> ₽</span><% } %>
   </div>
 </a>
+<% if (orderDraggable) { %>
+  <%- include('schedule-master-select', { o: o, canMutateOrders: canMutateOrders, scheduleMasters: typeof scheduleMasters !== 'undefined' ? scheduleMasters : [] }) %>
+</div>
+<% } %>

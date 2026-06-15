@@ -1,7 +1,7 @@
 const { getDB } = require("../config/database");
-const { getMonthCalendar, getDayByEmployees, getDayStats, assignOrdersToTimeSlots, loadStaff } = require("../lib/calendarData");
+const { getMonthCalendar, getDayByEmployees, getDayStats, assignOrdersToTimeSlots, loadScheduleMasters } = require("../lib/calendarData");
 const { loadFinanceMetrics } = require("../lib/finance");
-const { canViewOrderMoney } = require("../config/permissions");
+const { canViewOrderMoney, roleHasPermission } = require("../config/permissions");
 
 function parseDateParam(raw) {
   const s = String(raw || "").slice(0, 10);
@@ -64,6 +64,8 @@ async function index(req, res, next) {
   let finance = null;
   let loadError = null;
   let staffList = [];
+  let scheduleMasters = [];
+  let canMutateOrders = false;
 
   const showMoney = canViewOrderMoney(req.session.user.role);
   const canManageAllAbsences = req.session.user.role === "owner" || req.session.user.role === "admin";
@@ -76,7 +78,9 @@ async function index(req, res, next) {
     if (mode === "day") {
       dayData = await getDayByEmployees(today);
       timeGrid = assignOrdersToTimeSlots(dayData);
-      staffList = await loadStaff(db);
+      scheduleMasters = await loadScheduleMasters(db);
+      staffList = scheduleMasters;
+      canMutateOrders = await roleHasPermission(db, req.session.user.role, "orders:mutate");
     }
     if (showFinance) {
       const monthStart = new Date(year, month, 1).toISOString().slice(0, 10);
@@ -106,6 +110,8 @@ async function index(req, res, next) {
     nav,
     loadError,
     staffList,
+    scheduleMasters,
+    canMutateOrders,
     canManageAllAbsences,
     absenceError: req.query.absence_error || null
   });

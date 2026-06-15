@@ -1970,6 +1970,17 @@
   overflow: visible;
 }
 
+.schedule-time-grid .slot-cell--spanning {
+  padding: 3px;
+  vertical-align: top;
+}
+
+.schedule-order-line--fill {
+  flex: 1;
+  min-height: 100%;
+  margin-bottom: 0;
+}
+
 .schedule-time-grid .garage-order-card {
   margin-bottom: 4px;
   font-size: 0.75rem;
@@ -2032,19 +2043,14 @@
   position: relative;
   z-index: 2;
   overflow: hidden;
+  text-decoration: none;
 }
 
-.schedule-order-line--spanning {
-  position: absolute;
-  left: 3px;
-  right: 3px;
-  top: 2px;
-  min-height: calc((var(--span-rows, 1) * 36px) - 4px);
-}
-
-.slot-covered {
-  display: block;
-  min-height: 0.9rem;
+.slot-cell--spanning .schedule-order-block {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 100%;
 }
 
 .schedule-order-line:hover {
@@ -2079,6 +2085,95 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.resource-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.resource-header .resource-name {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.garage-bay-header .resource-header {
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.schedule-col-reorder-form {
+  display: inline;
+  margin: 0;
+}
+
+.schedule-col-arrow {
+  border: 1px solid var(--gray-300, #d4cdb9);
+  background: var(--surface, #fff);
+  color: var(--gray-700, #374151);
+  border-radius: 4px;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  font-size: 0.7rem;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.schedule-col-arrow:hover {
+  border-color: var(--primary, #3d5a27);
+  color: var(--primary, #3d5a27);
+}
+
+.schedule-col-arrow--placeholder {
+  display: inline-block;
+  width: 1.35rem;
+  flex-shrink: 0;
+  visibility: hidden;
+}
+
+.schedule-order-block {
+  position: relative;
+}
+
+.schedule-order-block--draggable,
+.garage-order-block {
+  cursor: grab;
+}
+
+.schedule-order-block--dragging,
+.garage-order-block.schedule-order-block--dragging {
+  opacity: 0.55;
+  cursor: grabbing;
+}
+
+.schedule-master-select {
+  display: block;
+  width: 100%;
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  padding: 0.1rem 0.2rem;
+  border: 1px solid var(--gray-300, #d4cdb9);
+  border-radius: 4px;
+  background: var(--surface, #fff);
+  position: relative;
+  z-index: 3;
+}
+
+.garage-order-block .schedule-master-select {
+  margin-top: 0.35rem;
+}
+
+.slot-cell--drop-target,
+.schedule-drop-zone--drop-target {
+  outline: 2px dashed var(--primary, #3d5a27);
+  outline-offset: -2px;
+  background: rgba(61, 90, 39, 0.06);
 }
 
 .catalog-toolbar__filters label {

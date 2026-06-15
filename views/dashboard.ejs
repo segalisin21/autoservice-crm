@@ -120,7 +120,14 @@
 
     <% if (viewTimeGrid) { %>
     <div class="schedule-time-grid-wrap">
-      <%- include('partials/schedule-time-grid', { timeGrid: viewTimeGrid, statusLabel: statusLabel, showMoney: viewShowMoney }) %>
+      <%- include('partials/schedule-time-grid', {
+        timeGrid: viewTimeGrid,
+        statusLabel: statusLabel,
+        showMoney: viewShowMoney,
+        canMutateOrders: typeof canMutateOrders !== 'undefined' ? canMutateOrders : false,
+        scheduleMasters: typeof scheduleMasters !== 'undefined' ? scheduleMasters : [],
+        scheduleDate: viewToday
+      }) %>
     </div>
     <% } %>
 
@@ -143,18 +150,47 @@
 
       <p class="only-mobile schedule-scroll-hint muted">Свайп влево — другие сотрудники</p>
       <div class="garage-day-grid schedule-day-scroll">
-        <% (viewDayData.employees || []).forEach(function(emp) { %>
-          <div class="garage-bay-column">
+        <% const dayEmployees = viewDayData.employees || []; %>
+        <% dayEmployees.forEach(function(emp, empIdx) { %>
+          <div class="garage-bay-column" data-employee="<%= emp.id %>">
             <div class="garage-bay-header">
-              <span><%= emp.name %></span>
+              <div class="resource-header">
+                <% if (typeof canMutateOrders !== 'undefined' && canMutateOrders && empIdx > 0) { %>
+                  <form method="post" action="/schedule/columns/reorder" class="schedule-col-reorder-form">
+                    <input type="hidden" name="user_id" value="<%= emp.id %>" />
+                    <input type="hidden" name="direction" value="left" />
+                    <input type="hidden" name="date" value="<%= viewToday %>" />
+                    <button type="submit" class="schedule-col-arrow" title="Левее">←</button>
+                  </form>
+                <% } else if (typeof canMutateOrders !== 'undefined' && canMutateOrders) { %>
+                  <span class="schedule-col-arrow schedule-col-arrow--placeholder" aria-hidden="true"></span>
+                <% } %>
+                <span><%= emp.name %></span>
+                <% if (typeof canMutateOrders !== 'undefined' && canMutateOrders && empIdx < dayEmployees.length - 1) { %>
+                  <form method="post" action="/schedule/columns/reorder" class="schedule-col-reorder-form">
+                    <input type="hidden" name="user_id" value="<%= emp.id %>" />
+                    <input type="hidden" name="direction" value="right" />
+                    <input type="hidden" name="date" value="<%= viewToday %>" />
+                    <button type="submit" class="schedule-col-arrow" title="Правее">→</button>
+                  </form>
+                <% } else if (typeof canMutateOrders !== 'undefined' && canMutateOrders) { %>
+                  <span class="schedule-col-arrow schedule-col-arrow--placeholder" aria-hidden="true"></span>
+                <% } %>
+              </div>
               <span class="garage-bay-count"><%= emp.orders.length %></span>
             </div>
-            <div class="garage-bay-body">
+            <div class="garage-bay-body schedule-drop-zone">
               <% if (!emp.orders.length) { %>
                 <div class="garage-bay-empty">Свободно</div>
               <% } %>
               <% emp.orders.forEach(function(o) { %>
-                <%- include('partials/order-card', { o: o, statusLabel: statusLabel, showMoney: viewShowMoney }) %>
+                <%- include('partials/order-card', {
+                  o: o,
+                  statusLabel: statusLabel,
+                  showMoney: viewShowMoney,
+                  canMutateOrders: typeof canMutateOrders !== 'undefined' ? canMutateOrders : false,
+                  scheduleMasters: typeof scheduleMasters !== 'undefined' ? scheduleMasters : []
+                }) %>
               <% }); %>
             </div>
           </div>
@@ -302,4 +338,4 @@
   </section>
 </div>
 
-<%- include('partials/layout-bottom') %>
+<%- include('partials/layout-bottom', { extraScripts: isDayView ? ['/js/schedule-day.js'] : undefined }) %>
