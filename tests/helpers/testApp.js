@@ -8,15 +8,27 @@ const { seedDefaultPermissions, clearPermissionCache } = require("../../config/p
 const { ensureDefaultSettings } = require("../../lib/settings");
 const { hashPassword } = require("../../lib/password");
 
+let cachedApp;
+let cachedNodeEnv;
+
+function getApp() {
+  const nodeEnv = process.env.NODE_ENV;
+  if (!cachedApp || cachedNodeEnv !== nodeEnv) {
+    delete require.cache[require.resolve("../../server")];
+    cachedApp = require("../../server").app;
+    cachedNodeEnv = nodeEnv;
+  }
+  return cachedApp;
+}
+
 async function createTestApp() {
   const dbPath = path.join(os.tmpdir(), `autoservice-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite3`);
   process.env.SQLITE_PATH = dbPath;
+  delete process.env.DATABASE_URL;
   resetDB();
   clearPermissionCache();
 
-  delete require.cache[require.resolve("../../server")];
-  const { app } = require("../../server");
-
+  const app = getApp();
   const db = await getDB();
   await applyMigrations(db);
   await seedDefaultPermissions(db);

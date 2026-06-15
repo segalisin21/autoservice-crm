@@ -139,7 +139,7 @@ test("GET /admin/reports/export receivables CSV", async (t) => {
   await ctx.db.query(`INSERT INTO cars(client_id, license_plate_raw) VALUES (?, 'A111AA77')`, [clientId]);
   const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
   await ctx.db.query(
-    `INSERT INTO orders(car_id, status, closed_at, total_price) VALUES (?, 'completed', '2026-06-01 10:00:00', 500)`,
+    `INSERT INTO orders(car_id, status, closed_at, total_price) VALUES (?, 'in_progress', '2026-06-01 10:00:00', 500)`,
     [carId]
   );
   const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;

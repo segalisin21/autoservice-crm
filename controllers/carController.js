@@ -116,7 +116,7 @@ async function create(req, res) {
     INSERT INTO cars(
       client_id, make, model, make_lc, model_lc, vin, license_plate_raw, license_plate_normalized,
       year, color, body_type, mileage, notes, vehicle_model_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       data.client_id,

@@ -125,7 +125,6 @@
         statusLabel: statusLabel,
         showMoney: viewShowMoney,
         canMutateOrders: typeof canMutateOrders !== 'undefined' ? canMutateOrders : false,
-        scheduleMasters: typeof scheduleMasters !== 'undefined' ? scheduleMasters : [],
         scheduleDate: viewToday
       }) %>
     </div>
@@ -188,8 +187,7 @@
                   o: o,
                   statusLabel: statusLabel,
                   showMoney: viewShowMoney,
-                  canMutateOrders: typeof canMutateOrders !== 'undefined' ? canMutateOrders : false,
-                  scheduleMasters: typeof scheduleMasters !== 'undefined' ? scheduleMasters : []
+                  canMutateOrders: typeof canMutateOrders !== 'undefined' ? canMutateOrders : false
                 }) %>
               <% }); %>
             </div>

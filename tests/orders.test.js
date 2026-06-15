@@ -430,11 +430,19 @@ test("orders list renders data table on mobile width markup", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
 
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('List', '1', '79990000111')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, license_plate_raw) VALUES (?, 'B222BB77')`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO orders(car_id, status) VALUES (?, 'scheduled')`, [carId]);
+
   const agent = request.agent(ctx.app);
   await ctx.loginAs(agent, "admin", "admin");
   const res = await agent.get("/orders");
   assert.equal(res.status, 200);
-  assert.match(res.text, /class="data-table orders-table"/);
+  assert.match(res.text, /class="data-table data-table-compact orders-table"/);
   assert.ok(!res.text.includes("order-list-card"));
 });
 

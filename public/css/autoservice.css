@@ -2152,23 +2152,6 @@
   cursor: grabbing;
 }
 
-.schedule-master-select {
-  display: block;
-  width: 100%;
-  margin-top: 0.2rem;
-  font-size: 0.68rem;
-  padding: 0.1rem 0.2rem;
-  border: 1px solid var(--gray-300, #d4cdb9);
-  border-radius: 4px;
-  background: var(--surface, #fff);
-  position: relative;
-  z-index: 3;
-}
-
-.garage-order-block .schedule-master-select {
-  margin-top: 0.35rem;
-}
-
 .slot-cell--drop-target,
 .schedule-drop-zone--drop-target {
   outline: 2px dashed var(--primary, #3d5a27);

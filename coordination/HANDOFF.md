@@ -1,5 +1,25 @@
 # HANDOFF
 
+## 2026-06-15 — тесты: скорость и регрессии
+
+### What changed
+- **Баг**: `carController.create` — 14 колонок, 13 плейсхолдеров (`13 values for 14 columns`); создание авто падало и могло подвешивать раннер.
+- **Тесты**: актуализированы под пустые списки / `data-table-compact` / дебиторку только по незавершённым заказам.
+- **Скорость**: `tests/helpers/testApp.js` кэширует Express-приложение (сброс кэша при смене `NODE_ENV`); полный прогон ~80 с (140 тестов).
+
+### Key files
+- `controllers/carController.js`, `tests/helpers/testApp.js`, `tests/analytics-ui.test.js`, `tests/order-economics.test.js`, `tests/orders.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+### Risks
+- Кэш `server` в тестах: при добавлении тестов с другими env-переменными, влияющими на `server.js` при require, может понадобиться инвалидация кэша.
+
+---
+
 ## 2026-06-15 — расписание: rowspan для многочасовых карточек
 
 ### What changed

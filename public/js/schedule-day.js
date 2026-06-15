@@ -31,28 +31,6 @@
     window.location.reload();
   }
 
-  document.querySelectorAll(".schedule-master-select").forEach((select) => {
-    select.addEventListener("mousedown", (e) => e.stopPropagation());
-    select.addEventListener("click", (e) => e.stopPropagation());
-    select.addEventListener("change", async (e) => {
-      e.stopPropagation();
-      const orderId = select.dataset.orderId;
-      const assigned_user_id = Number(select.value);
-      if (!orderId || !assigned_user_id) return;
-      const prev = select.dataset.prevValue || select.querySelector("option[selected]")?.value;
-      select.disabled = true;
-      try {
-        await patchSchedule(orderId, { assigned_user_id });
-        reloadOnSuccess();
-      } catch (err) {
-        alert(err.message || String(err));
-        if (prev) select.value = prev;
-        select.disabled = false;
-      }
-    });
-    select.dataset.prevValue = select.value;
-  });
-
   function onDragStart(e) {
     const block = e.target.closest(".schedule-order-block--draggable, .garage-order-block");
     if (!block) return;

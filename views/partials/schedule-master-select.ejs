@@ -1,7 +1,0 @@
-<% if (typeof canMutateOrders !== 'undefined' && canMutateOrders && typeof scheduleMasters !== 'undefined' && scheduleMasters && scheduleMasters.length) { %>
-<select class="schedule-master-select" data-order-id="<%= o.id %>" title="Мастер" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
-  <% scheduleMasters.forEach(function(m) { %>
-    <option value="<%= m.id %>" <%= Number(o.assigned_user_id) === Number(m.id) ? 'selected' : '' %>><%= m.name %></option>
-  <% }); %>
-</select>
-<% } %>

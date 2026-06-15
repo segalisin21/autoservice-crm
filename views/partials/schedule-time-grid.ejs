@@ -89,7 +89,6 @@
                       <span class="schedule-order-line__meta">#<%= o.id %> · <%= o.client_name || '—' %><% if (typeof showMoney !== 'undefined' && showMoney && o.total_price > 0) { %> · <%= o.total_price.toLocaleString('ru-RU') %> ₽<% } %></span>
                       <% if (o.absence_conflict) { %><span class="order-absence-marker" title="Мастер отсутствует в это время">●</span><% } %>
                     </a>
-                    <%- include('schedule-master-select', { o: o, canMutateOrders: typeof canMutateOrders !== 'undefined' ? canMutateOrders : false, scheduleMasters: typeof scheduleMasters !== 'undefined' ? scheduleMasters : [] }) %>
                   </div>
                 <% }); %>
               <% } %>

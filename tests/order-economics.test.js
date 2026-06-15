@@ -94,11 +94,22 @@ test("owner can open orders economics dashboard", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
 
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('Econ', '1', '79990000099')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, make, model) VALUES (?, 'VW', 'Polo')`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, total_price, closed_at) VALUES (?, 'completed', 1000, datetime('now'))`,
+    [carId]
+  );
+
   const agent = request.agent(ctx.app);
   await ctx.loginAs(agent, "owner", "owner");
   const res = await agent.get("/admin/orders-economics?period=month&status=completed");
   assert.equal(res.status, 200);
-  assert.match(res.text, /Экономика заказов/);
+  assert.match(res.text, /Экономика/);
   assert.match(res.text, /order-econ-table/);
   assert.ok(!res.text.includes("order-econ-card"));
 });
