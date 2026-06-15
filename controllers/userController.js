@@ -58,12 +58,14 @@ async function create(req, res) {
   if (!name || name.length > 200) return renderError("Укажите имя сотрудника");
   if (password.length < 4) return renderError("Пароль не короче 4 символов");
 
+  const show_in_schedule = role === "master" ? 1 : 0;
+
   const existing = await db.query("SELECT id FROM users WHERE username = ?", [username]);
   if (existing.length) return renderError("Такой логин уже занят");
 
   await db.query(
-    `INSERT INTO users(username, password_hash, name, role, is_active) VALUES (?, ?, ?, ?, 1)`,
-    [username, hashPassword(password), name, role]
+    `INSERT INTO users(username, password_hash, name, role, is_active, show_in_schedule) VALUES (?, ?, ?, ?, 1, ?)`,
+    [username, hashPassword(password), name, role, show_in_schedule]
   );
   return res.redirect("/admin/users");
 }
@@ -71,7 +73,10 @@ async function create(req, res) {
 async function showEdit(req, res) {
   const db = await getDB();
   const id = Number(req.params.id);
-  const rows = await db.query("SELECT id, username, name, role, is_active FROM users WHERE id = ?", [id]);
+  const rows = await db.query(
+    "SELECT id, username, name, role, is_active, show_in_schedule FROM users WHERE id = ?",
+    [id]
+  );
   const target = rows[0];
   if (!target) return res.status(404).send("Not found");
   res.render("admin/user-form", {
@@ -93,14 +98,15 @@ async function update(req, res) {
   const name = String(req.body.name ?? "").trim();
   const role = normalizeRole(req.body.role);
   const is_active = req.body.is_active ? 1 : 0;
+  const show_in_schedule = req.body.show_in_schedule ? 1 : role === "master" ? 1 : 0;
   const password = String(req.body.password ?? "");
 
   if (!name) return res.redirect(`/admin/users/${id}/edit`);
 
   const now = sqlNow(db.dialect);
   await db.query(
-    `UPDATE users SET name = ?, role = ?, is_active = ?, updated_at = ${now} WHERE id = ?`,
-    [name, role, is_active, id]
+    `UPDATE users SET name = ?, role = ?, is_active = ?, show_in_schedule = ?, updated_at = ${now} WHERE id = ?`,
+    [name, role, is_active, show_in_schedule, id]
   );
   if (password && password.length >= 4) {
     await db.query("UPDATE users SET password_hash = ? WHERE id = ?", [hashPassword(password), id]);

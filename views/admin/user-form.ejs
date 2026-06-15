@@ -17,6 +17,10 @@
         <option value="" <%= target.is_active ? '' : 'selected' %>>нет</option>
       </select>
     </label>
+    <label class="inline-checkbox" style="align-self:end;">
+      <input type="checkbox" name="show_in_schedule" value="1" <%= target.show_in_schedule ? 'checked' : '' %> />
+      <span>Колонка в расписании</span>
+    </label>
     <label>Новый пароль (если менять) <input name="password" type="text" autocomplete="new-password" /></label>
     <div style="grid-column:1/-1; display:flex; gap:8px; flex-wrap:wrap;">
       <button type="submit" class="btn btn-primary">Сохранить</button>

@@ -700,7 +700,7 @@ async function patchSchedule(req, res) {
   }
 
   const masterRows = await db.query(
-    "SELECT id FROM users WHERE id = ? AND role = 'master' AND is_active = 1",
+    "SELECT id FROM users WHERE id = ? AND is_active = 1 AND show_in_schedule = 1",
     [assigned_user_id]
   );
   if (!masterRows.length) {

@@ -24,9 +24,10 @@ async function createTestApp() {
 
   async function insertUser(username, password, role, name) {
     const password_hash = hashPassword(password);
+    const show_in_schedule = role === "master" || username === "vitalik" ? 1 : 0;
     await db.query(
-      `INSERT INTO users(username, password_hash, name, role, is_active) VALUES (?, ?, ?, ?, 1)`,
-      [username, password_hash, name || username, role]
+      `INSERT INTO users(username, password_hash, name, role, is_active, show_in_schedule) VALUES (?, ?, ?, ?, 1, ?)`,
+      [username, password_hash, name || username, role, show_in_schedule]
     );
     const rows = await db.query("SELECT id, username, role FROM users WHERE username = ?", [username]);
     return rows[0];

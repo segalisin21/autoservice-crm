@@ -22,6 +22,18 @@ async function seedOrderOnDay(ctx, { day, masterId, startTime = "10:00" }) {
   return { carId, orderId };
 }
 
+test("owner with show_in_schedule appears in day schedule columns", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query("UPDATE users SET show_in_schedule = 1 WHERE username = 'owner'");
+
+  const data = await getDayByEmployees("2026-06-26");
+  const ids = data.employees.map((e) => e.id);
+  assert.ok(ids.includes(ctx.users.owner.id));
+  assert.equal(ids.includes(ctx.users.manager.id), false);
+});
+
 test("manager is not shown in day schedule columns", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
@@ -39,10 +51,10 @@ test("schedule columns ordered by schedule_order", async (t) => {
   t.after(() => ctx.close());
 
   await ctx.db.query(
-    `INSERT INTO users(username, password_hash, name, role, is_active, schedule_order) VALUES ('mA', 'x', 'Alpha', 'master', 1, 20)`
+    `INSERT INTO users(username, password_hash, name, role, is_active, schedule_order, show_in_schedule) VALUES ('mA', 'x', 'Alpha', 'master', 1, 20, 1)`
   );
   await ctx.db.query(
-    `INSERT INTO users(username, password_hash, name, role, is_active, schedule_order) VALUES ('mZ', 'x', 'Zulu', 'master', 1, 10)`
+    `INSERT INTO users(username, password_hash, name, role, is_active, schedule_order, show_in_schedule) VALUES ('mZ', 'x', 'Zulu', 'master', 1, 10, 1)`
   );
 
   const data = await getDayByEmployees("2026-06-21");
@@ -59,7 +71,7 @@ test("POST /schedule/columns/reorder swaps master column order", async (t) => {
 
   await ctx.db.query("UPDATE users SET schedule_order = 10 WHERE id = ?", [ctx.users.master.id]);
   await ctx.db.query(
-    `INSERT INTO users(username, password_hash, name, role, is_active, schedule_order) VALUES ('mB', 'x', 'Bravo', 'master', 1, 20)`
+    `INSERT INTO users(username, password_hash, name, role, is_active, schedule_order, show_in_schedule) VALUES ('mB', 'x', 'Bravo', 'master', 1, 20, 1)`
   );
   const secondId = (await ctx.db.query("SELECT id FROM users WHERE username = 'mB'"))[0].id;
 
@@ -86,7 +98,7 @@ test("PATCH /orders/:id/schedule changes master and work line master_id", async 
   t.after(() => ctx.close());
 
   await ctx.db.query(
-    `INSERT INTO users(username, password_hash, name, role, is_active, schedule_order) VALUES ('mOther', 'x', 'Other', 'master', 1, 30)`
+    `INSERT INTO users(username, password_hash, name, role, is_active, schedule_order, show_in_schedule) VALUES ('mOther', 'x', 'Other', 'master', 1, 30, 1)`
   );
   const otherMasterId = (await ctx.db.query("SELECT id FROM users WHERE username = 'mOther'"))[0].id;
 
@@ -138,7 +150,7 @@ test("PATCH /orders/:id/schedule rejects absent master", async (t) => {
   t.after(() => ctx.close());
 
   await ctx.db.query(
-    `INSERT INTO users(username, password_hash, name, role, is_active, schedule_order) VALUES ('mAway', 'x', 'Away', 'master', 1, 40)`
+    `INSERT INTO users(username, password_hash, name, role, is_active, schedule_order, show_in_schedule) VALUES ('mAway', 'x', 'Away', 'master', 1, 40, 1)`
   );
   const awayId = (await ctx.db.query("SELECT id FROM users WHERE username = 'mAway'"))[0].id;
 
