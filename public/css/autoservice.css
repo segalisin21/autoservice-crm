@@ -1962,6 +1962,28 @@
   margin-top: 0.5rem;
 }
 
+.schedule-time-grid .resource-col--grouped {
+  text-align: center;
+}
+
+.schedule-time-grid .schedule-lane-header-row th.schedule-lane-header {
+  padding: 0;
+  height: 4px;
+  border-bottom: 1px solid var(--gray-200, #e5e7eb);
+  background: var(--gray-50, #f9fafb);
+  min-width: 0;
+}
+
+.schedule-time-grid .slot-cell.schedule-lane-cell {
+  min-width: 0;
+}
+
+.schedule-time-grid .slot-cell--multi-lane {
+  width: 1%;
+  min-width: 90px;
+  overflow: hidden;
+}
+
 .schedule-time-grid .slot-cell {
   min-height: 36px;
   vertical-align: top;
@@ -2141,6 +2163,16 @@
   font-weight: 800;
   color: var(--gray-900, #1a1f12);
   min-width: 0;
+}
+
+.schedule-order-line--compact {
+  font-size: 0.68rem;
+  padding: 0.15rem 0.25rem;
+  gap: 0.1rem;
+}
+
+.schedule-order-line--compact .schedule-order-line__meta {
+  font-size: 0.62rem;
 }
 
 .schedule-order-line__meta {

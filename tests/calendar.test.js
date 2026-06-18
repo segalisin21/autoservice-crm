@@ -87,9 +87,11 @@ test("order at 14:00 lands in correct time slot", async (t) => {
   const grid = assignOrdersToTimeSlots(dayData);
   const col = grid.columns.find((c) => c.id === masterId);
   assert.ok(col);
-  assert.equal(col.byHour[14].length, 1);
-  assert.equal(col.byHour[14][0].start_time, "14:30");
-  assert.equal(col.byHour[10].length, 0);
+  assert.equal(col.maxLanes, 1);
+  const lane0 = col.lanes[0];
+  assert.equal(lane0.byHour[14].length, 1);
+  assert.equal(lane0.byHour[14][0].start_time, "14:30");
+  assert.equal(lane0.byHour[10].length, 0);
 
   const agent = request.agent(ctx.app);
   await ctx.loginAs(agent, "admin", "admin");
@@ -119,12 +121,14 @@ test("multi-hour order spans three rows for 10:00–13:00", async (t) => {
   const grid = assignOrdersToTimeSlots(dayData);
   const col = grid.columns.find((c) => c.id === masterId);
   assert.ok(col);
-  assert.equal(col.byHour[10].length, 1);
-  assert.equal(col.byHour[10][0].span_rows, 3);
-  assert.equal(col.byHour[10][0].end_time, "13:00");
-  assert.equal(col.coveredBySpan[11], true);
-  assert.equal(col.coveredBySpan[12], true);
-  assert.equal(col.coveredBySpan[13], false);
+  assert.equal(col.maxLanes, 1);
+  const lane0 = col.lanes[0];
+  assert.equal(lane0.byHour[10].length, 1);
+  assert.equal(lane0.byHour[10][0].span_rows, 3);
+  assert.equal(lane0.byHour[10][0].end_time, "13:00");
+  assert.equal(lane0.coveredBySpan[11], true);
+  assert.equal(lane0.coveredBySpan[12], true);
+  assert.equal(lane0.coveredBySpan[13], false);
 
   const agent = request.agent(ctx.app);
   await ctx.loginAs(agent, "admin", "admin");
@@ -182,4 +186,47 @@ test("multi-day order shows end date badge on start day only", async (t) => {
   const midDay = await agent.get("/?mode=day&date=2026-06-18");
   assert.equal(midDay.status, 200);
   assert.doesNotMatch(midDay.text, /до 20\.06/);
+});
+
+test("overlapping orders at 10:00 use separate lanes with independent rowspan", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  await ctx.db.query(`INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('Overlap', '+7', '79991117788')`);
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, make) VALUES (?, 'Jaguar')`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+
+  const day = "2026-06-19";
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, scheduled_date, assigned_user_id, start_time, total_price) VALUES (?, 'scheduled', ?, ?, '10:00', 800)`,
+    [carId, day, masterId]
+  );
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, scheduled_date, assigned_user_id, start_time, end_time, total_price) VALUES (?, 'scheduled', ?, ?, '10:00', '13:00', 1200)`,
+    [carId, day, masterId]
+  );
+
+  const dayData = await getDayByEmployees(day);
+  const grid = assignOrdersToTimeSlots(dayData);
+  const col = grid.columns.find((c) => c.id === masterId);
+  assert.ok(col);
+  assert.equal(col.maxLanes, 2);
+
+  const longLane = col.lanes.find((lane) => lane.byHour[10].some((o) => o.span_rows === 3));
+  const shortLane = col.lanes.find((lane) => lane.byHour[10].some((o) => (o.span_rows || 1) === 1));
+  assert.ok(longLane, "long order in its own lane");
+  assert.ok(shortLane, "short order in its own lane");
+  assert.notEqual(longLane, shortLane);
+  assert.equal(longLane.coveredBySpan[11], true);
+  assert.equal(longLane.coveredBySpan[12], true);
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const html = await agent.get(`/?mode=day&date=${day}`);
+  assert.equal(html.status, 200);
+  assert.match(html.text, /data-lane="0"/);
+  assert.match(html.text, /data-lane="1"/);
+  assert.match(html.text, new RegExp(`data-employee="${masterId}"[^>]*data-lane="0"[^>]*rowspan="3"`));
 });

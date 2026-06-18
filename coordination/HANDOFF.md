@@ -1,5 +1,27 @@
 # HANDOFF
 
+## 2026-06-18 — полосы (lanes) при пересечении заказов в расписании
+
+### What changed
+- Greedy `assignLanes` в `lib/calendarData.js`: колонка мастера → `maxLanes` + `lanes[]` с отдельными `byHour` / `coveredBySpan`.
+- `schedule-time-grid.ejs`: colspan заголовка, цикл по полосам, `data-lane`, `rowspan` per lane.
+- CSS: узкие ячейки и компактные карточки при `maxLanes > 1`.
+- Регрессионный тест: два заказа в 10:00 → 2 полосы, длинный с `rowspan="3"`.
+
+### Key files
+- `lib/calendarData.js`, `views/partials/schedule-time-grid.ejs`, `public/css/autoservice.css`
+- `tests/calendar.test.js`, `docs/bugs/BUG-005.md`, `docs/DESIGN.md`
+
+### Verify
+```bash
+npm test
+```
+
+### Risks
+- При 3+ пересечениях колонка сужается; может понадобиться горизонтальный скролл на узких экранах.
+
+---
+
 ## 2026-06-18 — баг-пул autoservice (4 фикса)
 
 ### What changed

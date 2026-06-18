@@ -22,11 +22,13 @@
 <div class="schedule-time-grid-scroll">
   <table class="schedule-table schedule-time-grid">
     <thead>
+      <% const gridCols = timeGrid.columns || []; %>
+      <% const hasMultiLane = gridCols.some(function(c) { return (c.maxLanes || 1) > 1; }); %>
       <tr>
-        <th class="time-col">Время</th>
-        <% const gridCols = timeGrid.columns || []; %>
+        <th class="time-col"<% if (hasMultiLane) { %> rowspan="2"<% } %>>Время</th>
         <% gridCols.forEach(function(col, colIdx) { %>
-          <th class="resource-col <%= col.has_absence ? 'resource-col--absent' : '' %>" data-employee="<%= col.id %>">
+          <% const laneCount = col.maxLanes || 1; %>
+          <th class="resource-col resource-col--grouped <%= col.has_absence ? 'resource-col--absent' : '' %>" colspan="<%= laneCount %>" data-employee="<%= col.id %>">
             <div class="resource-header">
               <% if (typeof canMutateOrders !== 'undefined' && canMutateOrders && colIdx > 0) { %>
                 <form method="post" action="/schedule/columns/reorder" class="schedule-col-reorder-form">
@@ -56,43 +58,57 @@
           </th>
         <% }); %>
       </tr>
+      <% if (hasMultiLane) { %>
+      <tr class="schedule-lane-header-row">
+        <% gridCols.forEach(function(col) { %>
+          <% const laneCount = col.maxLanes || 1; %>
+          <% for (let laneIdx = 0; laneIdx < laneCount; laneIdx++) { %>
+            <th class="schedule-lane-header" data-employee="<%= col.id %>" data-lane="<%= laneIdx %>" aria-hidden="<%= laneCount === 1 ? 'true' : 'false' %>"></th>
+          <% } %>
+        <% }); %>
+      </tr>
+      <% } %>
     </thead>
     <tbody>
       <% (timeGrid.hours || []).forEach(function(slot) { %>
         <tr>
           <td class="time-cell"><%= slot.label %></td>
           <% gridCols.forEach(function(col) { %>
-            <% const slotOrders = (col.byHour && col.byHour[slot.hour]) ? col.byHour[slot.hour] : []; %>
-            <% const coveredBySpan = !!(col.coveredBySpan && col.coveredBySpan[slot.hour]); %>
-            <% if (coveredBySpan) { %>
-            <% } else { %>
-            <% const isAbsent = col.absentByHour && col.absentByHour[slot.hour]; %>
-            <% const cellSpanRows = slotOrders.length === 1 && (slotOrders[0].span_rows || 1) > 1 ? slotOrders[0].span_rows : 1; %>
-            <td class="slot-cell<%= cellSpanRows > 1 ? ' slot-cell--spanning' : '' %> <%= isAbsent ? 'slot-cell--absent' : '' %>" data-hour="<%= slot.hour %>" data-employee="<%= col.id %>"<% if (cellSpanRows > 1) { %> rowspan="<%= cellSpanRows %>" data-span-rows="<%= cellSpanRows %>"<% } %>>
-              <% if (!slotOrders.length && isAbsent) { %>
-                <span class="slot-absent-label">Отсутствует</span>
-              <% } else if (!slotOrders.length) { %>
-                <span class="slot-free">—</span>
+            <% const laneCount = col.maxLanes || 1; %>
+            <% for (let laneIdx = 0; laneIdx < laneCount; laneIdx++) { %>
+              <% const lane = (col.lanes && col.lanes[laneIdx]) || { byHour: {}, coveredBySpan: {} }; %>
+              <% const slotOrders = lane.byHour[slot.hour] || []; %>
+              <% const coveredBySpan = !!(lane.coveredBySpan && lane.coveredBySpan[slot.hour]); %>
+              <% if (coveredBySpan) { %>
               <% } else { %>
-                <% slotOrders.forEach(function(o) { %>
-                  <div class="schedule-order-block<%= typeof canMutateOrders !== 'undefined' && canMutateOrders ? ' schedule-order-block--draggable' : '' %>"
-                    <% if (typeof canMutateOrders !== 'undefined' && canMutateOrders) { %>
-                      draggable="true"
-                      data-order-id="<%= o.id %>"
-                      data-assigned-user-id="<%= o.assigned_user_id || '' %>"
-                      data-start-time="<%= o.start_time || '' %>"
-                      data-end-time="<%= o.end_time || '' %>"
-                    <% } %>>
-                    <a href="/orders/<%= o.id %>" class="schedule-order-line status-<%= o.status %><% if (o.absence_conflict) { %> order-card--absence-conflict<% } %><% if ((o.span_rows || 1) > 1) { %> schedule-order-line--fill schedule-order-line--span-<%= o.span_rows || 1 %><% } %>">
-                      <span class="schedule-order-line__time"><%= o.start_time || slot.label %><% if (o.end_time) { %>–<%= o.end_time %><% } %></span>
-                      <span class="schedule-order-line__main"><%= o.car_label || o.license_plate || 'Авто' %></span>
-                      <span class="schedule-order-line__meta">#<%= o.id %> · <%= o.client_name || '—' %><% if (o.end_date_badge) { %> · <%= o.end_date_badge %><% } %><% if (typeof showMoney !== 'undefined' && showMoney && o.total_price > 0) { %> · <%= o.total_price.toLocaleString('ru-RU') %> ₽<% } %></span>
-                      <% if (o.absence_conflict) { %><span class="order-absence-marker" title="Мастер отсутствует в это время">●</span><% } %>
-                    </a>
-                  </div>
-                <% }); %>
+              <% const isAbsent = col.absentByHour && col.absentByHour[slot.hour]; %>
+              <% const cellSpanRows = slotOrders.length === 1 && (slotOrders[0].span_rows || 1) > 1 ? slotOrders[0].span_rows : 1; %>
+              <td class="slot-cell schedule-lane-cell<%= cellSpanRows > 1 ? ' slot-cell--spanning' : '' %> <%= isAbsent ? 'slot-cell--absent' : '' %><% if (laneCount > 1) { %> slot-cell--multi-lane<% } %>" data-hour="<%= slot.hour %>" data-employee="<%= col.id %>" data-lane="<%= laneIdx %>"<% if (cellSpanRows > 1) { %> rowspan="<%= cellSpanRows %>" data-span-rows="<%= cellSpanRows %>"<% } %>>
+                <% if (!slotOrders.length && isAbsent) { %>
+                  <span class="slot-absent-label">Отсутствует</span>
+                <% } else if (!slotOrders.length) { %>
+                  <span class="slot-free">—</span>
+                <% } else { %>
+                  <% slotOrders.forEach(function(o) { %>
+                    <div class="schedule-order-block<%= typeof canMutateOrders !== 'undefined' && canMutateOrders ? ' schedule-order-block--draggable' : '' %>"
+                      <% if (typeof canMutateOrders !== 'undefined' && canMutateOrders) { %>
+                        draggable="true"
+                        data-order-id="<%= o.id %>"
+                        data-assigned-user-id="<%= o.assigned_user_id || '' %>"
+                        data-start-time="<%= o.start_time || '' %>"
+                        data-end-time="<%= o.end_time || '' %>"
+                      <% } %>>
+                      <a href="/orders/<%= o.id %>" class="schedule-order-line status-<%= o.status %><% if (o.absence_conflict) { %> order-card--absence-conflict<% } %><% if ((o.span_rows || 1) > 1) { %> schedule-order-line--fill schedule-order-line--span-<%= o.span_rows || 1 %><% } %><% if (laneCount > 1) { %> schedule-order-line--compact<% } %>">
+                        <span class="schedule-order-line__time"><%= o.start_time || slot.label %><% if (o.end_time) { %>–<%= o.end_time %><% } %></span>
+                        <span class="schedule-order-line__main"><%= o.car_label || o.license_plate || 'Авто' %></span>
+                        <span class="schedule-order-line__meta">#<%= o.id %> · <%= o.client_name || '—' %><% if (o.end_date_badge) { %> · <%= o.end_date_badge %><% } %><% if (typeof showMoney !== 'undefined' && showMoney && o.total_price > 0) { %> · <%= o.total_price.toLocaleString('ru-RU') %> ₽<% } %></span>
+                        <% if (o.absence_conflict) { %><span class="order-absence-marker" title="Мастер отсутствует в это время">●</span><% } %>
+                      </a>
+                    </div>
+                  <% }); %>
+                <% } %>
+              </td>
               <% } %>
-            </td>
             <% } %>
           <% }); %>
         </tr>
