@@ -68,7 +68,7 @@
             <% } else { %>
             <% const isAbsent = col.absentByHour && col.absentByHour[slot.hour]; %>
             <% const cellSpanRows = slotOrders.length === 1 && (slotOrders[0].span_rows || 1) > 1 ? slotOrders[0].span_rows : 1; %>
-            <td class="slot-cell<%= cellSpanRows > 1 ? ' slot-cell--spanning' : '' %> <%= isAbsent ? 'slot-cell--absent' : '' %>" data-hour="<%= slot.hour %>" data-employee="<%= col.id %>"<% if (cellSpanRows > 1) { %> rowspan="<%= cellSpanRows %>"<% } %>>
+            <td class="slot-cell<%= cellSpanRows > 1 ? ' slot-cell--spanning' : '' %> <%= isAbsent ? 'slot-cell--absent' : '' %>" data-hour="<%= slot.hour %>" data-employee="<%= col.id %>"<% if (cellSpanRows > 1) { %> rowspan="<%= cellSpanRows %>" data-span-rows="<%= cellSpanRows %>"<% } %>>
               <% if (!slotOrders.length && isAbsent) { %>
                 <span class="slot-absent-label">Отсутствует</span>
               <% } else if (!slotOrders.length) { %>
@@ -83,7 +83,7 @@
                       data-start-time="<%= o.start_time || '' %>"
                       data-end-time="<%= o.end_time || '' %>"
                     <% } %>>
-                    <a href="/orders/<%= o.id %>" class="schedule-order-line status-<%= o.status %><% if (o.absence_conflict) { %> order-card--absence-conflict<% } %><% if ((o.span_rows || 1) > 1) { %> schedule-order-line--fill<% } %>">
+                    <a href="/orders/<%= o.id %>" class="schedule-order-line status-<%= o.status %><% if (o.absence_conflict) { %> order-card--absence-conflict<% } %><% if ((o.span_rows || 1) > 1) { %> schedule-order-line--fill schedule-order-line--span-<%= o.span_rows || 1 %><% } %>">
                       <span class="schedule-order-line__time"><%= o.start_time || slot.label %><% if (o.end_time) { %>–<%= o.end_time %><% } %></span>
                       <span class="schedule-order-line__main"><%= o.car_label || o.license_plate || 'Авто' %></span>
                       <span class="schedule-order-line__meta">#<%= o.id %> · <%= o.client_name || '—' %><% if (o.end_date_badge) { %> · <%= o.end_date_badge %><% } %><% if (typeof showMoney !== 'undefined' && showMoney && o.total_price > 0) { %> · <%= o.total_price.toLocaleString('ru-RU') %> ₽<% } %></span>

@@ -1971,14 +1971,64 @@
 }
 
 .schedule-time-grid .slot-cell--spanning {
-  padding: 3px;
+  padding: 0;
   vertical-align: top;
+  position: relative;
+  /* ~36px per hour row + 1px border */
+  min-height: calc(var(--schedule-hour-height, 36px) * var(--span-rows, 1));
 }
 
+.schedule-time-grid .slot-cell--spanning[data-span-rows="2"] { --span-rows: 2; }
+.schedule-time-grid .slot-cell--spanning[data-span-rows="3"] { --span-rows: 3; }
+.schedule-time-grid .slot-cell--spanning[data-span-rows="4"] { --span-rows: 4; }
+.schedule-time-grid .slot-cell--spanning[data-span-rows="5"] { --span-rows: 5; }
+.schedule-time-grid .slot-cell--spanning[data-span-rows="6"] { --span-rows: 6; }
+.schedule-time-grid .slot-cell--spanning[data-span-rows="7"] { --span-rows: 7; }
+.schedule-time-grid .slot-cell--spanning[data-span-rows="8"] { --span-rows: 8; }
+.schedule-time-grid .slot-cell--spanning[data-span-rows="9"] { --span-rows: 9; }
+.schedule-time-grid .slot-cell--spanning[data-span-rows="10"] { --span-rows: 10; }
+
 .schedule-order-line--fill {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   flex: 1;
   min-height: 100%;
+  height: 100%;
   margin-bottom: 0;
+  padding-left: 0.55rem;
+  border-left: none;
+}
+
+.schedule-order-line--fill::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 6px 0 0 6px;
+  background: var(--gray-300, #d4cdb9);
+}
+
+.schedule-order-line--fill.status-scheduled::before {
+  background: #94a3b8;
+}
+
+.schedule-order-line--fill.status-in_progress::before {
+  background: #f59e0b;
+}
+
+.schedule-order-line--fill.status-ready::before {
+  background: #3b82f6;
+}
+
+.schedule-order-line--fill.status-completed::before {
+  background: #22c55e;
+}
+
+.schedule-order-line--fill.order-card--absence-conflict::before {
+  background: #dc2626;
 }
 
 .schedule-time-grid .garage-order-card {
@@ -2047,10 +2097,11 @@
 }
 
 .slot-cell--spanning .schedule-order-block {
+  position: absolute;
+  inset: 2px;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 100%;
+  min-height: calc(100% - 4px);
 }
 
 .schedule-time-grid tbody tr {
@@ -2059,6 +2110,10 @@
 
 .schedule-time-grid tbody tr .slot-cell {
   height: 100%;
+}
+
+.schedule-time-grid tbody tr .slot-cell--spanning {
+  height: auto;
 }
 
 .schedule-order-line:hover {
