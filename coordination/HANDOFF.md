@@ -1,5 +1,18 @@
 # HANDOFF
 
+## 2026-06-18 — lanes UI: equal width and compact cards
+
+### What changed
+- `schedule-time-grid.ejs`: `<colgroup>` with fixed lane widths; divider between lanes; compact short cards in overlap (time + car + #id only).
+- `autoservice.css`: `table-layout: fixed`, removed `width: 1%` squeeze, equal split cols (~118px each), ellipsis on compact text.
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-18 — полосы (lanes) при пересечении заказов в расписании
 
 ### What changed

@@ -228,5 +228,6 @@ test("overlapping orders at 10:00 use separate lanes with independent rowspan", 
   assert.equal(html.status, 200);
   assert.match(html.text, /data-lane="0"/);
   assert.match(html.text, /data-lane="1"/);
+  assert.match(html.text, /schedule-lane-col--split/);
   assert.match(html.text, new RegExp(`data-employee="${masterId}"[^>]*data-lane="0"[^>]*rowspan="3"`));
 });

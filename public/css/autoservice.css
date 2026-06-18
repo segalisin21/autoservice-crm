@@ -1962,25 +1962,57 @@
   margin-top: 0.5rem;
 }
 
+.schedule-time-grid {
+  --schedule-lane-width: 132px;
+  --schedule-lane-split-width: 118px;
+  table-layout: fixed;
+  width: max-content;
+  min-width: 100%;
+}
+
+.schedule-time-grid col.schedule-time-col {
+  width: 52px;
+}
+
+.schedule-time-grid col.schedule-lane-col {
+  width: var(--schedule-lane-width);
+}
+
+.schedule-time-grid col.schedule-lane-col--split {
+  width: var(--schedule-lane-split-width);
+}
+
 .schedule-time-grid .resource-col--grouped {
   text-align: center;
 }
 
+.schedule-time-grid .resource-col--multi-lane {
+  min-width: calc(var(--schedule-lane-split-width) * 2);
+}
+
 .schedule-time-grid .schedule-lane-header-row th.schedule-lane-header {
   padding: 0;
-  height: 4px;
+  height: 6px;
   border-bottom: 1px solid var(--gray-200, #e5e7eb);
   background: var(--gray-50, #f9fafb);
   min-width: 0;
 }
 
+.schedule-time-grid .schedule-lane-header--not-first,
+.schedule-time-grid .schedule-lane-cell--not-first {
+  border-left: 2px solid var(--gray-300, #d4cdb9);
+}
+
 .schedule-time-grid .slot-cell.schedule-lane-cell {
   min-width: 0;
+  max-width: 0;
 }
 
 .schedule-time-grid .slot-cell--multi-lane {
-  width: 1%;
-  min-width: 90px;
+  overflow: hidden;
+}
+
+.schedule-time-grid .slot-cell--multi-lane.slot-cell--spanning {
   overflow: hidden;
 }
 
@@ -2171,7 +2203,23 @@
   gap: 0.1rem;
 }
 
+.schedule-order-line--compact .schedule-order-line__time,
+.schedule-order-line--compact .schedule-order-line__main {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .schedule-order-line--compact .schedule-order-line__meta {
+  font-size: 0.62rem;
+}
+
+.schedule-order-line--compact:not(.schedule-order-line--fill) .schedule-order-line__meta:not(.schedule-order-line__meta--id) {
+  display: none;
+}
+
+.schedule-order-line__meta--id {
+  color: var(--gray-500, #6b7256);
   font-size: 0.62rem;
 }
 
