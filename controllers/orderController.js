@@ -38,6 +38,34 @@ function normalizeTime(value) {
   return null;
 }
 
+function timeToMinutes(t) {
+  if (!t) return null;
+  const m = /^(\d{2}):(\d{2})$/.exec(t);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
+function validateTimeRange(start_time, end_time) {
+  if (!end_time) return null;
+  const startMin = timeToMinutes(start_time);
+  const endMin = timeToMinutes(end_time);
+  if (startMin == null || endMin == null) return null;
+  if (endMin <= startMin) return "Время окончания должно быть позже начала";
+  return null;
+}
+
+function normalizeOptionalDate(value) {
+  const s = String(value ?? "").trim().slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+}
+
+function validateDateRange(scheduled_date, scheduled_end_date) {
+  if (!scheduled_end_date) return null;
+  if (!scheduled_date) return "Укажите дату начала";
+  if (scheduled_end_date < scheduled_date) return "Дата окончания не может быть раньше даты начала";
+  return null;
+}
+
 function parseOptionalId(value) {
   const n = Number(value);
   return Number.isFinite(n) && n > 0 ? Math.trunc(n) : null;
@@ -114,7 +142,8 @@ async function insertOrderLine(db, payload) {
     ]);
     lineId = rows[0]?.id;
   }
-  if (lineId && payload.line_type === "work" && payload.master_id) {
+  const skipPayroll = payload.skipPayrollAutoInsert;
+  if (lineId && payload.line_type === "work" && payload.master_id && !skipPayroll) {
     try {
       await db.query(
         `INSERT INTO order_line_payroll(order_line_id, user_id, share_percent) VALUES (?, ?, 100)`,
@@ -125,6 +154,63 @@ async function insertOrderLine(db, payload) {
     }
   }
   return lineId;
+}
+
+async function validateMasterIds(db, rawIds) {
+  const ids = [];
+  const seen = new Set();
+  for (const id of rawIds) {
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const rows = await db.query(
+      "SELECT id FROM users WHERE id = ? AND is_active = 1 AND role IN ('master', 'manager', 'owner')",
+      [id]
+    );
+    if (rows[0]) ids.push(id);
+  }
+  return ids;
+}
+
+async function syncLinePayrollShares(db, lineId, masterIds) {
+  try {
+    await db.query("DELETE FROM order_line_payroll WHERE order_line_id = ?", [lineId]);
+    if (!masterIds.length) return;
+    const n = masterIds.length;
+    const baseShare = Math.floor(100 / n);
+    let remainder = 100 - baseShare * n;
+    for (let i = 0; i < masterIds.length; i++) {
+      const share = baseShare + (i === 0 ? remainder : 0);
+      await db.query(
+        `INSERT INTO order_line_payroll(order_line_id, user_id, share_percent) VALUES (?, ?, ?)`,
+        [lineId, masterIds[i], share]
+      );
+    }
+  } catch {
+    // table optional before migration
+  }
+}
+
+async function attachPayrollMasters(db, works) {
+  for (const line of works) {
+    try {
+      const rows = await db.query(
+        `
+        SELECT olp.user_id, olp.share_percent, u.name
+        FROM order_line_payroll olp
+        JOIN users u ON u.id = olp.user_id
+        WHERE olp.order_line_id = ?
+        ORDER BY olp.user_id
+      `,
+        [line.id]
+      );
+      line.payroll_masters = rows;
+      line.master_names =
+        rows.map((r) => r.name).join(", ") || line.master_name || "—";
+    } catch {
+      line.payroll_masters = [];
+      line.master_names = line.master_name || "—";
+    }
+  }
 }
 
 const PAGE_SIZE = 50;
@@ -196,6 +282,7 @@ async function getOrderContext(db, orderId) {
     [orderId]
   );
   const works = lines.filter((l) => l.line_type === "work");
+  await attachPayrollMasters(db, works);
   const products = lines.filter((l) => l.line_type === "product");
   const paid_amount = await getPaidAmount(db, orderId);
   const due_amount = Math.max(0, parseMoney(order.total_price) - paid_amount);
@@ -437,6 +524,7 @@ async function create(req, res) {
   const work_type = normalizeWorkTypesFromBody(req.body) || null;
   const notes = String(req.body.notes ?? "").trim() || null;
   const scheduled_date = String(req.body.scheduled_date ?? "").slice(0, 10);
+  const scheduled_end_date = normalizeOptionalDate(req.body.scheduled_end_date);
   const assigned_user_id = normalizeUserId(req.body.assigned_user_id);
   const start_time = normalizeTime(req.body.start_time);
   const end_time = normalizeTime(req.body.end_time);
@@ -479,6 +567,10 @@ async function create(req, res) {
   if (!assigned_user_id) {
     return renderError("Выберите сотрудника");
   }
+  const timeRangeErr = validateTimeRange(start_time, end_time);
+  if (timeRangeErr) return renderError(timeRangeErr);
+  const dateRangeErr = validateDateRange(scheduled_date, scheduled_end_date);
+  if (dateRangeErr) return renderError(dateRangeErr);
 
   const resolved = await resolveOrCreateCar(db, req.body);
   if (resolved && typeof resolved === "object" && resolved.error) {
@@ -498,8 +590,8 @@ async function create(req, res) {
     INSERT INTO orders(
       car_id, status, work_type, notes, created_by,
       tax_enabled, tax_mode, tax_rate, prices_include_tax,
-      scheduled_date, assigned_user_id, start_time, end_time
-    ) VALUES (?, 'scheduled', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      scheduled_date, scheduled_end_date, assigned_user_id, start_time, end_time
+    ) VALUES (?, 'scheduled', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
     [
       car_id,
@@ -511,6 +603,7 @@ async function create(req, res) {
       tax.tax_rate,
       tax.prices_include_tax,
       scheduled_date,
+      scheduled_end_date,
       assigned_user_id,
       start_time,
       end_time
@@ -558,7 +651,11 @@ async function show(req, res) {
       canAnnotateOrder);
   let works = ctx.works;
   if (isMasterView && req.session.user?.id) {
-    works = works.filter((l) => Number(l.master_id) === Number(req.session.user.id));
+    const uid = Number(req.session.user.id);
+    works = works.filter((l) => {
+      if (Number(l.master_id) === uid) return true;
+      return (l.payroll_masters || []).some((p) => Number(p.user_id) === uid);
+    });
   }
 
   let economics = null;
@@ -568,16 +665,26 @@ async function show(req, res) {
 
   if (isMasterView && req.session.user?.id) {
     const fallback = await loadPayrollSettings(db);
+    const uid = Number(req.session.user.id);
     for (const line of works) {
       const lineMaterials = payrollMaterialsForWorkLine(line);
+      const payrollRow = (line.payroll_masters || []).find((p) => Number(p.user_id) === uid);
+      const share = payrollRow ? (Number(payrollRow.share_percent) || 0) / 100 : 1;
+      const virtualLine = {
+        ...line,
+        total: parseMoney(Number(line.total) * share),
+        master_id: uid,
+        labor_minutes: line.labor_minutes
+      };
       const rule = await resolveCompRule(
         db,
-        line.master_id,
+        uid,
         line.catalog_item_id,
         new Date().toISOString().slice(0, 10),
         fallback
       );
-      line.payroll_estimate = computeEarnedForLine(line, rule, { allocatedMaterials: lineMaterials }).earned;
+      const matShare = parseMoney(lineMaterials * share);
+      line.payroll_estimate = computeEarnedForLine(virtualLine, rule, { allocatedMaterials: matShare }).earned;
     }
   }
 
@@ -636,9 +743,23 @@ async function update(req, res) {
   const scheduled_date =
     String(req.body.scheduled_date ?? rows[0].scheduled_date ?? "").slice(0, 10) ||
     new Date().toISOString().slice(0, 10);
+  const scheduled_end_date =
+    req.body.scheduled_end_date !== undefined
+      ? normalizeOptionalDate(req.body.scheduled_end_date)
+      : normalizeOptionalDate(rows[0].scheduled_end_date);
   const assigned_user_id = normalizeUserId(req.body.assigned_user_id);
   const start_time = normalizeTime(req.body.start_time);
   const end_time = normalizeTime(req.body.end_time);
+
+  const dateRangeErr = validateDateRange(scheduled_date, scheduled_end_date);
+  if (dateRangeErr) {
+    return res.redirect(`/orders/${id}?schedule_error=1`);
+  }
+
+  const timeRangeErr = validateTimeRange(start_time, end_time);
+  if (timeRangeErr) {
+    return res.redirect(`/orders/${id}?schedule_error=1`);
+  }
 
   const absenceErr = await validateCanAssign(db, assigned_user_id, scheduled_date, start_time, end_time);
   if (absenceErr) {
@@ -656,7 +777,7 @@ async function update(req, res) {
     UPDATE orders SET
       discount_type = ?, discount_value = ?, discount_scope = ?,
       work_type = ?, notes = ?, status = ?, closed_at = ?,
-      scheduled_date = ?, assigned_user_id = ?, start_time = ?, end_time = ?,
+      scheduled_date = ?, scheduled_end_date = ?, assigned_user_id = ?, start_time = ?, end_time = ?,
       updated_at = ${now}
     WHERE id = ?
   `,
@@ -669,6 +790,7 @@ async function update(req, res) {
       status,
       closed_at,
       scheduled_date,
+      scheduled_end_date,
       assigned_user_id,
       start_time,
       end_time,
@@ -880,28 +1002,26 @@ async function addLine(req, res) {
   const lineTotal = parseMoney(quantity * unit_price);
 
   if (line_type === "work") {
-    const masterIds = parseMasterIds(req.body);
-    const n = masterIds.length || 1;
-    const splitUnit = parseMoney(unit_price / n);
-    const splitTotal = parseMoney(lineTotal / n);
-    const splitMaterial = parseMoney(cost_price / n);
-    const targets = masterIds.length ? masterIds : [null];
-    for (const master_id of targets) {
-      await insertOrderLine(db, {
-        orderId,
-        line_type,
-        catalogId,
-        name,
-        quantity,
-        unit_price: splitUnit,
-        lineTotal: splitTotal,
-        master_id,
-        work_status: "pending",
-        labor_minutes,
-        cost_price: splitMaterial,
-        notes: lineNotes,
-        vehicle_tier
-      });
+    const masterIds = await validateMasterIds(db, parseMasterIds(req.body));
+    const master_id = masterIds[0] || null;
+    const lineId = await insertOrderLine(db, {
+      orderId,
+      line_type,
+      catalogId,
+      name,
+      quantity,
+      unit_price,
+      lineTotal,
+      master_id,
+      work_status: "pending",
+      labor_minutes,
+      cost_price,
+      notes: lineNotes,
+      vehicle_tier,
+      skipPayrollAutoInsert: masterIds.length !== 1
+    });
+    if (lineId && masterIds.length > 1) {
+      await syncLinePayrollShares(db, lineId, masterIds);
     }
   } else {
     await insertOrderLine(db, {
@@ -930,16 +1050,14 @@ async function addLine(req, res) {
 }
 
 async function syncLinePayrollRow(db, lineId, master_id) {
-  try {
-    await db.query("DELETE FROM order_line_payroll WHERE order_line_id = ?", [lineId]);
-    if (master_id) {
-      await db.query(
-        `INSERT INTO order_line_payroll(order_line_id, user_id, share_percent) VALUES (?, ?, 100)`,
-        [lineId, master_id]
-      );
+  if (master_id) {
+    await syncLinePayrollShares(db, lineId, [master_id]);
+  } else {
+    try {
+      await db.query("DELETE FROM order_line_payroll WHERE order_line_id = ?", [lineId]);
+    } catch {
+      // table optional before migration
     }
-  } catch {
-    // table optional before migration
   }
 }
 
@@ -977,8 +1095,15 @@ async function updateLine(req, res) {
 
   const quantity = parseMoney(req.body.quantity) || 1;
   const unit_price = parseMoney(req.body.unit_price);
-  const master_id =
-    line.line_type === "work" ? parseOptionalId(req.body.master_id) : parseOptionalId(line.master_id);
+  let masterIds = [];
+  if (line.line_type === "work") {
+    masterIds = await validateMasterIds(db, parseMasterIds(req.body));
+    if (!masterIds.length) {
+      const fallbackId = parseOptionalId(req.body.master_id);
+      if (fallbackId) masterIds = await validateMasterIds(db, [fallbackId]);
+    }
+  }
+  const master_id = line.line_type === "work" ? masterIds[0] || null : parseOptionalId(line.master_id);
   const work_status = String(req.body.work_status ?? line.work_status ?? "pending");
   const labor_minutes = parseOptionalInt(req.body.labor_minutes);
   const cost_price =
@@ -990,7 +1115,7 @@ async function updateLine(req, res) {
 
   if (line.line_type === "work") {
     await clearLinePayrollFrozen(db, lineId);
-    await syncLinePayrollRow(db, lineId, master_id);
+    await syncLinePayrollShares(db, lineId, masterIds);
   }
 
   await db.query(

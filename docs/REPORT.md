@@ -585,3 +585,31 @@ price_type = 'hour'    → subtotal = price × quantity × (duration_minutes / 6
 Единый документ: **[docs/VPS_PROJECT.md](VPS_PROJECT.md)** — десять вопросов с **зафиксированными ответами** (§1–2), утверждённая целевая архитектура (Node + PostgreSQL + TLS + бэкапы), baseline по размеру VPS, TLS, бэкапам, мониторингу и политике простоя при деплое.
 
 Кратко: приложение уже умеет **PostgreSQL** при заданном **`DATABASE_URL`** (см. [docker-compose.yml](../docker-compose.yml)); без него — **sql.js**. Схема для Postgres — [scripts/postgres/init.sql](../scripts/postgres/init.sql). Чеклист доработок и проверка связи: [docs/POSTGRES_MIGRATION.md](POSTGRES_MIGRATION.md), `npm run verify-pg`.
+
+## 14. Автосервис CRM — баг-пул 2026-06-18
+
+### Как использовать
+
+| Функция | Где |
+| --- | --- |
+| VIN при приёмке | Карточка заказа без авто → «Авто и клиент» → поле VIN |
+| Несколько мастеров на работу | Карточка заказа → «Работы» → чекбоксы мастеров → одна строка |
+| Блок 10–13 в расписании | При создании заказа указать «Окончание» (рядом с «Начало») |
+| Многодневный заезд | «Дата окончания» на форме заказа; badge «до ДД.ММ» в календаре |
+
+### Как проверить
+
+```powershell
+npm test
+```
+
+Регрессии: `tests/orders.test.js`, `tests/orders-carfirst.test.js`, `tests/calendar.test.js`.
+
+### Миграция (Postgres / Railway)
+
+```sql
+-- docs/MIGRATE_POSTGRES_RAILWAY_025.sql
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS scheduled_end_date TEXT;
+```
+
+Локально: `npm run migrate` подхватит `migrations/025_scheduled_end_date.sql`.

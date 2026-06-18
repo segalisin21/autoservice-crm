@@ -32,13 +32,13 @@
   <% } else if (!order.car_id) { %>
   <p class="order-subtitle muted">Клиент и авто будут указаны при приёмке</p>
   <% } %>
-  <% if (order.license_plate_raw) { %><p class="muted"><%= order.license_plate_raw %></p><% } %>
+  <% if (order.license_plate_raw) { %><p class="muted"><%= order.license_plate_raw %><% if (order.vin) { %> · VIN <%= order.vin %><% } %></p><% } else if (order.vin) { %><p class="muted">VIN <%= order.vin %></p><% } %>
   <% if (order.notes) { %>
   <p class="order-intake-note"><span class="muted">При записи:</span> <%= order.notes %></p>
   <% } %>
   <% if (order.scheduled_date || order.start_time || order.end_time) { %>
   <p class="order-schedule-strip muted">
-    <% if (order.scheduled_date) { %><%= String(order.scheduled_date).slice(0, 10) %><% } %>
+    <% if (order.scheduled_date) { %><%= String(order.scheduled_date).slice(0, 10) %><% if (order.scheduled_end_date && String(order.scheduled_end_date).slice(0, 10) > String(order.scheduled_date).slice(0, 10)) { %> — <%= String(order.scheduled_end_date).slice(0, 10) %><% } %><% } %>
     <% if (order.start_time) { %> · <%= orderTimeInput(order.start_time) %><% if (order.end_time) { %>–<%= orderTimeInput(order.end_time) %><% } %><% } else if (!masterView && order.status !== 'completed' && order.status !== 'cancelled') { %>
     · <span class="order-schedule-missing">время не указано</span>
     <% } %>
@@ -121,6 +121,9 @@
         <label>Госномер <input name="new_plate" class="plate-search-input" data-plate-input placeholder="А123ВС777" /></label>
         <label>Марка <input name="new_make" data-ac-mark autocomplete="off" /></label>
         <label>Модель <input name="new_model" data-ac-model autocomplete="off" /></label>
+        <label>Кузов <input name="new_body_type" data-ac-body placeholder="Седан, SUV…" /></label>
+        <label>Год <input name="new_year" data-ac-year inputmode="numeric" /></label>
+        <label>VIN <input name="new_vin" placeholder="необязательно" /></label>
         <label>ФИО владельца <input name="new_owner_name" /></label>
         <label>Телефон <input name="new_owner_phone" inputmode="tel" placeholder="+7…" /></label>
       </div>
@@ -145,6 +148,7 @@
         <label>Тип работ <input value="<%= order.work_type || '—' %>" disabled /></label>
         <% } %>
         <label>Дата <input type="date" name="scheduled_date" value="<%= (order.scheduled_date || '').slice(0,10) %>" <%= order.status === 'completed' ? 'disabled' : '' %> /></label>
+        <label>Дата окончания <input type="date" name="scheduled_end_date" value="<%= (order.scheduled_end_date || '').slice(0,10) %>" <%= order.status === 'completed' ? 'disabled' : '' %> /></label>
         <label>Начало <input type="time" name="start_time" value="<%= orderTimeInput(order.start_time) %>" <%= order.status === 'completed' ? 'disabled' : '' %> /></label>
         <label>Окончание <input type="time" name="end_time" value="<%= orderTimeInput(order.end_time) %>" <%= order.status === 'completed' ? 'disabled' : '' %> /></label>
         <label>Сотрудник
@@ -213,12 +217,17 @@
                   <td><input class="table-input" form="work-line-form-<%= l.id %>" name="material_cost" value="<%= l.cost_price || 0 %>" inputmode="decimal" /></td>
                 <% } %>
                 <td>
-                  <select class="table-input" form="work-line-form-<%= l.id %>" name="master_id">
-                    <option value="">—</option>
+                  <div class="master-checkboxes master-checkboxes--compact master-checkboxes--inline" form="work-line-form-<%= l.id %>">
+                    <% const lineMasterIds = (l.payroll_masters && l.payroll_masters.length)
+                      ? l.payroll_masters.map(p => Number(p.user_id))
+                      : (l.master_id ? [Number(l.master_id)] : []); %>
                     <% (masters || []).forEach(m => { %>
-                      <option value="<%= m.id %>" <%= Number(l.master_id) === m.id ? 'selected' : '' %>><%= m.name %></option>
+                      <label class="master-checkbox-item">
+                        <input type="checkbox" form="work-line-form-<%= l.id %>" name="master_ids[]" value="<%= m.id %>" <%= lineMasterIds.includes(Number(m.id)) ? 'checked' : '' %> />
+                        <span><%= m.name %></span>
+                      </label>
                     <% }) %>
-                  </select>
+                  </div>
                 </td>
               <% } else { %>
                 <% if (!hideLineMoney) { %>
@@ -226,7 +235,7 @@
                 <td><%= Number(l.unit_price).toFixed(2) %></td>
                 <% } %>
                 <% if (typeof isOwnerView !== 'undefined' && isOwnerView) { %><td><%= Number(l.cost_price || 0).toFixed(2) %></td><% } %>
-                <td><%= l.master_name || '—' %></td>
+                <td><%= l.master_names || l.master_name || '—' %></td>
               <% } %>
               <% if (!hideLineMoney) { %><td><strong><%= Number(l.total).toFixed(2) %> ₽</strong></td><% } %>
               <td class="table-actions-cell">

@@ -5,6 +5,7 @@ const request = require("supertest");
 const { createTestApp } = require("./helpers/testApp");
 const { minimalOrderPayload } = require("./helpers/orderCreate");
 const { recomputeOrderTotals } = require("../lib/orderTotals");
+const { hashPassword } = require("../lib/password");
 
 test("create order, add work line, totals recalculated", async (t) => {
   const ctx = await createTestApp();
@@ -188,12 +189,13 @@ test("add work line with invalid master_id stores null not NaN", async (t) => {
   assert.equal(lines[0].master_id, null);
 });
 
-test("add work line with two masters splits total across lines", async (t) => {
+test("add work line with two masters creates one line with payroll shares", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
   const { agent, orderId, catId } = await seedOrderWithAgent(ctx);
   await ctx.db.query(
-    `INSERT INTO users(username, password_hash, name, role, is_active) VALUES ('m2', 'x', 'Master Two', 'master', 1)`
+    `INSERT INTO users(username, password_hash, name, role, is_active, show_in_schedule) VALUES ('m2', ?, 'Master Two', 'master', 1, 1)`,
+    [hashPassword("m2")]
   );
   const master2Id = (await ctx.db.query("SELECT id FROM users WHERE username = 'm2'"))[0].id;
 
@@ -207,15 +209,48 @@ test("add work line with two masters splits total across lines", async (t) => {
   assert.equal(res.status, 302);
 
   const lines = await ctx.db.query(
-    "SELECT master_id, total FROM order_lines WHERE order_id = ? AND line_type = 'work' ORDER BY id",
+    "SELECT id, master_id, total FROM order_lines WHERE order_id = ? AND line_type = 'work' ORDER BY id",
     [orderId]
   );
-  assert.equal(lines.length, 2);
-  const sum = lines.reduce((s, l) => s + Number(l.total), 0);
-  assert.equal(sum, 3000);
+  assert.equal(lines.length, 1);
+  assert.equal(Number(lines[0].total), 3000);
+
+  const payroll = await ctx.db.query(
+    "SELECT user_id, share_percent FROM order_line_payroll WHERE order_line_id = ? ORDER BY user_id",
+    [lines[0].id]
+  );
+  assert.equal(payroll.length, 2);
+  const shareSum = payroll.reduce((s, p) => s + Number(p.share_percent), 0);
+  assert.equal(shareSum, 100);
 
   const order = (await ctx.db.query("SELECT subtotal_works FROM orders WHERE id = ?", [orderId]))[0];
   assert.equal(Number(order.subtotal_works), 3000);
+});
+
+test("master view shows work line when assigned via payroll share", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+  const { agent, orderId, catId } = await seedOrderWithAgent(ctx);
+  await ctx.db.query(
+    `INSERT INTO users(username, password_hash, name, role, is_active, show_in_schedule) VALUES (?, ?, 'Master Two', 'master', 1, 1)`,
+    ["m2", hashPassword("m2")]
+  );
+  const master2Id = (await ctx.db.query("SELECT id FROM users WHERE username = 'm2'"))[0].id;
+
+  await agent.post(`/orders/${orderId}/lines`).type("form").send({
+    line_type: "work",
+    catalog_item_id: String(catId),
+    quantity: "1",
+    unit_price: "2000",
+    master_ids: [String(ctx.users.master.id), String(master2Id)]
+  });
+
+  const master2Agent = request.agent(ctx.app);
+  await ctx.loginAs(master2Agent, "m2", "m2");
+  const page = await master2Agent.get(`/orders/${orderId}`);
+  assert.equal(page.status, 200);
+  assert.match(page.text, /Master Two/);
+  assert.match(page.text, /Работа/);
 });
 
 test("completed order page shows status chips for admin", async (t) => {
@@ -572,4 +607,47 @@ test("order card update sets start and end time without work type", async (t) =>
   const order = (await ctx.db.query("SELECT start_time, end_time FROM orders WHERE id = ?", [orderId]))[0];
   assert.equal(order.start_time, "11:30");
   assert.equal(order.end_time, "13:00");
+});
+
+test("create order rejects end_time before or equal to start_time", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const res = await agent.post("/orders").type("form").send({
+    scheduled_date: "2026-06-20",
+    start_time: "13:00",
+    end_time: "10:00",
+    assigned_user_id: String(ctx.users.master.id)
+  });
+  assert.equal(res.status, 400);
+  assert.match(res.text, /окончания/i);
+});
+
+test("create order with scheduled_end_date saves and shows on print", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const res = await agent.post("/orders").type("form").send({
+    scheduled_date: "2026-06-17",
+    scheduled_end_date: "2026-06-20",
+    start_time: "10:00",
+    end_time: "13:00",
+    assigned_user_id: String(ctx.users.master.id)
+  });
+  assert.equal(res.status, 302);
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const order = (await ctx.db.query("SELECT scheduled_end_date FROM orders WHERE id = ?", [orderId]))[0];
+  assert.equal(order.scheduled_end_date, "2026-06-20");
+
+  const print = await agent.get(`/orders/${orderId}/print`);
+  assert.equal(print.status, 200);
+  assert.match(print.text, /Дата окончания работ/);
+  assert.match(print.text, /2026-06-20/);
 });

@@ -2053,6 +2053,14 @@
   min-height: 100%;
 }
 
+.schedule-time-grid tbody tr {
+  height: 1px;
+}
+
+.schedule-time-grid tbody tr .slot-cell {
+  height: 100%;
+}
+
 .schedule-order-line:hover {
   border-color: var(--primary, #3d5a27);
 }

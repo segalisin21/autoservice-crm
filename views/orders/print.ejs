@@ -34,6 +34,9 @@
     <div><strong>VIN:</strong> <%= order.vin || '—' %></div>
     <div><strong>Пробег:</strong> <%= order.mileage != null && order.mileage !== '' ? Number(order.mileage).toLocaleString('ru-RU') + ' км' : '—' %></div>
     <div><strong>Дата приёма:</strong> <%= (order.scheduled_date || order.opened_at || '').toString().slice(0,10) %></div>
+    <% if (order.scheduled_end_date && String(order.scheduled_end_date).slice(0,10) > String(order.scheduled_date || order.opened_at || '').slice(0,10)) { %>
+    <div><strong>Дата окончания работ:</strong> <%= String(order.scheduled_end_date).slice(0,10) %></div>
+    <% } %>
   </div>
 
   <h3>Работы</h3>

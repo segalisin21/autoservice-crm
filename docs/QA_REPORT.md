@@ -161,3 +161,21 @@ npm test
 4. ~~BUG-003~~, ~~BUG-005~~, ~~BUG-006~~ — сделано (см. карточки багов).
 
 После каждого фикса — добавить регрессионный тест в `tests/` (см. [TEST_PLAN.md](TEST_PLAN.md)).
+
+## 6. Автосервис CRM — баг-пул 2026-06-18
+
+| ID | Статус | Автотест |
+| --- | --- | --- |
+| [BUG-001](bugs/BUG-001.md) | fixed | `orders.test.js` — two masters one line |
+| [BUG-002](bugs/BUG-002.md) | fixed | `orders-carfirst.test.js` — VIN at intake |
+| [BUG-003](bugs/BUG-003.md) | fixed | `calendar.test.js` — rowspan 10–13 |
+| [BUG-004](bugs/BUG-004.md) | fixed | `calendar.test.js` + `orders.test.js` — end date |
+
+### Ручной smoke (autoservice)
+
+- [ ] Добавить работу 2000 ₽, 2 мастера → 1 строка, итого 2000 (не 4000).
+- [ ] Заказ-наряд — одна строка работ, VIN заполнен после приёмки.
+- [ ] Запись 10:00–13:00 → блок на 3 строки (desktop).
+- [ ] Заезд 17.06–20.06 → на 17.06 badge «до 20.06»; на 18.06 карточки нет.
+
+**Gate:** `npm test` (146 тестов).

@@ -20,6 +20,7 @@
   <% } %>
   <div class="garage-order-meta">
     <% if (o.start_time) { %><span><%= o.start_time %><% if (o.end_time) { %>–<%= o.end_time %><% } %></span><% } %>
+    <% if (o.end_date_badge) { %><span class="order-end-date-badge"><%= o.end_date_badge %></span><% } %>
     <% if (o.work_type) { %><span><%= o.work_type %></span><% } %>
     <% if (typeof showMoney !== 'undefined' && showMoney && o.total_price > 0) { %><span><%= o.total_price.toLocaleString('ru-RU') %> ₽</span><% } %>
   </div>

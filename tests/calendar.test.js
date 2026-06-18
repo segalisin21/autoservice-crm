@@ -133,3 +133,53 @@ test("multi-hour order spans three rows for 10:00–13:00", async (t) => {
   assert.match(html.text, /rowspan="3"/);
   assert.match(html.text, /10:00–13:00/);
 });
+
+test("garage day view shows time range for multi-hour order", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  await ctx.db.query(`INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('GarageSpan', '+7', '79991115566')`);
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, make) VALUES (?, 'Ford')`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+
+  const day = "2026-06-17";
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, scheduled_date, assigned_user_id, start_time, end_time, total_price) VALUES (?, 'scheduled', ?, ?, '10:00', '13:00', 2000)`,
+    [carId, day, masterId]
+  );
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const html = await agent.get(`/?mode=day&date=${day}`);
+  assert.equal(html.status, 200);
+  assert.match(html.text, /10:00–13:00/);
+});
+
+test("multi-day order shows end date badge on start day only", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  await ctx.db.query(`INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('MultiDay', '+7', '79991116677')`);
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id, make) VALUES (?, 'UAZ')`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, scheduled_date, scheduled_end_date, assigned_user_id, start_time, end_time, total_price) VALUES (?, 'scheduled', '2026-06-17', '2026-06-20', ?, '10:00', '13:00', 3000)`,
+    [carId, masterId]
+  );
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const startDay = await agent.get("/?mode=day&date=2026-06-17");
+  assert.equal(startDay.status, 200);
+  assert.match(startDay.text, /до 20\.06/);
+
+  const midDay = await agent.get("/?mode=day&date=2026-06-18");
+  assert.equal(midDay.status, 200);
+  assert.doesNotMatch(midDay.text, /до 20\.06/);
+});

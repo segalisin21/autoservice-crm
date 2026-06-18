@@ -1,6 +1,31 @@
 # HANDOFF
 
-## 2026-06-15 — тесты: скорость и регрессии
+## 2026-06-18 — баг-пул autoservice (4 фикса)
+
+### What changed
+1. **Multi-master:** одна `order_line` + `order_line_payroll` shares; UI чекбоксы; master view по payroll.
+2. **VIN:** поле в форме приёмки (`show.ejs`), отображение в шапке заказа.
+3. **Расписание:** `end_time` на основной форме; валидация диапазона; CSS rowspan fill.
+4. **Многодневный заезд:** `scheduled_end_date`, badge «до ДД.ММ», печать.
+
+### Key files
+- `controllers/orderController.js`, `lib/calendarData.js`
+- `views/orders/show.ejs`, `views/orders/form.ejs`, `views/orders/print.ejs`
+- `views/partials/order-card.ejs`, `views/partials/schedule-time-grid.ejs`
+- `migrations/025_scheduled_end_date.sql`, `docs/MIGRATE_POSTGRES_RAILWAY_025.sql`
+- `tests/orders.test.js`, `tests/orders-carfirst.test.js`, `tests/calendar.test.js`
+- `docs/bugs/BUG-001..004.md`, `docs/DESIGN.md`, `docs/QA_REPORT.md`, `docs/SECURITY.md`, `docs/REPORT.md`
+
+### Verify
+```bash
+npm test
+```
+
+### Risks
+- Старые заказы с дублированными строками работ (до фикса) не мигрируются автоматически.
+- На Railway: выполнить `docs/MIGRATE_POSTGRES_RAILWAY_025.sql` если migrate не прогнан.
+
+---
 
 ### What changed
 - **Баг**: `carController.create` — 14 колонок, 13 плейсхолдеров (`13 values for 14 columns`); создание авто падало и могло подвешивать раннер.

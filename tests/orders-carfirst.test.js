@@ -198,6 +198,35 @@ test("create order without work types is allowed", async (t) => {
   assert.equal(order.work_type, null);
 });
 
+test("assign new car with VIN at intake saves VIN on car and order page", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  await agent.post("/orders").type("form").send(minimalOrderPayload(ctx));
+  const orderId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const res = await agent.post(`/orders/${orderId}/car`).type("form").send({
+    car_id: "",
+    new_plate: "О777ОО199",
+    new_make: "GAZ",
+    new_model: "Tigr",
+    new_vin: "x9f2abc1234567890",
+    new_owner_name: "Тестов Тест",
+    new_owner_phone: "+79001234567"
+  });
+  assert.equal(res.status, 302);
+
+  const car = (await ctx.db.query("SELECT vin FROM cars WHERE license_plate_normalized = 'О777ОО199'"))[0];
+  assert.ok(car);
+  assert.equal(car.vin, "X9F2ABC1234567890");
+
+  const page = await agent.get(`/orders/${orderId}`);
+  assert.equal(page.status, 200);
+  assert.match(page.text, /X9F2ABC1234567890/);
+});
+
 test("assign car to order without car", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
