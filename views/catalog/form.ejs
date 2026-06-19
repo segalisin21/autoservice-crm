@@ -64,6 +64,13 @@
       </div>
       <p class="muted catalog-field-hint">Расходник подставляется в заказ при выборе категории авто и учитывается при расчёте ЗП (net %). Если для 2/3 кат. не указан — берётся расходник 1 кат.</p>
     </fieldset>
+    <fieldset class="catalog-price-fieldset catalog-payroll-fieldset" id="catalog-payroll-fieldset">
+      <legend>Зарплата по услуге</legend>
+      <label>Фикс. ЗП, ₽
+        <input name="payroll_fixed" value="<%= item.payroll_fixed != null ? item.payroll_fixed : '' %>" inputmode="decimal" placeholder="не задано — по правилам мастера" />
+      </label>
+      <p class="muted catalog-field-hint">Если указано — мастер получает эту сумму за выполнение услуги (не зависит от цены для клиента). При нескольких мастерах сумма делится между ними. Персональное переопределение в разделе «Зарплата» имеет приоритет.</p>
+    </fieldset>
     <div class="compact-actions catalog-form-actions">
       <button type="submit" class="btn btn-primary">Сохранить</button>
       <a class="btn btn-secondary" href="/catalog">Назад</a>

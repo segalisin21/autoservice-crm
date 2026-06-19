@@ -1,7 +1,13 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { materialForVehicleTier, priceForVehicleTier } = require("../lib/catalogPricing");
+const { materialForVehicleTier, priceForVehicleTier, parseOptionalPayrollFixed } = require("../lib/catalogPricing");
+
+test("parseOptionalPayrollFixed accepts zero and empty", () => {
+  assert.equal(parseOptionalPayrollFixed(""), null);
+  assert.equal(parseOptionalPayrollFixed("0"), 0);
+  assert.equal(parseOptionalPayrollFixed("750"), 750);
+});
 
 test("materialForVehicleTier picks tier-specific consumable", () => {
   const item = {

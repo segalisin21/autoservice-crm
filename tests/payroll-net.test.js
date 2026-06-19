@@ -29,6 +29,77 @@ test("fixed amount splits by master share on work line", () => {
   assert.equal(half.earned, 500);
 });
 
+test("catalog payroll_fixed splits between two masters on one work line", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const master1Id = ctx.users.master.id;
+  await ctx.db.query(
+    `INSERT INTO users(username, password_hash, name, role, is_active, show_in_schedule) VALUES ('m2', ?, 'Master Two', 'master', 1, 1)`,
+    [hashPassword("m2")]
+  );
+  const master2Id = (await ctx.db.query("SELECT id FROM users WHERE username = 'm2'"))[0].id;
+
+  await ctx.db.query(
+    `INSERT INTO catalog_items(type, category, name, default_price, payroll_fixed) VALUES ('work', 'T', 'Wash', 2000, 900)`
+  );
+  const catalogId = (await ctx.db.query("SELECT id FROM catalog_items LIMIT 1"))[0].id;
+
+  const orderId = await seedOrder(ctx);
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, catalog_item_id, name, quantity, unit_price, total, master_id, work_status)
+     VALUES (?, 'work', ?, 'Wash', 1, 2000, 2000, ?, 'done')`,
+    [orderId, catalogId, master1Id]
+  );
+  const lineId = (await ctx.db.query("SELECT id FROM order_lines WHERE order_id = ?", [orderId]))[0].id;
+  await ctx.db.query(`INSERT INTO order_line_payroll(order_line_id, user_id, share_percent) VALUES (?, ?, 50)`, [
+    lineId,
+    master1Id
+  ]);
+  await ctx.db.query(`INSERT INTO order_line_payroll(order_line_id, user_id, share_percent) VALUES (?, ?, 50)`, [
+    lineId,
+    master2Id
+  ]);
+
+  await freezeOrderEarned(orderId);
+
+  const payroll = await ctx.db.query(
+    "SELECT earned_amount FROM order_line_payroll WHERE order_line_id = ? ORDER BY user_id",
+    [lineId]
+  );
+  assert.equal(payroll.length, 2);
+  for (const row of payroll) {
+    assert.equal(Number(row.earned_amount), 450);
+  }
+});
+
+test("master override takes priority over catalog payroll_fixed", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  await ctx.db.query(
+    `INSERT INTO catalog_items(type, category, name, default_price, payroll_fixed) VALUES ('work', 'T', 'Diag', 3000, 500)`
+  );
+  const catalogId = (await ctx.db.query("SELECT id FROM catalog_items LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO master_comp_overrides(user_id, catalog_item_id, mode, value) VALUES (?, ?, 'fixed', 1200)`,
+    [masterId, catalogId]
+  );
+
+  const orderId = await seedOrder(ctx);
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, catalog_item_id, name, quantity, unit_price, total, master_id, work_status)
+     VALUES (?, 'work', ?, 'Diag', 1, 3000, 3000, ?, 'done')`,
+    [orderId, catalogId, masterId]
+  );
+
+  await freezeOrderEarned(orderId);
+
+  const line = (await ctx.db.query("SELECT master_earned_amount FROM order_lines WHERE order_id = ?", [orderId]))[0];
+  assert.equal(Number(line.master_earned_amount), 1200);
+});
+
 test("fixed override splits equally between two masters on one work line", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());

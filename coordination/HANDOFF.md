@@ -862,7 +862,21 @@ npm test
 
 ---
 
-### What changed (2026-06-19 payroll multi-master rules + fixed split)
+### What changed (2026-06-19 catalog payroll_fixed per service)
+- В карточке услуги каталога — поле **«Фикс. ЗП»**: сумма начисляется мастерам за выполнение услуги (не от цены клиенту), делится между исполнителями на строке заказа.
+- Приоритет: персональное переопределение (Зарплата) → фикс из каталога → правило мастера → формула по умолчанию.
+- Миграция **026**: `catalog_items.payroll_fixed`.
+
+### Key files
+- `migrations/026_catalog_payroll_fixed.sql`, `lib/payroll.js`, `lib/catalogPricing.js`
+- `controllers/catalogController.js`, `views/catalog/form.ejs`, `public/js/catalog-article-form.js`
+- `tests/payroll-net.test.js`, `tests/catalog-pricing.test.js`
+
+### Verify
+```bash
+npm test
+```
+
 - В настройках зарплаты («Правила по мастерам» и «Переопределения по работам») можно выбрать **несколько мастеров** — одно правило применяется ко всем выбранным.
 - **Фиксированная** зарплата по работе делится между исполнителями пропорционально их доле (`share_percent` в `order_line_payroll`); при двух мастерах по 50% фикс 1000 ₽ → по 500 ₽ каждому.
 

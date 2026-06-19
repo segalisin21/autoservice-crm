@@ -68,7 +68,14 @@
   articleInput.addEventListener('blur', checkArticle);
 
   if (typeSelect) {
+    var payrollFieldset = document.getElementById('catalog-payroll-fieldset');
+    function syncPayrollFieldset() {
+      if (!payrollFieldset) return;
+      payrollFieldset.hidden = typeSelect.value === 'product';
+    }
+    syncPayrollFieldset();
     typeSelect.addEventListener('change', function () {
+      syncPayrollFieldset();
       if (!articleInput.value.trim()) {
         fetch('/api/catalog/suggest-article?type=' + encodeURIComponent(typeSelect.value), {
           credentials: 'same-origin'
