@@ -877,6 +877,21 @@ npm test
 npm test
 ```
 
+---
+
+### What changed (2026-06-19 fix split payroll aggregation)
+- Исправлен двойной учёт ЗП при нескольких мастерах на одной работе: первый мастер (`master_id`) больше не получает всю сумму строки в отчёте «Зарплата».
+- `sumEarnedForUser` / `loadMasterEarnedLines`: split-строки считаются только через `order_line_payroll`; одиночные — через `order_lines`.
+- `payrollTotalInPeriod`: убран `Math.max`, сумма за период без завышения.
+
+### Key files
+- `lib/payrollBalance.js`, `lib/orderEconomics.js`, `tests/payroll-finance.test.js`
+
+### Verify
+```bash
+npm test
+```
+
 - В настройках зарплаты («Правила по мастерам» и «Переопределения по работам») можно выбрать **несколько мастеров** — одно правило применяется ко всем выбранным.
 - **Фиксированная** зарплата по работе делится между исполнителями пропорционально их доле (`share_percent` в `order_line_payroll`); при двух мастерах по 50% фикс 1000 ₽ → по 500 ₽ каждому.
 

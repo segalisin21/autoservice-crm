@@ -252,3 +252,75 @@ test("override form applies same rule to multiple masters", async (t) => {
     assert.equal(Number(row.value), 800);
   }
 });
+
+async function seedSplitPayrollOrder(ctx, { master1Id, master2Id, catalogId, closedAt = "2026-06-10 12:00:00" }) {
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('C', '1', '79991110000')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id) VALUES (?)`, [clientId]);
+  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, closed_at, total_price) VALUES (?, 'completed', ?, 3000)`,
+    [carId, closedAt]
+  );
+  const orderId = (await ctx.db.query("SELECT id FROM orders LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, catalog_item_id, name, quantity, unit_price, total, master_id, work_status)
+     VALUES (?, 'work', ?, 'Anti-rain', 1, 3000, 3000, ?, 'done')`,
+    [orderId, catalogId, master1Id]
+  );
+  const lineId = (await ctx.db.query("SELECT id FROM order_lines WHERE order_id = ?", [orderId]))[0].id;
+  await ctx.db.query(`INSERT INTO order_line_payroll(order_line_id, user_id, share_percent) VALUES (?, ?, 50)`, [
+    lineId,
+    master1Id
+  ]);
+  await ctx.db.query(`INSERT INTO order_line_payroll(order_line_id, user_id, share_percent) VALUES (?, ?, 50)`, [
+    lineId,
+    master2Id
+  ]);
+  await freezeOrderEarned(orderId);
+  return { orderId, lineId };
+}
+
+test("split payroll balances show 500 each not 1000 for primary master", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const master1Id = ctx.users.master.id;
+  await ctx.db.query(
+    `INSERT INTO users(username, password_hash, name, role, is_active, show_in_schedule) VALUES ('m2', ?, 'Master Two', 'master', 1, 1)`,
+    [hashPassword("m2")]
+  );
+  const master2Id = (await ctx.db.query("SELECT id FROM users WHERE username = 'm2'"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO catalog_items(type, category, name, default_price, payroll_fixed) VALUES ('work', 'T', 'Anti-rain', 3000, 1000)`
+  );
+  const catalogId = (await ctx.db.query("SELECT id FROM catalog_items WHERE name = 'Anti-rain'"))[0].id;
+
+  await seedSplitPayrollOrder(ctx, { master1Id, master2Id, catalogId });
+
+  const { loadMasterPayrollBalances, loadMasterEarnedLines, sumEarnedForUser } = require("../lib/payrollBalance");
+  const { payrollTotalInPeriod } = require("../lib/orderEconomics");
+
+  const b1 = await sumEarnedForUser(ctx.db, master1Id);
+  const b2 = await sumEarnedForUser(ctx.db, master2Id);
+  assert.equal(b1, 500);
+  assert.equal(b2, 500);
+
+  const balances = await loadMasterPayrollBalances(ctx.db, {});
+  const row1 = balances.find((b) => b.id === master1Id);
+  const row2 = balances.find((b) => b.id === master2Id);
+  assert.equal(row1.earned_total, 500);
+  assert.equal(row2.earned_total, 500);
+
+  const lines1 = await loadMasterEarnedLines(ctx.db, master1Id);
+  const lines2 = await loadMasterEarnedLines(ctx.db, master2Id);
+  assert.equal(lines1.length, 1);
+  assert.equal(lines2.length, 1);
+  assert.equal(Number(lines1[0].earned), 500);
+  assert.equal(Number(lines2[0].earned), 500);
+
+  const periodTotal = await payrollTotalInPeriod(ctx.db, "2026-06-01", "2026-06-30");
+  assert.equal(periodTotal, 1000);
+});
