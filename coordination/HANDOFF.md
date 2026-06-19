@@ -859,3 +859,18 @@ npm test
 
 ### Railway
 Если автомиграция не сработала: `docs/MIGRATE_POSTGRES_RAILWAY_022.sql`
+
+---
+
+### What changed (2026-06-19 payroll multi-master rules + fixed split)
+- В настройках зарплаты («Правила по мастерам» и «Переопределения по работам») можно выбрать **несколько мастеров** — одно правило применяется ко всем выбранным.
+- **Фиксированная** зарплата по работе делится между исполнителями пропорционально их доле (`share_percent` в `order_line_payroll`); при двух мастерах по 50% фикс 1000 ₽ → по 500 ₽ каждому.
+
+### Key files
+- `lib/payroll.js`, `controllers/payrollController.js`, `views/admin/payroll.ejs`, `controllers/orderController.js`
+- `tests/payroll-net.test.js`, `tests/payroll-finance.test.js`
+
+### Verify
+```bash
+npm test
+```

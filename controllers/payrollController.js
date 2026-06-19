@@ -11,6 +11,24 @@ const {
 
 const COMP_MODES = ["net_percent", "percent", "fixed", "hourly"];
 
+function parseUserIds(body) {
+  let raw = body.user_ids;
+  if (raw == null) raw = body["user_ids[]"];
+  if (raw == null && body.user_id != null && body.user_id !== "") raw = body.user_id;
+  if (raw == null) return [];
+  const arr = Array.isArray(raw) ? raw : [raw];
+  const ids = [];
+  const seen = new Set();
+  for (const v of arr) {
+    const id = Number(v);
+    if (Number.isFinite(id) && id > 0 && !seen.has(id)) {
+      seen.add(id);
+      ids.push(id);
+    }
+  }
+  return ids;
+}
+
 async function loadMasters(db) {
   return db.query(
     "SELECT id, name, username, role FROM users WHERE role IN ('master','admin','owner') AND is_active = 1 ORDER BY name"
@@ -111,24 +129,26 @@ async function saveRule(req, res) {
   if (!(await canMutatePayroll(req))) {
     return res.status(403).send("Forbidden");
   }
-  const user_id = Number(req.body.user_id);
+  const userIds = parseUserIds(req.body);
   const mode = String(req.body.mode ?? "net_percent");
   const value = parseMoney(req.body.value);
   const effective_from = String(req.body.effective_from ?? new Date().toISOString().slice(0, 10));
 
-  if (!user_id || !COMP_MODES.includes(mode)) {
+  if (!userIds.length || !COMP_MODES.includes(mode)) {
     return res.redirect("/admin/payroll");
   }
 
   const db = await getDB();
-  await db.query(
-    "UPDATE master_comp_rules SET is_active = 0 WHERE user_id = ? AND is_active = 1",
-    [user_id]
-  );
-  await db.query(
-    `INSERT INTO master_comp_rules(user_id, mode, value, effective_from, is_active) VALUES (?, ?, ?, ?, 1)`,
-    [user_id, mode, value, effective_from]
-  );
+  for (const user_id of userIds) {
+    await db.query(
+      "UPDATE master_comp_rules SET is_active = 0 WHERE user_id = ? AND is_active = 1",
+      [user_id]
+    );
+    await db.query(
+      `INSERT INTO master_comp_rules(user_id, mode, value, effective_from, is_active) VALUES (?, ?, ?, ?, 1)`,
+      [user_id, mode, value, effective_from]
+    );
+  }
   return res.redirect("/admin/payroll");
 }
 
@@ -166,24 +186,26 @@ async function saveOverride(req, res) {
   if (!(await canMutatePayroll(req))) {
     return res.status(403).send("Forbidden");
   }
-  const user_id = Number(req.body.user_id);
+  const userIds = parseUserIds(req.body);
   const catalog_item_id = Number(req.body.catalog_item_id);
   const mode = String(req.body.mode ?? "percent");
   const value = parseMoney(req.body.value);
 
-  if (!user_id || !catalog_item_id || !COMP_MODES.includes(mode)) {
+  if (!userIds.length || !catalog_item_id || !COMP_MODES.includes(mode)) {
     return res.redirect("/admin/payroll");
   }
 
   const db = await getDB();
-  await db.query(
-    `
-    INSERT INTO master_comp_overrides(user_id, catalog_item_id, mode, value)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(user_id, catalog_item_id) DO UPDATE SET mode = excluded.mode, value = excluded.value
-  `,
-    [user_id, catalog_item_id, mode, value]
-  );
+  for (const user_id of userIds) {
+    await db.query(
+      `
+      INSERT INTO master_comp_overrides(user_id, catalog_item_id, mode, value)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(user_id, catalog_item_id) DO UPDATE SET mode = excluded.mode, value = excluded.value
+    `,
+      [user_id, catalog_item_id, mode, value]
+    );
+  }
   return res.redirect("/admin/payroll");
 }
 

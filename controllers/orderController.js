@@ -684,7 +684,10 @@ async function show(req, res) {
         fallback
       );
       const matShare = parseMoney(lineMaterials * share);
-      line.payroll_estimate = computeEarnedForLine(virtualLine, rule, { allocatedMaterials: matShare }).earned;
+      line.payroll_estimate = computeEarnedForLine(virtualLine, rule, {
+        allocatedMaterials: matShare,
+        share
+      }).earned;
     }
   }
 

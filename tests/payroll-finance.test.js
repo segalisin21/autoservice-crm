@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const request = require("supertest");
 
 const { createTestApp } = require("./helpers/testApp");
+const { hashPassword } = require("../lib/password");
 const { freezeOrderEarned } = require("../lib/payroll");
 const { loadFinanceMetrics } = require("../lib/finance");
 
@@ -217,4 +218,37 @@ test("admin can record payroll payout", async (t) => {
     ctx.users.master.id
   ]);
   assert.equal(Number(paid[0].s), 50);
+});
+
+test("override form applies same rule to multiple masters", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  await ctx.db.query(
+    `INSERT INTO users(username, password_hash, name, role, is_active, show_in_schedule) VALUES ('m2', ?, 'Master Two', 'master', 1, 1)`,
+    [hashPassword("m2")]
+  );
+  const master2Id = (await ctx.db.query("SELECT id FROM users WHERE username = 'm2'"))[0].id;
+  await ctx.db.query(`INSERT INTO catalog_items(type, category, name, default_price) VALUES ('work', 'T', 'Brakes', 2000)`);
+  const catalogId = (await ctx.db.query("SELECT id FROM catalog_items WHERE name = 'Brakes'"))[0].id;
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "owner", "owner");
+  const res = await agent.post("/admin/payroll/overrides").type("form").send({
+    "user_ids[]": [String(ctx.users.master.id), String(master2Id)],
+    catalog_item_id: String(catalogId),
+    mode: "fixed",
+    value: "800"
+  });
+  assert.equal(res.status, 302);
+
+  const rows = await ctx.db.query(
+    "SELECT user_id, mode, value FROM master_comp_overrides WHERE catalog_item_id = ? ORDER BY user_id",
+    [catalogId]
+  );
+  assert.equal(rows.length, 2);
+  for (const row of rows) {
+    assert.equal(row.mode, "fixed");
+    assert.equal(Number(row.value), 800);
+  }
 });

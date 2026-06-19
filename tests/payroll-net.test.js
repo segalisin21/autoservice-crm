@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { createTestApp } = require("./helpers/testApp");
+const { hashPassword } = require("../lib/password");
 const { freezeOrderEarned, computeEarnedForLine } = require("../lib/payroll");
 
 async function seedOrder(ctx) {
@@ -19,6 +20,62 @@ async function seedOrder(ctx) {
 test("net_percent subtracts work-line consumables before percentage", () => {
   const r = computeEarnedForLine({ total: 1000 }, { mode: "net_percent", value: 50 }, { allocatedMaterials: 400 });
   assert.equal(r.earned, 300); // (1000 - 400) * 50%
+});
+
+test("fixed amount splits by master share on work line", () => {
+  const full = computeEarnedForLine({ total: 5000 }, { mode: "fixed", value: 1000 });
+  assert.equal(full.earned, 1000);
+  const half = computeEarnedForLine({ total: 5000 }, { mode: "fixed", value: 1000 }, { share: 0.5 });
+  assert.equal(half.earned, 500);
+});
+
+test("fixed override splits equally between two masters on one work line", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const master1Id = ctx.users.master.id;
+  await ctx.db.query(
+    `INSERT INTO users(username, password_hash, name, role, is_active, show_in_schedule) VALUES ('m2', ?, 'Master Two', 'master', 1, 1)`,
+    [hashPassword("m2")]
+  );
+  const master2Id = (await ctx.db.query("SELECT id FROM users WHERE username = 'm2'"))[0].id;
+
+  await ctx.db.query(`INSERT INTO catalog_items(type, category, name, default_price) VALUES ('work', 'T', 'Oil', 1000)`);
+  const catalogId = (await ctx.db.query("SELECT id FROM catalog_items LIMIT 1"))[0].id;
+
+  for (const uid of [master1Id, master2Id]) {
+    await ctx.db.query(
+      `INSERT INTO master_comp_overrides(user_id, catalog_item_id, mode, value) VALUES (?, ?, 'fixed', 1000)`,
+      [uid, catalogId]
+    );
+  }
+
+  const orderId = await seedOrder(ctx);
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, catalog_item_id, name, quantity, unit_price, total, master_id, work_status)
+     VALUES (?, 'work', ?, 'Oil', 1, 1000, 1000, ?, 'done')`,
+    [orderId, catalogId, master1Id]
+  );
+  const lineId = (await ctx.db.query("SELECT id FROM order_lines WHERE order_id = ?", [orderId]))[0].id;
+  await ctx.db.query(`INSERT INTO order_line_payroll(order_line_id, user_id, share_percent) VALUES (?, ?, 50)`, [
+    lineId,
+    master1Id
+  ]);
+  await ctx.db.query(`INSERT INTO order_line_payroll(order_line_id, user_id, share_percent) VALUES (?, ?, 50)`, [
+    lineId,
+    master2Id
+  ]);
+
+  await freezeOrderEarned(orderId);
+
+  const payroll = await ctx.db.query(
+    "SELECT user_id, earned_amount FROM order_line_payroll WHERE order_line_id = ? ORDER BY user_id",
+    [lineId]
+  );
+  assert.equal(payroll.length, 2);
+  for (const row of payroll) {
+    assert.equal(Number(row.earned_amount), 500);
+  }
 });
 
 test("product tab cost does not reduce payroll", async (t) => {

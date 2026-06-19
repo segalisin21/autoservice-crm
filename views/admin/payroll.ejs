@@ -195,14 +195,19 @@
       <tfoot>
         <tr>
           <td colspan="4" class="payroll-settings-form-cell">
-            <form method="post" action="/admin/payroll/rules" class="form-inline payroll-settings-form">
-              <label>Мастер
-                <select name="user_id" required>
+            <form method="post" action="/admin/payroll/rules" class="payroll-settings-form">
+              <div class="master-checkboxes master-checkboxes--compact payroll-master-pick">
+                <span class="master-checkboxes__label">Мастера:</span>
+                <div class="master-checkboxes-list">
                   <% masters.forEach(m => { %>
-                    <option value="<%= m.id %>"><%= m.name %></option>
+                    <label class="master-checkbox-item">
+                      <input type="checkbox" name="user_ids[]" value="<%= m.id %>" />
+                      <span><%= m.name %></span>
+                    </label>
                   <% }) %>
-                </select>
-              </label>
+                </div>
+              </div>
+              <div class="form-inline payroll-settings-form">
               <label>Режим
                 <select name="mode">
                   <% modes.forEach(m => { %>
@@ -213,6 +218,7 @@
               <label>Значение <input name="value" required inputmode="decimal" /></label>
               <label>С <input type="date" name="effective_from" value="<%= range.start_date %>" /></label>
               <button type="submit" class="btn btn-primary btn-sm">+ Правило</button>
+              </div>
             </form>
           </td>
         </tr>
@@ -248,14 +254,19 @@
       <tfoot>
         <tr>
           <td colspan="5" class="payroll-settings-form-cell">
-            <form method="post" action="/admin/payroll/overrides" class="form-inline payroll-settings-form">
-              <label>Мастер
-                <select name="user_id" required>
+            <form method="post" action="/admin/payroll/overrides" class="payroll-settings-form">
+              <div class="master-checkboxes master-checkboxes--compact payroll-master-pick">
+                <span class="master-checkboxes__label">Мастера:</span>
+                <div class="master-checkboxes-list">
                   <% masters.forEach(m => { %>
-                    <option value="<%= m.id %>"><%= m.name %></option>
+                    <label class="master-checkbox-item">
+                      <input type="checkbox" name="user_ids[]" value="<%= m.id %>" />
+                      <span><%= m.name %></span>
+                    </label>
                   <% }) %>
-                </select>
-              </label>
+                </div>
+              </div>
+              <div class="form-inline payroll-settings-form">
               <label>Работа
                 <select name="catalog_item_id" required>
                   <% works.forEach(w => { %>
@@ -272,6 +283,7 @@
               </label>
               <label>Значение <input name="value" required inputmode="decimal" /></label>
               <button type="submit" class="btn btn-primary btn-sm">+ Переопределение</button>
+              </div>
             </form>
           </td>
         </tr>
