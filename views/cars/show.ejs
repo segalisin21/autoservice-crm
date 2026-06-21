@@ -13,6 +13,63 @@
   </div>
 </section>
 <section class="card">
+  <h2 style="margin:0 0 12px 0; font-size:16px;">Заказ-наряды</h2>
+  <% if (!orders.length) { %>
+    <p class="muted">Заказов для этого авто пока нет.</p>
+  <% } else { %>
+  <div class="table-scroll">
+    <table class="data-table data-table-compact">
+      <thead>
+        <tr>
+          <th>№</th>
+          <th>Дата</th>
+          <th>Статус</th>
+          <% if (typeof showMoney !== 'undefined' && showMoney) { %>
+          <th class="num">Сумма</th>
+          <th>Оплата</th>
+          <% } %>
+          <th>Работы</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% orders.forEach(o => { %>
+          <% const works = (orderWorks && orderWorks[o.id]) || []; %>
+          <tr>
+            <td><a href="/orders/<%= o.id %>">#<%= o.id %></a></td>
+            <td><%= ((o.opened_at || o.created_at || '').toString().slice(0, 10)) %></td>
+            <td><span class="status-badge status-<%= o.status %>"><%= (statusLabels && statusLabels[o.status]) || o.status %></span></td>
+            <% if (typeof showMoney !== 'undefined' && showMoney) { %>
+            <td class="num"><%= Number(o.total_price).toFixed(2) %> ₽</td>
+            <td>
+              <% if (o.due_amount > 0) { %>
+                <span class="due-badge">Долг <%= Number(o.due_amount).toFixed(2) %> ₽</span>
+              <% } else { %>
+                <span class="muted">Оплачено</span>
+              <% } %>
+            </td>
+            <% } %>
+            <td>
+              <% if (works.length) { %>
+                <details class="car-order-works">
+                  <summary><%= works.length %> <%= works.length === 1 ? 'работа' : (works.length < 5 ? 'работы' : 'работ') %></summary>
+                  <ul class="car-order-works-list">
+                    <% works.forEach(w => { %>
+                      <li><%= w.name %><% if (Number(w.quantity) !== 1) { %> × <%= w.quantity %><% } %><% if (typeof showMoney !== 'undefined' && showMoney) { %> — <%= Number(w.total).toFixed(2) %> ₽<% } %></li>
+                    <% }) %>
+                  </ul>
+                </details>
+              <% } else { %>
+                <span class="muted">—</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
+<section class="card">
   <h2 style="margin:0 0 12px 0; font-size:16px;">Напоминания</h2>
   <form method="post" action="/cars/<%= car.id %>/reminders">
     <label>Заголовок <input name="title" required /></label>

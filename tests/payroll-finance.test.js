@@ -324,3 +324,25 @@ test("split payroll balances show 500 each not 1000 for primary master", async (
   const periodTotal = await payrollTotalInPeriod(ctx.db, "2026-06-01", "2026-06-30");
   assert.equal(periodTotal, 1000);
 });
+
+test("admin can deactivate master comp rule via delete", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  await ctx.db.query(
+    `INSERT INTO master_comp_rules(user_id, mode, value, effective_from, is_active) VALUES (?, 'percent', 15, '2026-01-01', 1)`,
+    [masterId]
+  );
+  const ruleId = (await ctx.db.query("SELECT id FROM master_comp_rules LIMIT 1"))[0].id;
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const res = await agent.delete(`/admin/payroll/rules/${ruleId}`);
+  assert.equal(res.status, 302);
+  assert.match(res.headers.location, /\/admin\/payroll/);
+
+  const row = (await ctx.db.query("SELECT is_active FROM master_comp_rules WHERE id = ?", [ruleId]))[0];
+  assert.equal(Number(row.is_active), 0);
+});

@@ -1,6 +1,9 @@
 const { getDB } = require("../config/database");
 const { sqlNow } = require("../config/sqlDialect");
 const { normalizePlate, normalizePlateStrict, normalizeVin } = require("../lib/normalize");
+const { getPaidAmount } = require("../lib/orderTotals");
+const { ORDER_STATUS_LABELS } = require("../lib/orderStatusLabels");
+const { parseMoney } = require("../lib/money");
 const { likePattern, likePatternFolded, lcLike, foldSearchCase } = require("../lib/sqlSearch");
 
 const PAGE_SIZE = 50;
@@ -158,7 +161,48 @@ async function show(req, res) {
     [id]
   );
 
-  res.render("cars/show", { car, reminders, user: req.session.user });
+  const orders = await db.query(
+    `
+    SELECT o.id, o.opened_at, o.created_at, o.status, o.total_price
+    FROM orders o
+    WHERE o.car_id = ?
+    ORDER BY COALESCE(o.opened_at, o.created_at) DESC, o.id DESC
+  `,
+    [id]
+  );
+
+  for (const o of orders) {
+    o.paid_amount = await getPaidAmount(db, o.id);
+    o.due_amount = Math.max(0, parseMoney(o.total_price) - o.paid_amount);
+  }
+
+  const orderWorks = {};
+  if (orders.length) {
+    const orderIds = orders.map((o) => o.id);
+    const placeholders = orderIds.map(() => "?").join(", ");
+    const workLines = await db.query(
+      `
+      SELECT order_id, name, quantity, total
+      FROM order_lines
+      WHERE order_id IN (${placeholders}) AND line_type = 'work'
+      ORDER BY id
+    `,
+      orderIds
+    );
+    for (const line of workLines) {
+      if (!orderWorks[line.order_id]) orderWorks[line.order_id] = [];
+      orderWorks[line.order_id].push(line);
+    }
+  }
+
+  res.render("cars/show", {
+    car,
+    reminders,
+    orders,
+    orderWorks,
+    statusLabels: ORDER_STATUS_LABELS,
+    user: req.session.user
+  });
 }
 
 async function showEdit(req, res) {

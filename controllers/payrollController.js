@@ -218,6 +218,17 @@ async function deleteOverride(req, res) {
   return res.redirect("/admin/payroll");
 }
 
+async function deleteRule(req, res) {
+  if (!(await canMutatePayroll(req))) {
+    return res.status(403).send("Forbidden");
+  }
+  const db = await getDB();
+  await db.query("UPDATE master_comp_rules SET is_active = 0 WHERE id = ? AND is_active = 1", [
+    Number(req.params.id)
+  ]);
+  return res.redirect("/admin/payroll");
+}
+
 async function saveDefault(req, res) {
   if (!(await canMutatePayroll(req))) {
     return res.status(403).send("Forbidden");
@@ -239,4 +250,4 @@ async function saveDefault(req, res) {
   return res.redirect("/admin/payroll");
 }
 
-module.exports = { index, saveRule, savePayout, saveOverride, deleteOverride, saveDefault };
+module.exports = { index, saveRule, savePayout, saveOverride, deleteOverride, deleteRule, saveDefault };

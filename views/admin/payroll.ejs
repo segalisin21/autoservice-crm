@@ -176,7 +176,7 @@
     <table class="data-table data-table-compact payroll-settings-table">
       <caption class="payroll-nested-caption">Правила по мастерам</caption>
       <thead>
-        <tr><th>Мастер</th><th>Режим</th><th>Значение</th><th>С даты</th></tr>
+        <tr><th>Мастер</th><th>Режим</th><th>Значение</th><th>С даты</th><th></th></tr>
       </thead>
       <tbody>
         <% if (rules && rules.length) { %>
@@ -186,15 +186,20 @@
               <td><%= modeLabel(r.mode) %></td>
               <td class="num"><%= Number(r.value) %></td>
               <td><%= r.effective_from %></td>
+              <td class="table-actions-cell">
+                <form method="post" action="/admin/payroll/rules/<%= r.id %>?_method=DELETE" class="line-delete-form">
+                  <button type="submit" class="btn btn-sm btn-delete btn-line-delete" title="Удалить">×</button>
+                </form>
+              </td>
             </tr>
           <% }) %>
         <% } else { %>
-          <tr><td colspan="4" class="muted">Правил пока нет.</td></tr>
+          <tr><td colspan="5" class="muted">Правил пока нет.</td></tr>
         <% } %>
       </tbody>
       <tfoot>
         <tr>
-          <td colspan="4" class="payroll-settings-form-cell">
+          <td colspan="5" class="payroll-settings-form-cell">
             <form method="post" action="/admin/payroll/rules" class="payroll-settings-form">
               <div class="master-checkboxes master-checkboxes--compact payroll-master-pick">
                 <span class="master-checkboxes__label">Мастера:</span>

@@ -1,5 +1,23 @@
 # HANDOFF
 
+## 2026-06-21 — заказ-наряды на странице авто + удаление правил мастеров
+
+### What changed
+- На `/cars/:id` добавлена секция «Заказ-наряды»: список заказов авто (сортировка по дате, сверху свежее), статус, сумма/оплата (если `showMoney`), раскрываемый список работ, ссылка на карточку заказа.
+- В `/admin/payroll` у «Правил по мастерам» добавлена кнопка удаления (мягкая деактивация `is_active = 0`).
+
+### Key files
+- `controllers/carController.js`, `views/cars/show.ejs`
+- `controllers/payrollController.js`, `routes/admin-payroll.js`, `views/admin/payroll.ejs`
+- `tests/car-orders.test.js`, `tests/payroll-finance.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-18 — lanes UI: equal width and compact cards
 
 ### What changed
