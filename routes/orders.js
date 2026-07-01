@@ -10,6 +10,8 @@ router.get("/", requirePermission("orders:view"), orderController.list);
 router.get("/new", requirePermission("orders:mutate"), orderController.showNew);
 router.post("/", requirePermission("orders:mutate"), orderController.create);
 router.get("/:id/print", requirePermission("orders:view"), orderController.printView);
+router.post("/:id/print", requirePermission("orders:view"), orderController.savePrintView);
+router.post("/:id/print/reset", requirePermission("orders:view"), orderController.resetPrintView);
 router.get("/:id/act-acceptance", requirePermission("orders:view"), orderController.actAcceptance);
 router.get("/:id/act-completion", requirePermission("orders:view"), orderController.actCompletion);
 router.get("/:id", requirePermission("orders:view"), orderController.show);

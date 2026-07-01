@@ -22,6 +22,13 @@ const { normalizePlate, normalizePlateStrict, normalizePhone, normalizeVin } = r
 const { likePattern, likePatternFolded, lcLike, foldSearchCase } = require("../lib/sqlSearch");
 const { relativePathFor, absolutePathFor } = require("../lib/upload");
 const { loadOrderEconomics } = require("../lib/orderEconomics");
+const {
+  buildSnapshotFromOrder,
+  parseSnapshotPayload,
+  loadPrintSnapshot,
+  savePrintSnapshot,
+  deletePrintSnapshot
+} = require("../lib/orderPrintSnapshot");
 const { priceForVehicleTier, materialForVehicleTier, normalizeVehicleTier } = require("../lib/catalogPricing");
 const { statusLabel, ORDER_STATUS_LABELS } = require("../lib/orderStatusLabels");
 const {
@@ -1213,12 +1220,48 @@ function todayStr() {
   return new Date().toLocaleDateString("ru-RU", { day: "2-digit", month: "long", year: "numeric" });
 }
 
+async function resolvePrintSnapshot(db, orderId, ctx) {
+  const saved = await loadPrintSnapshot(db, orderId);
+  if (saved) return saved;
+  return buildSnapshotFromOrder(ctx, todayStr());
+}
+
 async function printView(req, res) {
+  const orderId = Number(req.params.id);
   const db = await getDB();
-  const ctx = await getOrderContext(db, Number(req.params.id));
+  const ctx = await getOrderContext(db, orderId);
   if (!ctx) return res.status(404).send("Not found");
-  const assigned_name = await loadAssigned(db, ctx.order);
-  res.render("orders/print", { ...ctx, assigned_name, printDate: todayStr(), user: req.session.user });
+  const snapshot = await resolvePrintSnapshot(db, orderId, ctx);
+  const saved = req.query.saved === "1";
+  res.render("orders/print", {
+    order: ctx.order,
+    snapshot,
+    saved,
+    user: req.session.user
+  });
+}
+
+async function savePrintView(req, res) {
+  const orderId = Number(req.params.id);
+  const db = await getDB();
+  const ctx = await getOrderContext(db, orderId);
+  if (!ctx) return res.status(404).send("Not found");
+
+  const snapshot = parseSnapshotPayload(req.body);
+  if (!snapshot) return res.status(400).send("Invalid snapshot");
+
+  await savePrintSnapshot(db, orderId, snapshot);
+  return res.redirect(`/orders/${orderId}/print?saved=1`);
+}
+
+async function resetPrintView(req, res) {
+  const orderId = Number(req.params.id);
+  const db = await getDB();
+  const ctx = await getOrderContext(db, orderId);
+  if (!ctx) return res.status(404).send("Not found");
+
+  await deletePrintSnapshot(db, orderId);
+  return res.redirect(`/orders/${orderId}/print`);
 }
 
 async function actAcceptance(req, res) {
@@ -1320,6 +1363,8 @@ module.exports = {
   removeLine,
   addPayment,
   printView,
+  savePrintView,
+  resetPrintView,
   actAcceptance,
   actCompletion,
   uploadPhotos,

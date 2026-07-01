@@ -4,72 +4,165 @@
   <meta charset="utf-8" />
   <title>Заказ-наряд #<%= order.id %></title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 24px; color: #111; max-width: 800px; margin: 0 auto; }
+    body { font-family: Arial, sans-serif; padding: 24px; color: #111; max-width: 900px; margin: 0 auto; }
     h1 { font-size: 20px; margin: 0 0 4px 0; }
-    .sub { color: #555; font-size: 13px; }
-    .meta { margin: 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; font-size: 14px; }
-    .meta div { padding: 2px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
-    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+    .sub { color: #555; font-size: 13px; margin-bottom: 12px; }
+  .print-banner { background: #e8f5e9; border: 1px solid #a5d6a7; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; border-radius: 4px; }
+    .meta { margin: 12px 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 14px; }
+    .meta label { display: flex; flex-direction: column; gap: 2px; }
+    .meta input { font: inherit; padding: 4px 6px; border: 1px solid #ccc; border-radius: 3px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+    th, td { border: 1px solid #ccc; padding: 4px 6px; text-align: left; vertical-align: top; }
     th { background: #f3f3f3; }
+    .line-table input, .line-table textarea { width: 100%; box-sizing: border-box; font: inherit; border: 1px solid #ddd; padding: 4px; border-radius: 2px; }
+    .line-table textarea { min-height: 36px; resize: vertical; font-size: 11px; }
+    .line-table .num-input { width: 72px; text-align: right; }
+    .line-table .row-actions { width: 32px; text-align: center; }
     .totals { margin-top: 16px; font-size: 14px; }
-    .totals p { margin: 4px 0; }
+    .totals label { display: inline-flex; align-items: center; gap: 6px; margin: 4px 0; }
+    .totals input { width: 100px; text-align: right; font: inherit; padding: 4px; border: 1px solid #ccc; border-radius: 3px; }
     .signs { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; font-size: 13px; }
     .sign-line { margin-top: 28px; border-top: 1px solid #333; padding-top: 4px; }
-    .actions { margin-bottom: 16px; }
-    .line-desc { font-size: 11px; color: #555; margin-top: 4px; white-space: pre-line; }
-    @media print { .actions { display: none; } }
+    .actions { margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .actions .btn { font: inherit; padding: 6px 12px; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background: #f5f5f5; }
+    .actions .btn-primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+    .actions .btn-secondary { background: #fff; }
+    .section-head { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }
+    .section-head h3 { margin: 0; font-size: 15px; }
+    .hint { font-size: 12px; color: #666; margin: 0 0 8px; }
+    .print-doc-date { display: none; }
+    @media print {
+      .actions, .hint, .print-banner, .row-actions, .section-head button, .no-print { display: none !important; }
+      label.sub { display: none !important; }
+      .print-doc-date { display: block !important; }
+      .meta input, .line-table input, .line-table textarea, .totals input {
+        border: none; padding: 0; background: transparent;
+      }
+      body { padding: 12px; }
+    }
   </style>
 </head>
 <body>
-  <div class="actions"><button onclick="window.print()">Печать</button></div>
-  <h1>Заказ-наряд № <%= order.id %></h1>
-  <div class="sub">от <%= printDate %></div>
+  <div class="actions no-print">
+    <button type="submit" form="order-print-form" class="btn btn-primary">Сохранить</button>
+    <button type="button" class="btn btn-primary" id="print-btn">Печать</button>
+    <form method="post" action="/orders/<%= order.id %>/print/reset" style="display:inline;" onsubmit="return confirm('Сбросить заказ-наряд и заново заполнить из карточки заказа?');">
+      <button type="submit" class="btn btn-secondary">Сбросить из карточки</button>
+    </form>
+  </div>
 
-  <div class="meta">
-    <div><strong>Клиент:</strong> <%= order.client_name %></div>
-    <div><strong>Телефон:</strong> <%= order.client_phone %></div>
-    <div><strong>Автомобиль:</strong> <%= [order.make, order.model].filter(Boolean).join(' ') %><%= order.year ? ', ' + order.year + ' г.' : '' %></div>
-    <div><strong>Госномер:</strong> <%= order.license_plate_raw || '—' %></div>
-    <div><strong>VIN:</strong> <%= order.vin || '—' %></div>
-    <div><strong>Пробег:</strong> <%= order.mileage != null && order.mileage !== '' ? Number(order.mileage).toLocaleString('ru-RU') + ' км' : '—' %></div>
-    <div><strong>Дата приёма:</strong> <%= (order.scheduled_date || order.opened_at || '').toString().slice(0,10) %></div>
-    <% if (order.scheduled_end_date && String(order.scheduled_end_date).slice(0,10) > String(order.scheduled_date || order.opened_at || '').slice(0,10)) { %>
-    <div><strong>Дата окончания работ:</strong> <%= String(order.scheduled_end_date).slice(0,10) %></div>
+  <form id="order-print-form" method="post" action="/orders/<%= order.id %>/print">
+    <input type="hidden" name="snapshot" id="snapshot-json" value="" />
+    <% if (saved) { %>
+    <div class="print-banner no-print">Сохранено. Можно печатать.</div>
     <% } %>
-  </div>
 
-  <h3>Работы</h3>
-  <table>
-    <thead><tr><th>Наименование</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
-    <tbody>
-      <% works.forEach(l => { %>
-        <tr><td><%- include('../partials/order-line-name-cell', { l: l }) %></td><td><%= l.quantity %></td><td><%= Number(l.unit_price).toFixed(2) %></td><td><%= Number(l.total).toFixed(2) %></td></tr>
-      <% }) %>
-      <% if (!works.length) { %><tr><td colspan="4" style="color:#888;">—</td></tr><% } %>
-    </tbody>
-  </table>
+    <h1>Заказ-наряд № <%= order.id %></h1>
+    <label class="sub no-print">Дата документа
+      <input type="text" name="doc_date" id="field-doc_date" value="<%= snapshot.doc_date || '' %>" />
+    </label>
+    <div class="sub print-doc-date"><%= snapshot.doc_date || '' %></div>
 
-  <h3>Запчасти и материалы</h3>
-  <table>
-    <thead><tr><th>Наименование</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead>
-    <tbody>
-      <% products.forEach(l => { %>
-        <tr><td><%- include('../partials/order-line-name-cell', { l: l }) %></td><td><%= l.quantity %></td><td><%= Number(l.unit_price).toFixed(2) %></td><td><%= Number(l.total).toFixed(2) %></td></tr>
-      <% }) %>
-      <% if (!products.length) { %><tr><td colspan="4" style="color:#888;">—</td></tr><% } %>
-    </tbody>
-  </table>
+    <p class="hint no-print">Редактирование только для печати — карточка заказа не меняется. Позиции вводятся вручную, без подсказок из каталога.</p>
 
-  <div class="totals">
-    <p>Работы: <%= Number(order.subtotal_works).toFixed(2) %> ₽ · Запчасти: <%= Number(order.subtotal_products).toFixed(2) %> ₽</p>
-    <p>Скидка: <%= Number(order.discount_amount).toFixed(2) %> ₽</p>
-    <p><strong>Итого к оплате: <%= Number(order.total_price).toFixed(2) %> ₽</strong></p>
-  </div>
+    <div class="meta">
+      <label>Клиент <input type="text" data-field="client_name" value="<%= snapshot.client_name || '' %>" /></label>
+      <label>Телефон <input type="text" data-field="client_phone" value="<%= snapshot.client_phone || '' %>" /></label>
+      <label>Марка <input type="text" data-field="car_make" value="<%= snapshot.car_make || '' %>" /></label>
+      <label>Модель <input type="text" data-field="car_model" value="<%= snapshot.car_model || '' %>" /></label>
+      <label>Год <input type="text" data-field="car_year" value="<%= snapshot.car_year || '' %>" /></label>
+      <label>Госномер <input type="text" data-field="license_plate" value="<%= snapshot.license_plate || '' %>" /></label>
+      <label>VIN <input type="text" data-field="vin" value="<%= snapshot.vin || '' %>" /></label>
+      <label>Пробег, км <input type="text" data-field="mileage" value="<%= snapshot.mileage || '' %>" inputmode="numeric" /></label>
+      <label>Дата приёма <input type="date" data-field="scheduled_date" value="<%= snapshot.scheduled_date || '' %>" /></label>
+      <label>Дата окончания <input type="date" data-field="scheduled_end_date" value="<%= snapshot.scheduled_end_date || '' %>" /></label>
+    </div>
 
-  <div class="signs">
-    <div>Исполнитель<div class="sign-line">подпись / ФИО</div></div>
-    <div>Заказчик<div class="sign-line">подпись / ФИО</div></div>
-  </div>
+    <div class="section-head">
+      <h3>Работы</h3>
+      <button type="button" class="btn btn-secondary btn-sm no-print" data-add-line="works">+ Строка</button>
+    </div>
+    <table class="line-table" id="works-table">
+      <thead>
+        <tr>
+          <th>Наименование</th>
+          <th style="width:72px">Кол-во</th>
+          <th style="width:88px">Цена</th>
+          <th style="width:88px">Сумма</th>
+          <th class="row-actions no-print"></th>
+        </tr>
+      </thead>
+      <tbody id="works-body">
+        <% (snapshot.works || []).forEach(function(l) { %>
+        <tr class="line-row" data-kind="works">
+          <td>
+            <input type="text" class="line-name" value="<%= l.name %>" placeholder="Наименование" />
+            <textarea class="line-notes" placeholder="Примечание (необязательно)"><%= l.notes || '' %></textarea>
+          </td>
+          <td><input type="text" class="line-qty num-input" value="<%= l.quantity %>" inputmode="decimal" /></td>
+          <td><input type="text" class="line-price num-input" value="<%= l.unit_price %>" inputmode="decimal" /></td>
+          <td><input type="text" class="line-total num-input" value="<%= l.total %>" inputmode="decimal" /></td>
+          <td class="row-actions no-print"><button type="button" class="btn btn-sm line-remove" title="Удалить">×</button></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <div class="section-head">
+      <h3>Запчасти и материалы</h3>
+      <button type="button" class="btn btn-secondary btn-sm no-print" data-add-line="products">+ Строка</button>
+    </div>
+    <table class="line-table" id="products-table">
+      <thead>
+        <tr>
+          <th>Наименование</th>
+          <th style="width:72px">Кол-во</th>
+          <th style="width:88px">Цена</th>
+          <th style="width:88px">Сумма</th>
+          <th class="row-actions no-print"></th>
+        </tr>
+      </thead>
+      <tbody id="products-body">
+        <% (snapshot.products || []).forEach(function(l) { %>
+        <tr class="line-row" data-kind="products">
+          <td>
+            <input type="text" class="line-name" value="<%= l.name %>" placeholder="Наименование" />
+            <textarea class="line-notes" placeholder="Примечание (необязательно)"><%= l.notes || '' %></textarea>
+          </td>
+          <td><input type="text" class="line-qty num-input" value="<%= l.quantity %>" inputmode="decimal" /></td>
+          <td><input type="text" class="line-price num-input" value="<%= l.unit_price %>" inputmode="decimal" /></td>
+          <td><input type="text" class="line-total num-input" value="<%= l.total %>" inputmode="decimal" /></td>
+          <td class="row-actions no-print"><button type="button" class="btn btn-sm line-remove" title="Удалить">×</button></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <div class="totals">
+      <p>Работы: <span id="subtotal-works"><%= snapshot.subtotal_works %></span> ₽ · Запчасти: <span id="subtotal-products"><%= snapshot.subtotal_products %></span> ₽</p>
+      <label>Скидка, ₽ <input type="text" id="field-discount" data-field="discount_amount" value="<%= snapshot.discount_amount %>" inputmode="decimal" /></label>
+      <p><strong>Итого к оплате: <span id="total-price"><%= snapshot.total_price %></span> ₽</strong></p>
+    </div>
+
+    <div class="signs">
+      <div>Исполнитель<div class="sign-line">подпись / ФИО</div></div>
+      <div>Заказчик<div class="sign-line">подпись / ФИО</div></div>
+    </div>
+  </form>
+
+  <template id="line-row-template">
+    <tr class="line-row">
+      <td>
+        <input type="text" class="line-name" value="" placeholder="Наименование" />
+        <textarea class="line-notes" placeholder="Примечание (необязательно)"></textarea>
+      </td>
+      <td><input type="text" class="line-qty num-input" value="1" inputmode="decimal" /></td>
+      <td><input type="text" class="line-price num-input" value="0" inputmode="decimal" /></td>
+      <td><input type="text" class="line-total num-input" value="0" inputmode="decimal" /></td>
+      <td class="row-actions no-print"><button type="button" class="btn btn-sm line-remove" title="Удалить">×</button></td>
+    </tr>
+  </template>
+
+  <script src="/js/order-print-edit.js"></script>
 </body>
 </html>

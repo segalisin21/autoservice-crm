@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS order_print_snapshots (
+  order_id INTEGER PRIMARY KEY REFERENCES orders(id) ON DELETE CASCADE,
+  data TEXT NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

@@ -58,6 +58,110 @@ test("print shows line description not vehicle tier", async (t) => {
   assert.doesNotMatch(print.text, /vehicle_tier/i);
 });
 
+test("print page has editable fields and no catalog autocomplete", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const orderId = await seedOrder(ctx);
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const print = await agent.get(`/orders/${orderId}/print`);
+  assert.equal(print.status, 200);
+  assert.match(print.text, /order-print-form/);
+  assert.match(print.text, /data-field="client_name"/);
+  assert.match(print.text, /order-print-edit\.js/);
+  assert.doesNotMatch(print.text, /data-catalog-ac/);
+});
+
+test("print snapshot save is independent from order lines", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const orderId = await seedOrder(ctx);
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, name, quantity, unit_price, total) VALUES (?, 'work', 'Масло', 1, 1000, 1000)`,
+    [orderId]
+  );
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const snapshot = {
+    doc_date: "01 января 2026",
+    client_name: "Печать-клиент",
+    client_phone: "+7999",
+    car_make: "BMW",
+    car_model: "X5",
+    car_year: "2020",
+    license_plate: "A111AA77",
+    vin: "VIN123",
+    mileage: "50000",
+    scheduled_date: "2026-01-01",
+    scheduled_end_date: "",
+    works: [{ name: "Кастомная работа", notes: "", quantity: "1", unit_price: "999.00", total: "999.00" }],
+    products: [],
+    subtotal_works: "999.00",
+    subtotal_products: "0.00",
+    discount_amount: "0.00",
+    total_price: "999.00"
+  };
+
+  const save = await agent.post(`/orders/${orderId}/print`).type("form").send({ snapshot: JSON.stringify(snapshot) });
+  assert.equal(save.status, 302);
+  assert.match(save.headers.location, /saved=1/);
+
+  await ctx.db.query(`UPDATE order_lines SET name = 'Другое в карточке' WHERE order_id = ?`, [orderId]);
+
+  const print = await agent.get(`/orders/${orderId}/print`);
+  assert.equal(print.status, 200);
+  assert.match(print.text, /Кастомная работа/);
+  assert.match(print.text, /Печать-клиент/);
+  assert.doesNotMatch(print.text, /Другое в карточке/);
+});
+
+test("print reset reloads from order card", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const orderId = await seedOrder(ctx);
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, name, quantity, unit_price, total) VALUES (?, 'work', 'Из карточки', 1, 500, 500)`,
+    [orderId]
+  );
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const snapshot = {
+    doc_date: "01 января 2026",
+    client_name: "Временный",
+    client_phone: "",
+    car_make: "",
+    car_model: "",
+    car_year: "",
+    license_plate: "",
+    vin: "",
+    mileage: "",
+    scheduled_date: "",
+    scheduled_end_date: "",
+    works: [{ name: "Временная строка", notes: "", quantity: "1", unit_price: "1", total: "1" }],
+    products: [],
+    subtotal_works: "1.00",
+    subtotal_products: "0.00",
+    discount_amount: "0.00",
+    total_price: "1.00"
+  };
+  await agent.post(`/orders/${orderId}/print`).type("form").send({ snapshot: JSON.stringify(snapshot) });
+
+  const reset = await agent.post(`/orders/${orderId}/print/reset`);
+  assert.equal(reset.status, 302);
+
+  const print = await agent.get(`/orders/${orderId}/print`);
+  assert.match(print.text, /Из карточки/);
+  assert.doesNotMatch(print.text, /Временная строка/);
+});
+
 test("owner can create employee; master cannot access users", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
