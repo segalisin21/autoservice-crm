@@ -125,6 +125,22 @@
     discountField.addEventListener("blur", recalcTotals);
   }
 
+  function syncNotesForPrint() {
+    form.querySelectorAll(".line-row").forEach(function (row) {
+      var notesEl = row.querySelector(".line-notes");
+      var printEl = row.querySelector(".line-notes-print");
+      if (!notesEl || !printEl) return;
+      var text = String(notesEl.value || "").trim();
+      if (text) {
+        printEl.textContent = text;
+        printEl.removeAttribute("hidden");
+      } else {
+        printEl.textContent = "";
+        printEl.setAttribute("hidden", "");
+      }
+    });
+  }
+
   function collectSnapshot() {
     return {
       doc_date: docDateField ? docDateField.value : "",
@@ -156,9 +172,11 @@
     printBtn.addEventListener("click", function () {
       recalcTotals();
       if (printDocDate && docDateField) printDocDate.textContent = docDateField.value;
+      syncNotesForPrint();
       window.print();
     });
   }
 
+  syncNotesForPrint();
   recalcTotals();
 })();

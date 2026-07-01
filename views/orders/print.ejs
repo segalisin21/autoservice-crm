@@ -31,11 +31,13 @@
     .section-head h3 { margin: 0; font-size: 15px; }
     .hint { font-size: 12px; color: #666; margin: 0 0 8px; }
     .print-doc-date { display: none; }
+    .line-notes-print { display: none; font-size: 11px; color: #555; margin-top: 4px; white-space: pre-line; }
     @media print {
       .actions, .hint, .print-banner, .row-actions, .section-head button, .no-print { display: none !important; }
       label.sub { display: none !important; }
       .print-doc-date { display: block !important; }
-      .meta input, .line-table input, .line-table textarea, .totals input {
+      .line-notes-print:not([hidden]) { display: block; }
+      .meta input, .line-table input, .totals input {
         border: none; padding: 0; background: transparent;
       }
       body { padding: 12px; }
@@ -97,7 +99,8 @@
         <tr class="line-row" data-kind="works">
           <td>
             <input type="text" class="line-name" value="<%= l.name %>" placeholder="Наименование" />
-            <textarea class="line-notes" placeholder="Примечание (необязательно)"><%= l.notes || '' %></textarea>
+            <textarea class="line-notes no-print" placeholder="Примечание (необязательно)"><%= l.notes || '' %></textarea>
+            <div class="line-notes-print"<%= (l.notes && String(l.notes).trim()) ? '' : ' hidden' %>><%= l.notes || '' %></div>
           </td>
           <td><input type="text" class="line-qty num-input" value="<%= l.quantity %>" inputmode="decimal" /></td>
           <td><input type="text" class="line-price num-input" value="<%= l.unit_price %>" inputmode="decimal" /></td>
@@ -127,7 +130,8 @@
         <tr class="line-row" data-kind="products">
           <td>
             <input type="text" class="line-name" value="<%= l.name %>" placeholder="Наименование" />
-            <textarea class="line-notes" placeholder="Примечание (необязательно)"><%= l.notes || '' %></textarea>
+            <textarea class="line-notes no-print" placeholder="Примечание (необязательно)"><%= l.notes || '' %></textarea>
+            <div class="line-notes-print"<%= (l.notes && String(l.notes).trim()) ? '' : ' hidden' %>><%= l.notes || '' %></div>
           </td>
           <td><input type="text" class="line-qty num-input" value="<%= l.quantity %>" inputmode="decimal" /></td>
           <td><input type="text" class="line-price num-input" value="<%= l.unit_price %>" inputmode="decimal" /></td>
@@ -154,7 +158,8 @@
     <tr class="line-row">
       <td>
         <input type="text" class="line-name" value="" placeholder="Наименование" />
-        <textarea class="line-notes" placeholder="Примечание (необязательно)"></textarea>
+        <textarea class="line-notes no-print" placeholder="Примечание (необязательно)"></textarea>
+        <div class="line-notes-print" hidden></div>
       </td>
       <td><input type="text" class="line-qty num-input" value="1" inputmode="decimal" /></td>
       <td><input type="text" class="line-price num-input" value="0" inputmode="decimal" /></td>

@@ -53,9 +53,47 @@ test("print shows line description not vehicle tier", async (t) => {
   const print = await agent.get(`/orders/${orderId}/print`);
   assert.equal(print.status, 200);
   assert.match(print.text, /Комплекс Премиум/);
+  assert.match(print.text, /line-notes-print/);
   assert.match(print.text, /комплекс базовый/);
   assert.doesNotMatch(print.text, /2 кат/i);
   assert.doesNotMatch(print.text, /vehicle_tier/i);
+});
+
+test("print hides empty line notes in print block", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const orderId = await seedOrder(ctx);
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, name, quantity, unit_price, total) VALUES (?, 'work', 'Замена масла', 1, 1500, 1500)`,
+    [orderId]
+  );
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const print = await agent.get(`/orders/${orderId}/print`);
+  assert.equal(print.status, 200);
+  assert.match(print.text, /line-notes-print[^>]*hidden/);
+  assert.match(print.text, /syncNotesForPrint/);
+});
+
+test("print shows notes in print block when present", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const orderId = await seedOrder(ctx);
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, name, quantity, unit_price, total, notes)
+     VALUES (?, 'work', 'Мойка', 1, 3000, 3000, 'Включена коврики')`,
+    [orderId]
+  );
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const print = await agent.get(`/orders/${orderId}/print`);
+  assert.equal(print.status, 200);
+  assert.match(print.text, /class="line-notes-print">Включена коврики<\/div>/);
+  assert.doesNotMatch(print.text, /line-notes-print[^>]*hidden[^<]*Включена коврики/);
 });
 
 test("print page has editable fields and no catalog autocomplete", async (t) => {

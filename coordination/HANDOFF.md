@@ -1,5 +1,22 @@
 # HANDOFF
 
+## 2026-06-26 — пустые примечания не печатаются в заказ-наряде
+
+### What changed
+- В `/orders/:id/print` примечания к строкам: на экране — `textarea` (класс `no-print`), на печати — `div.line-notes-print` только с непустым текстом.
+- `syncNotesForPrint()` в `order-print-edit.js` синхронизирует textarea → print-блок перед `window.print()`.
+
+### Key files
+- `views/orders/print.ejs`, `public/js/order-print-edit.js`
+- `tests/documents-users.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-06-26 — пересчёт ЗП после смены правила
 
 ### What changed
