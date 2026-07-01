@@ -12,5 +12,6 @@ router.post("/overrides", requirePermission("payroll:mutate"), payrollController
 router.delete("/overrides/:id", requirePermission("payroll:mutate"), payrollController.deleteOverride);
 router.post("/default", requirePermission("payroll:mutate"), payrollController.saveDefault);
 router.post("/payouts", requirePermission("payroll:mutate"), payrollController.savePayout);
+router.post("/recalculate", requirePermission("payroll:mutate"), payrollController.recalculate);
 
 module.exports = router;

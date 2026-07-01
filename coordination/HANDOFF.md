@@ -1,6 +1,68 @@
 # HANDOFF
 
-## 2026-06-21 — заказ-наряды на странице авто + удаление правил мастеров
+## 2026-06-26 — пересчёт ЗП после смены правила
+
+### What changed
+- На `/admin/payroll` блок **«Пересчёт начислений»**: кнопка с датой «С даты» пересчитывает зафиксированные `earned` по завершённым заказам (все мастера на заказе).
+- `freezeOrderEarned(orderId, { force: true })` — принудительный пересчёт замороженных строк.
+- `recalculatePayrollFromDate(db, { from_date })` + `POST /admin/payroll/recalculate`.
+
+### Key files
+- `lib/payroll.js`, `controllers/payrollController.js`, `routes/admin-payroll.js`, `views/admin/payroll.ejs`
+- `tests/payroll-finance.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
+## 2026-06-26 — редактируемый заказ-наряд для печати
+
+### What changed
+- `/orders/:id/print` — редактируемая форма: шапка, работы, запчасти, итоги; первое открытие заполняется из карточки заказа.
+- Снимок хранится в `order_print_snapshots` (отдельно от `order_lines`); сохранение через POST `/orders/:id/print`.
+- «Сбросить из карточки» — POST `/orders/:id/print/reset`, снова подтягивает данные из заказа.
+- Позиции вводятся вручную, без автокомплита каталога.
+
+### Key files
+- `migrations/027_order_print_snapshot.sql`, `lib/orderPrintSnapshot.js`
+- `controllers/orderController.js`, `routes/orders.js`
+- `views/orders/print.ejs`, `public/js/order-print-edit.js`
+- `tests/documents-users.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
+## 2026-06-26 — отдельная карточка товара в каталоге
+
+### What changed
+- Товары создаются и редактируются отдельно от работ: `/catalog/products/new`, `/catalog/products/:id/edit`.
+- Форма товара: тип, название, артикул, закуп (`default_material_cost`), цена продажи (`default_price`).
+- Форма работ (`/catalog/new`) — только `type=work`, без переключателя «Товар».
+- В списке каталога: кнопки «Добавить работу» / «Добавить товар»; для товаров колонки «Продажа» и «Закуп».
+
+### Key files
+- `views/catalog/product-form.ejs`, `views/catalog/form.ejs`, `views/catalog/list.ejs`
+- `controllers/catalogController.js`, `routes/catalog.js`
+- `public/js/catalog-article-form.js`
+- `tests/catalog-product.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+### Risks / limitations
+- Существующие товары, созданные через старую форму, редактируются в новой карточке; tier-цены и описание при сохранении сбрасываются.
+
+---
+
 
 ### What changed
 - На `/cars/:id` добавлена секция «Заказ-наряды»: список заказов авто (сортировка по дате, сверху свежее), статус, сумма/оплата (если `showMoney`), раскрываемый список работ, ссылка на карточку заказа.

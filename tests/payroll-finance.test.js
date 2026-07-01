@@ -4,7 +4,7 @@ const request = require("supertest");
 
 const { createTestApp } = require("./helpers/testApp");
 const { hashPassword } = require("../lib/password");
-const { freezeOrderEarned } = require("../lib/payroll");
+const { freezeOrderEarned, recalculatePayrollFromDate } = require("../lib/payroll");
 const { loadFinanceMetrics } = require("../lib/finance");
 
 async function seedOrderWithWorkLine(ctx, { masterId, catalogId, lineTotal, status }) {
@@ -89,6 +89,82 @@ test("changing rules after close does not change earned", async (t) => {
 
   const line = (await ctx.db.query("SELECT master_earned_amount FROM order_lines WHERE order_id=?", [orderId]))[0];
   assert.equal(Number(line.master_earned_amount), 100);
+});
+
+test("recalculatePayrollFromDate updates earned after rule change", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  await ctx.db.query(
+    `INSERT INTO master_comp_rules(user_id, mode, value, effective_from, is_active) VALUES (?, 'percent', 10, '2026-01-01', 1)`,
+    [masterId]
+  );
+
+  const orderId = await seedOrderWithWorkLine(ctx, {
+    masterId,
+    catalogId: null,
+    lineTotal: 1000,
+    status: "completed"
+  });
+  await ctx.db.query(`UPDATE orders SET closed_at = '2026-06-10 12:00:00' WHERE id = ?`, [orderId]);
+  await freezeOrderEarned(orderId);
+
+  await ctx.db.query(`UPDATE master_comp_rules SET is_active = 0 WHERE user_id = ?`, [masterId]);
+  await ctx.db.query(
+    `INSERT INTO master_comp_rules(user_id, mode, value, effective_from, is_active) VALUES (?, 'percent', 50, '2026-06-01', 1)`,
+    [masterId]
+  );
+
+  const before = (await ctx.db.query("SELECT master_earned_amount FROM order_lines WHERE order_id=?", [orderId]))[0];
+  assert.equal(Number(before.master_earned_amount), 100);
+
+  const result = await recalculatePayrollFromDate(ctx.db, { from_date: "2026-06-01" });
+  assert.equal(result.ordersProcessed, 1);
+
+  const after = (await ctx.db.query("SELECT master_earned_amount FROM order_lines WHERE order_id=?", [orderId]))[0];
+  assert.equal(Number(after.master_earned_amount), 500);
+});
+
+test("POST /admin/payroll/recalculate updates earned", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const masterId = ctx.users.master.id;
+  await ctx.db.query(
+    `INSERT INTO master_comp_rules(user_id, mode, value, effective_from, is_active) VALUES (?, 'percent', 10, '2026-01-01', 1)`,
+    [masterId]
+  );
+
+  const orderId = await seedOrderWithWorkLine(ctx, {
+    masterId,
+    catalogId: null,
+    lineTotal: 2000,
+    status: "completed"
+  });
+  await ctx.db.query(`UPDATE orders SET closed_at = '2026-06-15 10:00:00' WHERE id = ?`, [orderId]);
+  await freezeOrderEarned(orderId);
+
+  await ctx.db.query(`UPDATE master_comp_rules SET is_active = 0 WHERE user_id = ?`, [masterId]);
+  await ctx.db.query(
+    `INSERT INTO master_comp_rules(user_id, mode, value, effective_from, is_active) VALUES (?, 'percent', 40, '2026-06-01', 1)`,
+    [masterId]
+  );
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+
+  const res = await agent.post("/admin/payroll/recalculate").type("form").send({
+    from_date: "2026-06-01",
+    start_date: "2026-06-01",
+    end_date: "2026-06-30"
+  });
+  assert.equal(res.status, 302);
+  assert.match(res.headers.location, /recalculated=1/);
+  assert.match(res.headers.location, /orders=1/);
+
+  const line = (await ctx.db.query("SELECT master_earned_amount FROM order_lines WHERE order_id=?", [orderId]))[0];
+  assert.equal(Number(line.master_earned_amount), 800);
 });
 
 test("finance net_profit subtracts payroll and materials", async (t) => {

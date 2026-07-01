@@ -146,6 +146,12 @@
 <section class="card payroll-card">
   <h2 class="payroll-card__title">Настройки расчёта</h2>
 
+  <% if (typeof recalculated !== 'undefined' && recalculated) { %>
+    <div class="success-banner" style="margin-bottom:12px;">
+      Пересчитано заказов: <%= recalcOrders || 0 %>.
+    </div>
+  <% } %>
+
   <div class="table-scroll">
     <table class="data-table data-table-compact payroll-settings-table">
       <caption class="payroll-nested-caption">Формула по умолчанию (если у мастера нет своего правила)</caption>
@@ -229,6 +235,21 @@
         </tr>
       </tfoot>
     </table>
+  </div>
+
+  <div class="payroll-settings-block payroll-recalc-block">
+    <h3 class="payroll-nested-caption" style="margin:0 0 8px;font-size:14px;font-weight:600;">Пересчёт начислений</h3>
+    <p class="muted" style="margin:0 0 12px;font-size:13px;">
+      Обновляет зафиксированные суммы ЗП по <strong>завершённым</strong> заказам с выбранной даты (все мастера на заказе). Выплаты не меняются.
+    </p>
+    <form method="post" action="/admin/payroll/recalculate" class="form-inline payroll-settings-form"
+      onsubmit="return confirm('Пересчитать начисления по всем мастерам на завершённых заказах с ' + this.from_date.value + '?');">
+      <input type="hidden" name="start_date" value="<%= range.start_date %>" />
+      <input type="hidden" name="end_date" value="<%= range.end_date %>" />
+      <% if (filterUserId) { %><input type="hidden" name="user_id" value="<%= filterUserId %>" /><% } %>
+      <label>С даты <input type="date" name="from_date" required value="<%= range.start_date %>" /></label>
+      <button type="submit" class="btn btn-secondary btn-sm">Пересчитать</button>
+    </form>
   </div>
 
   <div class="table-scroll payroll-settings-block">

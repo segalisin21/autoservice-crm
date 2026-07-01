@@ -2,6 +2,7 @@ const { getDB } = require("../config/database");
 const { parseMoney } = require("../lib/money");
 const { parseDateRange } = require("../lib/finance");
 const { loadPayrollSettings, ensureDefaultSettings } = require("../lib/settings");
+const { recalculatePayrollFromDate } = require("../lib/payroll");
 const {
   loadMasterPayrollBalances,
   loadMasterEarnedLines,
@@ -121,7 +122,9 @@ async function index(req, res) {
     user: req.session.user,
     category: "payroll",
     adminSection: "payroll",
-    canMutate: mutate
+    canMutate: mutate,
+    recalculated: req.query.recalculated === "1",
+    recalcOrders: Number(req.query.orders) || 0
   });
 }
 
@@ -250,4 +253,40 @@ async function saveDefault(req, res) {
   return res.redirect("/admin/payroll");
 }
 
-module.exports = { index, saveRule, savePayout, saveOverride, deleteOverride, deleteRule, saveDefault };
+async function recalculate(req, res) {
+  if (!(await canMutatePayroll(req))) {
+    return res.status(403).send("Forbidden");
+  }
+
+  const from_date = String(req.body.from_date ?? "").trim().slice(0, 10);
+  const start_date = String(req.body.start_date ?? "").trim().slice(0, 10);
+  const end_date = String(req.body.end_date ?? "").trim().slice(0, 10);
+  const user_id = req.body.user_id ? String(req.body.user_id) : "";
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from_date)) {
+    return res.redirect("/admin/payroll");
+  }
+
+  const db = await getDB();
+  const result = await recalculatePayrollFromDate(db, { from_date });
+  const params = new URLSearchParams({
+    recalculated: "1",
+    orders: String(result.ordersProcessed || 0)
+  });
+  if (start_date) params.set("start_date", start_date);
+  if (end_date) params.set("end_date", end_date);
+  if (user_id) params.set("user_id", user_id);
+
+  return res.redirect(`/admin/payroll?${params.toString()}`);
+}
+
+module.exports = {
+  index,
+  saveRule,
+  savePayout,
+  saveOverride,
+  deleteOverride,
+  deleteRule,
+  saveDefault,
+  recalculate
+};
