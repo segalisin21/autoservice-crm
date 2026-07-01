@@ -1,12 +1,12 @@
-<%- include('../partials/layout-top', { title: item.id ? 'Позиция каталога' : 'Новая позиция', user, extraScripts: typeof extraScripts !== 'undefined' ? extraScripts : ['/js/catalog-article-form.js'] }) %>
+<%- include('../partials/layout-top', { title: item.id ? 'Работа в каталоге' : 'Новая работа', user, extraScripts: typeof extraScripts !== 'undefined' ? extraScripts : ['/js/catalog-article-form.js'] }) %>
 <section class="card">
   <% if (error) { %><div class="error"><%= error %></div><% } %>
   <form method="post" action="<%= item.id ? '/catalog/' + item.id + '?_method=PUT' : '/catalog' %>" data-item-id="<%= item.id || '' %>" class="catalog-form-compact">
     <div class="catalog-form-grid">
+      <input type="hidden" name="type" value="work" />
       <label>Тип
-        <select name="type">
-          <option value="work" <%= item.type === 'work' ? 'selected' : '' %>>Работа</option>
-          <option value="product" <%= item.type === 'product' ? 'selected' : '' %>>Товар</option>
+        <select disabled aria-readonly="true">
+          <option selected>Работа</option>
         </select>
       </label>
       <label>Артикул

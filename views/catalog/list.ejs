@@ -28,7 +28,8 @@
       </div>
     </form>
     <div class="catalog-toolbar__actions">
-      <a class="btn btn-primary" href="/catalog/new">Добавить</a>
+      <a class="btn btn-primary" href="/catalog/new">Добавить работу</a>
+      <a class="btn btn-secondary" href="/catalog/products/new">Добавить товар</a>
       <form method="post" action="/api/vehicles/sync">
         <button type="submit" class="btn btn-secondary btn-sm" title="Загрузить марки и модели с Auto.ru">Обновить справочник авто</button>
       </form>
@@ -36,35 +37,45 @@
   </div>
 
   <% const viewMode = filters.view || 'table'; %>
+  <% const productList = filters.type === 'product'; %>
   <% if (viewMode === 'table') { %>
   <div class="table-scroll catalog-table-scroll">
   <table class="catalog-table data-table-compact">
-    <thead><tr><th>Артикул</th><th>Тип</th><th>Категория</th><th>Название</th><th>Цена</th><th>Расходник</th><th></th></tr></thead>
+    <thead><tr><th>Артикул</th><th>Тип</th><% if (!productList) { %><th>Категория</th><% } %><th>Название</th><th><%= productList ? 'Продажа' : 'Цена' %></th><th><%= productList ? 'Закуп' : 'Расходник' %></th><th></th></tr></thead>
     <tbody>
       <% items.forEach(i => { %>
+        <% const isProduct = i.type === 'product'; %>
         <tr>
           <td><code><%= i.article || '—' %></code></td>
-          <td><%= i.type === 'work' ? 'Работа' : 'Товар' %></td>
-          <td><%= i.category %></td>
+          <td><%= isProduct ? 'Товар' : 'Работа' %></td>
+          <% if (!productList) { %><td><%= i.category %></td><% } %>
           <td class="catalog-name-cell">
             <%= i.name %><% if (!i.is_active) { %> <span class="muted">(выкл)</span><% } %>
-            <% if (i.description) { %><details class="catalog-row-desc"><summary>описание</summary><div><%= i.description %></div></details><% } %>
+            <% if (!isProduct && i.description) { %><details class="catalog-row-desc"><summary>описание</summary><div><%= i.description %></div></details><% } %>
           </td>
           <td>
-            <%= Number(i.default_price).toFixed(0) %> ₽
-            <% if (i.price_tier_2 || i.price_tier_3) { %>
-              <span class="muted" style="font-size:11px;"> / <%= i.price_tier_2 ? Number(i.price_tier_2).toFixed(0) : '—' %> / <%= i.price_tier_3 ? Number(i.price_tier_3).toFixed(0) : '—' %></span>
+            <% if (isProduct) { %>
+              <%= Number(i.default_price || 0).toFixed(0) %> ₽
+            <% } else { %>
+              <%= Number(i.default_price).toFixed(0) %> ₽
+              <% if (i.price_tier_2 || i.price_tier_3) { %>
+                <span class="muted" style="font-size:11px;"> / <%= i.price_tier_2 ? Number(i.price_tier_2).toFixed(0) : '—' %> / <%= i.price_tier_3 ? Number(i.price_tier_3).toFixed(0) : '—' %></span>
+              <% } %>
             <% } %>
           </td>
           <td>
-            <%= Number(i.default_material_cost || 0) > 0 ? Number(i.default_material_cost).toFixed(0) + ' ₽' : '—' %>
-            <% if (i.material_cost_tier_2 || i.material_cost_tier_3) { %>
-              <span class="muted" style="font-size:11px;"> / <%= i.material_cost_tier_2 ? Number(i.material_cost_tier_2).toFixed(0) : '—' %> / <%= i.material_cost_tier_3 ? Number(i.material_cost_tier_3).toFixed(0) : '—' %></span>
+            <% if (isProduct) { %>
+              <%= Number(i.default_material_cost || 0) > 0 ? Number(i.default_material_cost).toFixed(0) + ' ₽' : '—' %>
+            <% } else { %>
+              <%= Number(i.default_material_cost || 0) > 0 ? Number(i.default_material_cost).toFixed(0) + ' ₽' : '—' %>
+              <% if (i.material_cost_tier_2 || i.material_cost_tier_3) { %>
+                <span class="muted" style="font-size:11px;"> / <%= i.material_cost_tier_2 ? Number(i.material_cost_tier_2).toFixed(0) : '—' %> / <%= i.material_cost_tier_3 ? Number(i.material_cost_tier_3).toFixed(0) : '—' %></span>
+              <% } %>
             <% } %>
           </td>
           <td>
             <div class="compact-actions">
-              <a href="/catalog/<%= i.id %>/edit" class="btn btn-sm">Изм.</a>
+              <a href="<%= isProduct ? '/catalog/products/' + i.id + '/edit' : '/catalog/' + i.id + '/edit' %>" class="btn btn-sm">Изм.</a>
               <form method="post" action="/catalog/<%= i.id %>/toggle"><button type="submit" class="btn btn-sm"><%= i.is_active ? 'Выкл' : 'Вкл' %></button></form>
               <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');"><button type="submit" class="btn btn-sm btn-delete">Удалить</button></form>
             </div>
@@ -77,10 +88,15 @@
   <% } else { %>
   <div class="catalog-cards">
     <% items.forEach(i => { %>
+      <% const isProduct = i.type === 'product'; %>
       <article class="catalog-card <%= i.is_active ? '' : 'catalog-card--inactive' %>">
-        <div class="catalog-card__type"><%= i.type === 'work' ? 'Работа' : 'Товар' %> · <%= i.category %><% if (i.article) { %> · <code><%= i.article %></code><% } %></div>
+        <div class="catalog-card__type"><%= isProduct ? 'Товар' : 'Работа' %><% if (!isProduct) { %> · <%= i.category %><% } %><% if (i.article) { %> · <code><%= i.article %></code><% } %></div>
         <h3 class="catalog-card__title"><%= i.name %></h3>
-        <% if (i.description) { %><p class="catalog-card__desc muted" style="font-size:13px; margin:4px 0;"><%= i.description.split('\n').slice(0, 2).join(' · ') %><% if (i.description.split('\n').length > 2) { %>…<% } %></p><% } %>
+        <% if (!isProduct && i.description) { %><p class="catalog-card__desc muted" style="font-size:13px; margin:4px 0;"><%= i.description.split('\n').slice(0, 2).join(' · ') %><% if (i.description.split('\n').length > 2) { %>…<% } %></p><% } %>
+        <% if (isProduct) { %>
+          <div class="catalog-card__price">Продажа: <%= Number(i.default_price || 0).toLocaleString('ru-RU') %> ₽</div>
+          <div class="muted" style="font-size:12px; margin-top:4px;">Закуп: <%= Number(i.default_material_cost || 0).toLocaleString('ru-RU') %> ₽</div>
+        <% } else { %>
         <div class="catalog-card__price">
           <%= Number(i.default_price).toLocaleString('ru-RU') %> ₽
           <% if (i.price_tier_2 || i.price_tier_3) { %>
@@ -96,8 +112,9 @@
             <% } %>
           </div>
         <% } %>
+        <% } %>
         <div class="catalog-card__actions">
-          <a href="/catalog/<%= i.id %>/edit" class="btn btn-sm">Изменить</a>
+          <a href="<%= isProduct ? '/catalog/products/' + i.id + '/edit' : '/catalog/' + i.id + '/edit' %>" class="btn btn-sm">Изменить</a>
           <form method="post" action="/catalog/<%= i.id %>/toggle"><button type="submit" class="btn btn-sm"><%= i.is_active ? 'Выкл' : 'Вкл' %></button></form>
           <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');"><button type="submit" class="btn btn-sm btn-delete">Удалить</button></form>
         </div>

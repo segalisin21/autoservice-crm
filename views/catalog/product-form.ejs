@@ -1,0 +1,40 @@
+<%- include('../partials/layout-top', { title: item.id ? 'Карточка товара' : 'Новый товар', user, extraScripts: typeof extraScripts !== 'undefined' ? extraScripts : ['/js/catalog-article-form.js'] }) %>
+<section class="card">
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <form method="post" action="<%= item.id ? '/catalog/products/' + item.id + '?_method=PUT' : '/catalog/products' %>" data-item-id="<%= item.id || '' %>" data-catalog-type="product" class="catalog-form-compact">
+    <input type="hidden" name="type" value="product" />
+    <input type="hidden" name="category" value="<%= item.category || 'Продажа' %>" />
+    <input type="hidden" name="unit" value="<%= item.unit || 'шт' %>" />
+    <input type="hidden" name="is_active" value="<%= item.is_active !== 0 ? '1' : '0' %>" />
+    <input type="hidden" name="sort_order" value="<%= item.sort_order || 0 %>" />
+    <div class="catalog-form-grid">
+      <label>Тип
+        <select disabled aria-readonly="true">
+          <option selected>Товар</option>
+        </select>
+      </label>
+      <label>Название <input name="name" required value="<%= item.name || '' %>" /></label>
+      <label>Артикул
+        <div class="catalog-article-row">
+          <input name="article" required value="<%= item.article || '' %>" autocomplete="off" />
+          <button type="button" class="btn btn-secondary btn-sm" id="catalog-suggest-article">Предложить</button>
+        </div>
+      </label>
+      <label>Закуп, ₽
+        <input name="default_material_cost" value="<%= item.default_material_cost != null ? item.default_material_cost : '' %>" inputmode="decimal" placeholder="0" />
+      </label>
+      <label>Цена продажи, ₽
+        <input name="default_price" value="<%= item.default_price != null ? item.default_price : '' %>" inputmode="decimal" placeholder="0" />
+      </label>
+    </div>
+    <div id="catalog-article-conflict" class="error" hidden style="margin-top:4px;"></div>
+    <div class="compact-actions catalog-form-actions">
+      <button type="submit" class="btn btn-primary">Сохранить</button>
+      <a class="btn btn-secondary" href="/catalog?type=product">Назад</a>
+      <% if (item.id) { %>
+      <button type="submit" class="btn btn-sm btn-delete catalog-delete-btn" formaction="/catalog/<%= item.id %>?_method=DELETE" formmethod="post" onclick="return confirm('Удалить товар из каталога?');">Удалить</button>
+      <% } %>
+    </div>
+  </form>
+</section>
+<%- include('../partials/layout-bottom') %>

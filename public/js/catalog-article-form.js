@@ -10,8 +10,16 @@
   if (!articleInput) return;
 
   var excludeId = form.getAttribute('data-item-id') || '';
+  var catalogType = form.getAttribute('data-catalog-type') || (typeSelect ? typeSelect.value : 'work');
   var debounceTimer = null;
   var articleBlocked = false;
+
+  function editHrefFor(existing) {
+    if (existing.type === 'product') {
+      return '/catalog/products/' + existing.id + '/edit';
+    }
+    return '/catalog/' + existing.id + '/edit';
+  }
 
   function setBlocked(blocked, existing) {
     articleBlocked = blocked;
@@ -24,9 +32,9 @@
     }
     banner.hidden = false;
     banner.innerHTML =
-      'Артикул уже занят: <a href="/catalog/' +
-      existing.id +
-      '/edit">' +
+      'Артикул уже занят: <a href="' +
+      editHrefFor(existing) +
+      '">' +
       (existing.name || 'позиция') +
       '</a>';
   }
@@ -75,6 +83,7 @@
     }
     syncPayrollFieldset();
     typeSelect.addEventListener('change', function () {
+      catalogType = typeSelect.value;
       syncPayrollFieldset();
       if (!articleInput.value.trim()) {
         fetch('/api/catalog/suggest-article?type=' + encodeURIComponent(typeSelect.value), {
@@ -97,7 +106,7 @@
   if (suggestBtn) {
     suggestBtn.addEventListener('click', function (e) {
       e.preventDefault();
-      var type = typeSelect ? typeSelect.value : 'work';
+      var type = typeSelect ? typeSelect.value : catalogType;
       fetch('/api/catalog/suggest-article?type=' + encodeURIComponent(type), { credentials: 'same-origin' })
         .then(function (r) {
           return r.json();
