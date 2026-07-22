@@ -993,6 +993,26 @@
   }
 }
 
+/* Market analysis page */
+.admin-page--market .table-card--wide {
+  grid-column: 1 / -1;
+}
+
+.market-tips-card {
+  margin-top: 16px;
+}
+
+.market-tips-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  line-height: 1.5;
+  color: var(--text-secondary, #4b5563);
+}
+
+.market-tips-list li + li {
+  margin-top: 0.5rem;
+}
+
 /* Payroll — compact tables */
 .payroll-page .payroll-card {
   margin-bottom: var(--density-gap, 0.75rem);

@@ -1,0 +1,176 @@
+<%- include('../partials/layout-top', { title: 'Анализ рынка', user, category: 'market', adminSection: 'market' }) %>
+
+<div class="admin-page admin-page--market">
+  <div class="page-header page-header--stack">
+    <div class="page-header-top">
+      <div class="page-header-title">
+        <h3>Анализ рынка</h3>
+        <div class="sub-text">Автоателье · цветные ремни · срез <%= snapshotDate %></div>
+      </div>
+    </div>
+    <%- include('./_admin-subnav') %>
+    <div class="filters-bar">
+      <form method="GET" class="filters-form filters-form--reports" id="marketFilter">
+        <div class="filter-group">
+          <label class="filter-label" for="market-service">Услуга</label>
+          <select name="service" id="market-service" class="filter-select">
+            <option value="all" <%= service === 'all' ? 'selected' : '' %>>Все услуги</option>
+            <option value="belts" <%= service === 'belts' ? 'selected' : '' %>>Цветные ремни</option>
+            <option value="interior" <%= service === 'interior' ? 'selected' : '' %>>Салон и элементы</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label" for="market-geography">География</label>
+          <select name="geography" id="market-geography" class="filter-select">
+            <option value="all" <%= geography === 'all' ? 'selected' : '' %>>Вся география</option>
+            <option value="local" <%= geography === 'local' ? 'selected' : '' %>>Чебоксары/Чувашия</option>
+            <option value="russia" <%= geography === 'russia' ? 'selected' : '' %>>Российский бенчмарк</option>
+          </select>
+        </div>
+        <p class="report-range-hint">Статический снимок публичных прайсов и Avito. Не live-парсинг. Цены «от» ≠ финальная смета.</p>
+      </form>
+    </div>
+  </div>
+
+  <div class="stats-row" id="market-kpi">
+    <div class="stat-card stat-green">
+      <div class="stat-value" data-kpi="localLeads"><%= kpi.localLeads %></div>
+      <div class="stat-label"><%= kpi.localLeadsLabel %></div>
+    </div>
+    <div class="stat-card stat-blue">
+      <div class="stat-value" data-kpi="directBeltOffers"><%= kpi.directBeltOffers %></div>
+      <div class="stat-label">Прямых офферов ремней (локально)</div>
+    </div>
+    <div class="stat-card stat-orange">
+      <div class="stat-value" data-kpi="russiaBeltTypical"><%= kpi.russiaBeltTypical %></div>
+      <div class="stat-label">Типично РФ за 1 ремень</div>
+    </div>
+    <div class="stat-card stat-purple">
+      <div class="stat-value" data-kpi="recommendedStart"><%= kpi.recommendedStart %></div>
+      <div class="stat-label">Рекомендуемый старт (под ключ)</div>
+    </div>
+  </div>
+
+  <div class="charts-grid charts-grid--analytics charts-grid--single" id="market-chart-card">
+    <div class="chart-card">
+      <h4>Цена одного однотонного ремня по исполнителям</h4>
+      <p class="chart-sub">Заявленная стартовая цена, ₽. Линия — ориентир медианы 7 000 ₽.</p>
+      <div class="chart-wrap"><canvas id="beltPriceChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="tables-grid">
+    <div class="table-card table-card--wide">
+      <h4>Цены и конкуренция</h4>
+      <div class="table-scroll">
+        <table class="mini-table data-table-compact" id="market-price-table">
+          <thead>
+            <tr>
+              <th>Услуга</th>
+              <th>Единица</th>
+              <th>Минимум</th>
+              <th>Типичный диапазон</th>
+              <th>Верх</th>
+              <th>Конкуренты</th>
+              <th>Комментарий</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% priceRows.forEach(function(row) { %>
+              <tr>
+                <td><%= row.name %></td>
+                <td><%= row.unit %></td>
+                <td><%= row.min %></td>
+                <td><%= row.typical %></td>
+                <td><%= row.high %></td>
+                <td><%= row.competitors %></td>
+                <td><%= row.note %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="tables-grid">
+    <div class="table-card" id="market-local-card">
+      <h4>Локальная конкуренция</h4>
+      <table class="mini-table data-table-compact" id="market-local-table">
+        <thead><tr><th>Услуга</th><th>Исполнители</th><th>Цена</th><th>Вывод</th></tr></thead>
+        <tbody>
+          <% localCompetition.forEach(function(row) { %>
+            <tr>
+              <td><%= row.service %></td>
+              <td><%= row.competitors %></td>
+              <td><%= row.price %></td>
+              <td><%= row.verdict %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-card">
+      <h4>Стартовая сетка Чебоксар</h4>
+      <table class="mini-table data-table-compact" id="market-launch-table">
+        <thead><tr><th>Пакет</th><th>Цена</th><th>Состав</th></tr></thead>
+        <tbody>
+          <% launchPrices.forEach(function(row) { %>
+            <tr>
+              <td><%= row.package %></td>
+              <td><%= row.price %></td>
+              <td><%= row.includes %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="tables-grid" id="market-belts-section">
+    <div class="table-card table-card--wide">
+      <h4>Кто формирует цену цветных ремней</h4>
+      <div class="table-scroll">
+        <table class="mini-table data-table-compact" id="market-belts-table">
+          <thead>
+            <tr>
+              <th>Исполнитель</th>
+              <th>Город</th>
+              <th>Однотонный / шт.</th>
+              <th>Принт / шт.</th>
+              <th>Комплектация</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% beltOffers.forEach(function(row) { %>
+              <tr>
+                <td><%= row.name %></td>
+                <td><%= row.city %></td>
+                <td><%= row.solid %></td>
+                <td><%= row.print %></td>
+                <td><%= row.note %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-card market-tips-card">
+    <h4>Советы по продвижению</h4>
+    <ul class="market-tips-list" id="market-tips">
+      <% tips.forEach(function(tip) { %>
+        <li><%= tip %></li>
+      <% }) %>
+    </ul>
+  </div>
+</div>
+
+<script>
+window.MARKET_BOOTSTRAP = <%- marketBootstrap %>;
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+<script src="/js/admin-market.js"></script>
+
+<%- include('../partials/layout-bottom') %>

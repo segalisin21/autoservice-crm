@@ -157,6 +157,12 @@
               </svg>
               <span>Аналитика</span>
             </a>
+            <a href="/admin/market" class="nav-item <%= _cat === 'market' || (typeof adminSection !== 'undefined' && adminSection === 'market') ? 'active' : '' %>">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3v18h18M7 14l3-3 3 2 5-6"/>
+              </svg>
+              <span>Рынок</span>
+            </a>
             <% } %>
             <% if (_can('admin:settings')) { %>
             <a href="/admin/settings" class="nav-item <%= _cat === 'settings' ? 'active' : '' %>">

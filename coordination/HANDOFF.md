@@ -1,5 +1,58 @@
-# HANDOFF
+﻿# HANDOFF
 
+## 2026-07-22 — страница «Анализ рынка» в CRM
+
+### What changed
+- Добавлена админ-страница `/admin/market` со статическим срезом рынка автоателье/цветных ремней: KPI, фильтры (услуга/география), график Chart.js, таблицы цен и советы по продвижению.
+- Данные в `lib/marketAnalysis.js`; API `GET /admin/market/api/data` для AJAX-перерисовки; доступ `admin:reports` (как у аналитики).
+- Навигация: subnav «Рынок», сайдбар, мобильное меню «Ещё».
+
+### Key files
+- `lib/marketAnalysis.js`, `controllers/marketAnalysisController.js`
+- `routes/admin-reports.js`, `views/admin/market.ejs`, `public/js/admin-market.js`
+- `views/admin/_admin-subnav.ejs`, `views/partials/layout-top.ejs`, `views/partials/mobile-nav.ejs`
+- `tests/market-analysis-ui.test.js`, `docs/REPORT.md`
+
+### Verify
+```bash
+npm test
+```
+
+Результат проверки 22.07.2026: **80/84 passed, 4 failed** (те же несвязанные UI-тесты: receivables CSV, order-economics markup, orders mobile table, payroll accordion). Новые `tests/market-analysis-ui.test.js` — 4/4 pass.
+
+---
+
+## 2026-07-22 — анализ рынка автоателье и цветных ремней
+
+### What changed
+- Проведён публичный срез Avito, локальных каталогов, 2ГИС и официальных прайсов автоателье по Чебоксарам/Чувашии и крупным городам России.
+- В `docs/MARKET_ANALYSIS_AUTO_INTERIOR_2026.md` зафиксированы методика, цены, видимая конкуренция, источники, рекомендуемая стартовая сетка и 30-дневный план продвижения.
+- Создан интерактивный Canvas `auto-interior-market-analysis.canvas.tsx` с фильтрами по услуге/географии, таблицами и сравнительным графиком.
+- Отдельно отмечены ограничения выборки и требования безопасности для работ с ремнями; замена ленты не смешивается с ремонтом пиропатронов/SRS.
+
+### Key files
+- `docs/MARKET_ANALYSIS_AUTO_INTERIOR_2026.md`
+- `C:\Users\Lisin\.cursor\projects\c-cursor-Auto\canvases\auto-interior-market-analysis.canvas.tsx`
+- `coordination/HANDOFF.md`
+
+### Verify
+```bash
+npm test
+```
+
+Результат проверки 22.07.2026: **76/80 passed, 4 failed**. После пересборки
+`better-sqlite3` для текущего Node остаются существующие несоответствия UI-тестов:
+`analytics-ui.test.js` (receivables CSV), `order-economics.test.js`,
+`orders.test.js` (mobile table markup), `payroll-finance.test.js` (accordion copy).
+Изменённые в этой задаче файлы не участвуют в этих тестах.
+
+### Risks / known limitations
+- Число конкурентов — нижняя граница просмотренной публичной выборки, а не полный реестр Avito.
+- Часть площадок показывает динамическую выдачу и цены «от»; перед запуском нужен контрольный ручной срез в Avito Pro.
+- Рекомендуемые локальные цены являются тестовой стратегией и требуют пересчёта по фактической себестоимости материалов и трудозатратам.
+- Отчёт не заменяет юридическую и сертификационную оценку технологии изменения ремней безопасности.
+
+---
 ## 2026-06-26 — пустые примечания не печатаются в заказ-наряде
 
 ### What changed
