@@ -59,8 +59,10 @@
       <div class="finance-kpi-card__label">Прибыль</div>
     </div>
     <div class="finance-kpi-card">
-      <div class="finance-kpi-card__value"><%= metrics.receivables.toLocaleString('ru-RU') %>&nbsp;₽</div>
-      <div class="finance-kpi-card__label">Дебиторка</div>
+      <a href="/admin/receivables" class="finance-kpi-card__link">
+        <div class="finance-kpi-card__value"><%= metrics.receivables.toLocaleString('ru-RU') %>&nbsp;₽</div>
+        <div class="finance-kpi-card__label">Долг клиентов (всего)</div>
+      </a>
     </div>
   </div>
 

@@ -144,6 +144,12 @@
               </svg>
               <span>Финансы</span>
             </a>
+            <a href="/admin/receivables" class="nav-item <%= (typeof adminSection !== 'undefined' && adminSection === 'receivables') ? 'active' : '' %>">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 8v8m-4-4h8M4 6h16v12H4z"/>
+              </svg>
+              <span>Дебиторка</span>
+            </a>
             <% } %>
             <% if (_can('payroll:view') && !_isMaster) { %>
             <a href="/admin/payroll" class="nav-item <%= _cat === 'payroll' ? 'active' : '' %>">

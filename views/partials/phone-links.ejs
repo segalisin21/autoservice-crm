@@ -1,0 +1,14 @@
+<% if (phone) { %>
+  <% const tel = typeof telHref === 'function' ? telHref(phone) : null; %>
+  <% const wa = typeof whatsAppHref === 'function' ? whatsAppHref(phone) : null; %>
+  <% if (tel) { %>
+    <a href="<%= tel %>" onclick="event.stopPropagation()"><%= phone %></a>
+    <% if (wa) { %>
+      <a href="<%= wa %>" class="phone-wa-link" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" title="WhatsApp">WA</a>
+    <% } %>
+  <% } else { %>
+    <%= phone %>
+  <% } %>
+<% } else { %>
+  —
+<% } %>

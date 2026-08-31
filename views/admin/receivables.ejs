@@ -1,0 +1,79 @@
+<%- include('../partials/layout-top', { title: 'Дебиторка', user, category: 'finance' }) %>
+<%
+  const rangeStart = totalCount ? (page - 1) * pageSize + 1 : 0;
+  const rangeEnd = totalCount ? Math.min(page * pageSize, totalCount) : 0;
+%>
+<section class="card">
+  <div class="admin-page finance-dashboard">
+    <div class="finance-dashboard__head">
+      <h1 class="finance-dashboard__title">Дебиторка</h1>
+      <%- include('./_admin-subnav') %>
+    </div>
+  </div>
+  <div class="form-inline" style="justify-content:space-between; flex-wrap:wrap; gap:0.75rem; margin-bottom:12px;">
+    <p class="muted" style="margin:0;">Заказы с неоплаченным остатком (включая завершённые с частичной оплатой)</p>
+    <div class="form-inline__actions">
+      <a href="/orders?due_only=1" class="btn btn-secondary btn-sm">Все заказы с долгом</a>
+      <a href="/admin/receivables/export.csv" class="btn btn-secondary btn-sm">CSV</a>
+    </div>
+  </div>
+
+  <div class="finance-kpi-grid finance-kpi-grid--compact" style="margin-bottom:16px;">
+    <div class="finance-kpi-card finance-kpi-card--accent">
+      <div class="finance-kpi-card__value"><%= Number(grandTotalDue).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %>&nbsp;₽</div>
+      <div class="finance-kpi-card__label">Общий долг (<%= totalCount %> заказов)</div>
+    </div>
+  </div>
+
+  <% if (!items.length) { %>
+    <p class="muted">Нет неоплаченных заказов.</p>
+  <% } else { %>
+  <p class="muted">Показано <%= rangeStart %>–<%= rangeEnd %> из <%= totalCount %></p>
+  <div class="table-scroll">
+    <table class="data-table data-table-compact orders-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Дата</th>
+          <th>Клиент</th>
+          <th>Телефон</th>
+          <th>Госномер</th>
+          <th>Статус</th>
+          <th class="num">Итого</th>
+          <th class="num">Оплачено</th>
+          <th class="num">Долг</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% items.forEach(r => { %>
+          <tr class="orders-table__row" onclick="window.location='/orders/<%= r.order_id %>'">
+            <td><a href="/orders/<%= r.order_id %>" onclick="event.stopPropagation()"><%= r.order_id %></a></td>
+            <td><%= (r.scheduled_date || r.opened_at || '').toString().slice(0, 10) %></td>
+            <td><%= r.client_name || '—' %></td>
+            <td class="muted"><%- include('../partials/phone-links', { phone: r.client_phone }) %></td>
+            <td><%= r.license_plate_raw || '—' %></td>
+            <td><span class="status-badge status-<%= r.status %>"><%= (statusLabels && statusLabels[r.status]) || r.status %></span></td>
+            <td class="num"><%= r.total_price.toFixed(2) %> ₽</td>
+            <td class="num"><%= r.paid.toFixed(2) %> ₽</td>
+            <td class="num"><span class="due-badge"><%= r.due.toFixed(2) %> ₽</span></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% if (totalPages > 1) { %>
+  <nav class="pagination" aria-label="Страницы дебиторки">
+    <% if (page > 1) { %>
+      <a class="page-link" href="/admin/receivables?page=<%= page - 1 %>">← Назад</a>
+    <% } %>
+    <% for (let p = Math.max(1, page - 2); p <= Math.min(totalPages, page + 2); p++) { %>
+      <a class="page-link <%= p === page ? 'active' : '' %>" href="/admin/receivables?page=<%= p %>"><%= p %></a>
+    <% } %>
+    <% if (page < totalPages) { %>
+      <a class="page-link" href="/admin/receivables?page=<%= page + 1 %>">Вперёд →</a>
+    <% } %>
+  </nav>
+  <% } %>
+  <% } %>
+</section>
+<%- include('../partials/layout-bottom') %>

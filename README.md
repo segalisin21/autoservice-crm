@@ -12,9 +12,21 @@ npm start
 
 Откройте http://localhost:3000
 
-## Продакшен (Railway)
+## Продакшен (Railway / RelaxDev)
 
-### Вариант A — PostgreSQL (рекомендуется)
+### RelaxDev (Россия)
+
+См. [docs/DEPLOY_RELAXDEV.md](docs/DEPLOY_RELAXDEV.md).
+
+Кратко:
+
+- PostgreSQL addon + `DATABASE_URL`
+- `PGSSLMODE=disable`
+- `SESSION_SECRET` ≥ 32 символов
+- `NODE_ENV=production`
+- Старт: `npm run start:prod`
+
+### Railway
 
 1. В Railway: **New → Database → PostgreSQL**.
 2. В сервисе приложения → **Variables** → добавить:

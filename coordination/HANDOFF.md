@@ -1,5 +1,46 @@
 ﻿# HANDOFF
 
+## 2026-08-31 — приоритет 1–2: дебиторка, экспорт, Chart.js, UX
+
+### What changed
+- **Заказы:** пагинация за весь период, SQL-фильтр «С долгом», даты, экспорт CSV с фильтрами.
+- **Дебиторка:** `/admin/receivables` — все заказы с остатком (включая completed), пагинация, CSV; KPI — «Долг клиентов (всего)».
+- **Chart.js:** локально в `public/vendor/chart.js/` (без CDN).
+- **UX:** tel/WhatsApp на карточке заказа; подписи KPI «за месяц» vs «всего».
+- **Docs:** `docs/DEPLOY_RELAXDEV.md`, обновлены `README.md`, `docs/SECURITY.md`.
+
+### Key files
+- `lib/receivables.js`, `lib/ordersList.js`, `lib/phoneLinks.js`
+- `controllers/receivablesController.js`, `controllers/orderController.js`
+- `views/admin/receivables.ejs`, `views/orders/list.ejs`, `views/dashboard.ejs`
+- `tests/receivables-ui.test.js`, `tests/orders.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
+## 2026-08-31 — список заказов за весь период
+
+### What changed
+- **`/orders`:** по умолчанию весь период с пагинацией (50 на страницу), счётчик «Показано X–Y из Z», навигация по страницам.
+- **«С долгом»:** фильтр перенесён в SQL (до LIMIT) — старые долги видны независимо от топ-50 по id.
+- **Даты:** опциональные `date_from` / `date_to` (по `scheduled_date` или `opened_at`); чипы «Все», «Этот месяц», «С долгом».
+- **Производительность:** `paid_amount` одним subquery в SELECT вместо N+1.
+
+### Key files
+- `controllers/orderController.js`, `views/orders/list.ejs`
+- `tests/orders.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-07-01 — критические фиксы безопасности перед переездом
 
 ### What changed

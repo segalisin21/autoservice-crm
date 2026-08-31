@@ -121,8 +121,8 @@ async function exportCsv(req, res) {
   }
 
   if (type === "receivables") {
-    const { getOrdersWithReceivables } = require("../lib/analytics");
-    const rows = await getOrdersWithReceivables(db, 500);
+    const { loadAllReceivables } = require("../lib/receivables");
+    const rows = await loadAllReceivables(db, 5000);
     const lines = [["Заказ", "Клиент", "Госномер", "Статус", "Дата", "Итого", "Оплачено", "Долг"].join(sep)];
     for (const r of rows) {
       lines.push(
@@ -131,10 +131,10 @@ async function exportCsv(req, res) {
           `"${String(r.client_name).replace(/"/g, '""')}"`,
           r.license_plate_raw || "",
           r.status,
-          r.scheduled_date || "",
-          r.total_price,
-          r.paid,
-          r.due
+          r.scheduled_date || String(r.opened_at || "").slice(0, 10),
+          r.total_price.toFixed(2),
+          r.paid.toFixed(2),
+          r.due.toFixed(2)
         ].join(sep)
       );
     }

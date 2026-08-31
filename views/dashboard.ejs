@@ -312,23 +312,25 @@
     <div class="finance-kpi-grid finance-kpi-grid--compact">
       <div class="finance-kpi-card">
         <div class="finance-kpi-card__value"><%= Math.round(viewFinance.cash_in).toLocaleString('ru-RU') %>&nbsp;₽</div>
-        <div class="finance-kpi-card__label">Касса</div>
+        <div class="finance-kpi-card__label">Касса за месяц</div>
       </div>
       <div class="finance-kpi-card">
         <div class="finance-kpi-card__value"><%= Math.round(viewFinance.net_revenue).toLocaleString('ru-RU') %>&nbsp;₽</div>
-        <div class="finance-kpi-card__label">Выручка</div>
+        <div class="finance-kpi-card__label">Выручка за месяц</div>
       </div>
       <div class="finance-kpi-card">
         <div class="finance-kpi-card__value"><%= Math.round(viewFinance.expenses_total).toLocaleString('ru-RU') %>&nbsp;₽</div>
-        <div class="finance-kpi-card__label">Расходы</div>
+        <div class="finance-kpi-card__label">Расходы за месяц</div>
       </div>
       <div class="finance-kpi-card finance-kpi-card--accent">
         <div class="finance-kpi-card__value"><%= Math.round(viewFinance.net_profit).toLocaleString('ru-RU') %>&nbsp;₽</div>
-        <div class="finance-kpi-card__label">Прибыль</div>
+        <div class="finance-kpi-card__label">Прибыль за месяц</div>
       </div>
       <div class="finance-kpi-card">
-        <div class="finance-kpi-card__value"><%= Math.round(viewFinance.receivables).toLocaleString('ru-RU') %>&nbsp;₽</div>
-        <div class="finance-kpi-card__label">Дебиторка</div>
+        <a href="/admin/receivables" class="finance-kpi-card__link">
+          <div class="finance-kpi-card__value"><%= Math.round(viewFinance.receivables).toLocaleString('ru-RU') %>&nbsp;₽</div>
+          <div class="finance-kpi-card__label">Долг клиентов (всего)</div>
+        </a>
       </div>
     </div>
   </section>

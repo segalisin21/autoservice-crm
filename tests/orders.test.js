@@ -651,3 +651,83 @@ test("create order with scheduled_end_date saves and shows on print", async (t) 
   assert.match(print.text, /Дата окончания/);
   assert.match(print.text, /2026-06-20/);
 });
+
+async function seedListTestCar(ctx) {
+  await ctx.db.query(
+    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('ListBulk', '1', '79990000333')`
+  );
+  const clientId = (await ctx.db.query("SELECT id FROM clients ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(`INSERT INTO cars(client_id) VALUES (?)`, [clientId]);
+  return (await ctx.db.query("SELECT id FROM cars ORDER BY id DESC LIMIT 1"))[0].id;
+}
+
+test("orders list due_only finds old debt beyond first page", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const carId = await seedListTestCar(ctx);
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, total_price, opened_at) VALUES (?, 'completed', 1000, '2025-01-01 10:00:00')`,
+    [carId]
+  );
+  const oldDueId = (await ctx.db.query("SELECT id FROM orders ORDER BY id ASC LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO payments(order_id, amount, method, kind, paid_at) VALUES (?, 100, 'cash', 'payment', datetime('now'))`,
+    [oldDueId]
+  );
+
+  for (let i = 0; i < 50; i++) {
+    await ctx.db.query(`INSERT INTO orders(car_id, status, total_price) VALUES (?, 'completed', 0)`, [carId]);
+  }
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const res = await agent.get("/orders?due_only=1");
+  assert.equal(res.status, 200);
+  assert.match(res.text, new RegExp(`orders-table__row[\\s\\S]*?/orders/${oldDueId}`));
+  assert.match(res.text, /900\.00/);
+});
+
+test("orders list pagination page 2", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const carId = await seedListTestCar(ctx);
+  for (let i = 0; i < 55; i++) {
+    await ctx.db.query(`INSERT INTO orders(car_id, status) VALUES (?, 'scheduled')`, [carId]);
+  }
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const page1 = await agent.get("/orders");
+  const page2 = await agent.get("/orders?page=2");
+  assert.equal(page1.status, 200);
+  assert.equal(page2.status, 200);
+  assert.match(page1.text, /Показано 1–50 из 55/);
+  assert.match(page2.text, /Показано 51–55 из 55/);
+  assert.match(page2.text, /page-link active[^>]*>2</);
+});
+
+test("orders list date_from date_to filter", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const carId = await seedListTestCar(ctx);
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, scheduled_date, opened_at) VALUES (?, 'scheduled', '2026-03-15', '2026-03-15 09:00:00')`,
+    [carId]
+  );
+  const marchId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+  await ctx.db.query(
+    `INSERT INTO orders(car_id, status, scheduled_date, opened_at) VALUES (?, 'scheduled', '2026-07-01', '2026-07-01 09:00:00')`,
+    [carId]
+  );
+  const julyId = (await ctx.db.query("SELECT id FROM orders ORDER BY id DESC LIMIT 1"))[0].id;
+
+  const agent = request.agent(ctx.app);
+  await ctx.loginAs(agent, "admin", "admin");
+  const res = await agent.get("/orders?date_from=2026-03-01&date_to=2026-03-31");
+  assert.equal(res.status, 200);
+  assert.match(res.text, new RegExp(`/orders/${marchId}`));
+  assert.doesNotMatch(res.text, new RegExp(`/orders/${julyId}`));
+});

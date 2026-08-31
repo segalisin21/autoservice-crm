@@ -1,5 +1,12 @@
 const { getDB } = require("../config/database");
 const { sqlNow } = require("../config/sqlDialect");
+const { PAID_AMOUNT_SUBQUERY } = require("../lib/receivables");
+const {
+  PAGE_SIZE,
+  parseOrdersListFilters,
+  buildOrdersListWhere,
+  buildOrdersListQuery
+} = require("../lib/ordersList");
 const { parseMoney } = require("../lib/money");
 const { loadTaxSettings, ensureDefaultSettings } = require("../lib/settings");
 const { recomputeOrderTotals, getPaidAmount } = require("../lib/orderTotals");
@@ -220,7 +227,6 @@ async function attachPayrollMasters(db, works) {
   }
 }
 
-const PAGE_SIZE = 50;
 const ORDER_STATUSES = ["scheduled", "in_progress", "ready", "completed", "cancelled"];
 const ACTIVE_STATUS_OPTIONS = ["scheduled", "in_progress", "ready", "completed"];
 
@@ -302,49 +308,31 @@ async function list(req, res) {
     return res.redirect("/");
   }
   const db = await getDB();
-  const status = String(req.query.status ?? "").trim();
-  const search = String(req.query.search ?? "").trim();
-  const assigned_user_id = parseOptionalId(req.query.assigned_user_id);
-  const due_only = req.query.due_only === "1" || req.query.due_only === "true";
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const offset = (page - 1) * PAGE_SIZE;
+  const filters = parseOrdersListFilters(req.query);
+  const { whereSql, params } = buildOrdersListWhere(db, filters);
+  const page = filters.page;
 
-  const where = [];
-  const params = [];
-  if (status) {
-    where.push("o.status = ?");
-    params.push(status);
-  }
-  if (assigned_user_id) {
-    where.push("o.assigned_user_id = ?");
-    params.push(assigned_user_id);
-  }
-  if (search) {
-    const plateNorm = normalizePlate(search).license_plate_normalized;
-    const like = likePattern(search);
-    const digits = search.replace(/\D/g, "");
-    if (plateNorm) {
-      where.push(
-        `(c.license_plate_normalized LIKE ? OR ${lcLike("cl.full_name_lc")} OR cl.phone_normalized LIKE ? OR CAST(o.id AS TEXT) LIKE ?)`
-      );
-      params.push(`%${plateNorm}%`, likePatternFolded(search), `%${digits || search}%`, likePattern(search));
-    } else {
-      where.push(
-        `(${lcLike("cl.full_name_lc")} OR cl.phone_normalized LIKE ? OR c.license_plate_normalized LIKE ? OR CAST(o.id AS TEXT) LIKE ?)`
-      );
-      params.push(likePatternFolded(search), `%${digits || search}%`, `%${search.toUpperCase().replace(/[\s-]/g, "")}%`, likePattern(search));
-    }
-  }
-  if (due_only) {
-    where.push("o.status NOT IN ('cancelled')");
-  }
-  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const countRows = await db.query(
+    `
+    SELECT COUNT(*) AS cnt
+    FROM orders o
+    LEFT JOIN cars c ON c.id = o.car_id
+    LEFT JOIN clients cl ON cl.id = c.client_id
+    ${whereSql}
+  `,
+    params
+  );
+  const totalCount = Number(countRows[0]?.cnt) || 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const offset = (safePage - 1) * PAGE_SIZE;
 
-  let orders = await db.query(
+  const orders = await db.query(
     `
     SELECT o.id, o.opened_at, o.status, o.work_type, o.total_price, o.assigned_user_id, o.car_id,
            au.name AS assigned_user_name,
-           c.license_plate_raw, c.make AS car_make, c.model AS car_model, cl.full_name AS client_name, cl.phone_raw AS client_phone
+           c.license_plate_raw, c.make AS car_make, c.model AS car_model, cl.full_name AS client_name, cl.phone_raw AS client_phone,
+           ${PAID_AMOUNT_SUBQUERY} AS paid_amount
     FROM orders o
     LEFT JOIN cars c ON c.id = o.car_id
     LEFT JOIN clients cl ON cl.id = c.client_id
@@ -357,23 +345,92 @@ async function list(req, res) {
   );
 
   for (const o of orders) {
-    o.paid_amount = await getPaidAmount(db, o.id);
+    o.paid_amount = parseMoney(o.paid_amount);
     o.due_amount = Math.max(0, parseMoney(o.total_price) - o.paid_amount);
   }
-  if (due_only) {
-    orders = orders.filter((o) => o.due_amount > 0);
-  }
   const masters = await loadMasters(db);
+  const listFilters = {
+    status: filters.status,
+    search: filters.search,
+    due_only: filters.due_only,
+    assigned_user_id: filters.assigned_user_id || "",
+    date_from: filters.date_from,
+    date_to: filters.date_to
+  };
 
   res.render("orders/list", {
     orders,
-    filters: { status, search, due_only, assigned_user_id: assigned_user_id || "" },
+    filters: listFilters,
+    page: safePage,
+    totalPages,
+    totalCount,
+    pageSize: PAGE_SIZE,
+    listQuery: (p, overrides) => buildOrdersListQuery(listFilters, p, overrides),
+    exportQuery: buildOrdersListQuery(listFilters, 1).replace(/^\?/, "") || "",
     masters,
     statuses: ORDER_STATUSES,
     statusLabels: ORDER_STATUS_LABELS,
     user: req.session.user,
     category: "orders"
   });
+}
+
+async function exportListCsv(req, res) {
+  if (req.session.user?.role === "master") {
+    return res.status(403).send("Forbidden");
+  }
+  const db = await getDB();
+  const filters = parseOrdersListFilters(req.query);
+  const { whereSql, params } = buildOrdersListWhere(db, filters);
+
+  const orders = await db.query(
+    `
+    SELECT o.id, o.opened_at, o.status, o.work_type, o.total_price,
+           au.name AS assigned_user_name,
+           c.license_plate_raw, c.make AS car_make, c.model AS car_model,
+           cl.full_name AS client_name, cl.phone_raw AS client_phone,
+           ${PAID_AMOUNT_SUBQUERY} AS paid_amount
+    FROM orders o
+    LEFT JOIN cars c ON c.id = o.car_id
+    LEFT JOIN clients cl ON cl.id = c.client_id
+    LEFT JOIN users au ON au.id = o.assigned_user_id
+    ${whereSql}
+    ORDER BY o.id DESC
+    LIMIT 5000
+  `,
+    params
+  );
+
+  const bom = "\uFEFF";
+  const sep = ";";
+  const { statusLabel, ORDER_STATUS_LABELS } = require("../lib/orderStatusLabels");
+  const lines = [
+    ["ID", "Открыт", "Статус", "Сотрудник", "Госномер", "Марка", "Модель", "Клиент", "Телефон", "Итого", "Оплачено", "Долг"].join(sep)
+  ];
+  for (const o of orders) {
+    const paid = parseMoney(o.paid_amount);
+    const due = Math.max(0, parseMoney(o.total_price) - paid);
+    lines.push(
+      [
+        o.id,
+        String(o.opened_at || "").slice(0, 10),
+        statusLabel(o.status) || o.status,
+        `"${String(o.assigned_user_name || "").replace(/"/g, '""')}"`,
+        o.license_plate_raw || "",
+        o.car_make || "",
+        o.car_model || "",
+        `"${String(o.client_name || "").replace(/"/g, '""')}"`,
+        o.client_phone || "",
+        parseMoney(o.total_price).toFixed(2),
+        paid.toFixed(2),
+        due.toFixed(2)
+      ].join(sep)
+    );
+  }
+
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", 'attachment; filename="orders.csv"');
+  return res.send(bom + lines.join("\n"));
 }
 
 async function findCarsByPlate(db, plateRaw) {
@@ -1373,6 +1430,7 @@ async function deletePhoto(req, res) {
 
 module.exports = {
   list,
+  exportListCsv,
   showNew,
   create,
   update,

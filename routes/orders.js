@@ -8,6 +8,7 @@ const { uploadPhotos } = require("../lib/upload");
 const router = express.Router();
 
 router.get("/", requirePermission("orders:view"), asyncRoute(orderController.list));
+router.get("/export.csv", requirePermission("orders:view"), asyncRoute(orderController.exportListCsv));
 router.get("/new", requirePermission("orders:mutate"), asyncRoute(orderController.showNew));
 router.post("/", requirePermission("orders:mutate"), asyncRoute(orderController.create));
 router.get("/:id/print", requirePermission("orders:view"), asyncRoute(orderController.printView));

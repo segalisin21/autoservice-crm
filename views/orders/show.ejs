@@ -29,7 +29,7 @@
     <% } %>
   </div>
   <% if (order.client_name) { %>
-  <p class="order-subtitle"><%= order.client_name %><% if (order.client_phone) { %> · <%= order.client_phone %><% } %></p>
+  <p class="order-subtitle"><%= order.client_name %><% if (order.client_phone) { %> · <%- include('../partials/phone-links', { phone: order.client_phone }) %><% } %></p>
   <% } else if (!order.car_id) { %>
   <p class="order-subtitle muted">Клиент и авто будут указаны при приёмке</p>
   <% } %>

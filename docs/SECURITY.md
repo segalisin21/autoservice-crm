@@ -1,8 +1,18 @@
-# SECURITY — Белка Парк CRM
+# SECURITY — autoservice-crm
 
-> Аудит проведён по коду на момент 2026-05-04. Это документ-карта рисков, не приватный список доступов. Для трассировки фиксов — см. [docs/QA_REPORT.md](QA_REPORT.md) и [coordination/HANDOFF.md](../coordination/HANDOFF.md).
+> Аудит и статус мер безопасности. Трассировка фиксов: [coordination/HANDOFF.md](../coordination/HANDOFF.md).
 
-## 1. Сводка по рискам
+## Статус (2026-08)
+
+| ID | Было | Сейчас |
+| --- | --- | --- |
+| SEC-03 | Hardcoded session secret | `SESSION_SECRET` env, fail-fast в production (≥32) — [lib/sessionSecret.js](../lib/sessionSecret.js) |
+| SEC-04 | Cookie без флагов | `httpOnly`, `secure` в production, `sameSite: lax`, `trust proxy` |
+| SEC-05 | Нет CSRF | [middleware/csrf.js](../middleware/csrf.js), токен во всех POST-формах |
+| SEC-06 | Brute force на login | Rate-limit 5/15 мин — [middleware/loginLimiter.js](../middleware/loginLimiter.js) |
+| SEC-02 | SHA-256 без соли | **scrypt** с солью — [lib/password.js](../lib/password.js) |
+
+## 1. Сводка по рискам (legacy + открытые)
 
 | ID | Severity | Категория | Заголовок |
 | --- | --- | --- | --- |

@@ -1,5 +1,6 @@
 const { getDB } = require("../config/database");
 const { loadRolePermissions, canViewOrderMoney } = require("../config/permissions");
+const { telHref, whatsAppHref } = require("../lib/phoneLinks");
 
 const ROLE_LABELS = {
   owner: "Владелец",
@@ -19,6 +20,8 @@ async function loadUserPermissions(req, res, next) {
     res.locals.can = (permission) => user.role === "owner" || permissions.has(permission);
     res.locals.roleLabel = ROLE_LABELS[user.role] || user.role;
     res.locals.showMoney = canViewOrderMoney(user.role);
+    res.locals.telHref = telHref;
+    res.locals.whatsAppHref = whatsAppHref;
     return next();
   } catch (err) {
     return next(err);
