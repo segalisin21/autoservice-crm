@@ -34,6 +34,7 @@
 <section class="card">
   <h2 style="margin:0 0 8px 0; font-size:16px;">Новый расход</h2>
   <form method="post" action="/expenses" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:8px;">
+    <%- include('../partials/csrf-field') %>
     <label>Дата <input type="date" name="expense_date" value="<%= range.end_date %>" /></label>
     <label>Сумма, ₽ <input name="amount" required /></label>
     <label>Категория
@@ -75,6 +76,7 @@
           <td>
             <% if (canMutate) { %>
             <form method="post" action="/expenses/<%= e.id %>?_method=DELETE" style="display:inline;">
+    <%- include('../partials/csrf-field') %>
               <button type="submit">×</button>
             </form>
             <% } %>

@@ -579,43 +579,53 @@ async function create(req, res) {
   const dateRangeErr = validateDateRange(scheduled_date, scheduled_end_date);
   if (dateRangeErr) return renderError(dateRangeErr);
 
-  const resolved = await resolveOrCreateCar(db, req.body);
-  if (resolved && typeof resolved === "object" && resolved.error) {
-    return renderError(resolved.error);
-  }
-  const car_id =
-    Number.isFinite(Number(resolved)) && Number(resolved) > 0 ? Number(resolved) : null;
-
   const absenceErr = await validateCanAssign(db, assigned_user_id, scheduled_date, start_time, end_time);
   if (absenceErr) return renderError(absenceErr);
 
   await ensureDefaultSettings(db);
   const tax = await loadTaxSettings(db);
 
-  const orderId = await db.insertReturning(
-    `
-    INSERT INTO orders(
-      car_id, status, work_type, notes, created_by,
-      tax_enabled, tax_mode, tax_rate, prices_include_tax,
-      scheduled_date, scheduled_end_date, assigned_user_id, start_time, end_time
-    ) VALUES (?, 'scheduled', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `,
-    [
-      car_id,
-      work_type,
-      notes,
-      req.session.user?.id || null,
-      tax.tax_enabled,
-      tax.tax_mode,
-      tax.tax_rate,
-      tax.prices_include_tax,
-      scheduled_date,
-      scheduled_end_date,
-      assigned_user_id,
-      start_time,
-      end_time
-    ]
-  );
+  let orderId;
+  try {
+    orderId = await db.withTransaction(async (tx) => {
+      const resolved = await resolveOrCreateCar(tx, req.body);
+      if (resolved && typeof resolved === "object" && resolved.error) {
+        const err = new Error(resolved.error);
+        err.validationError = resolved.error;
+        throw err;
+      }
+      const car_id =
+        Number.isFinite(Number(resolved)) && Number(resolved) > 0 ? Number(resolved) : null;
+
+      return tx.insertReturning(
+        `
+        INSERT INTO orders(
+          car_id, status, work_type, notes, created_by,
+          tax_enabled, tax_mode, tax_rate, prices_include_tax,
+          scheduled_date, scheduled_end_date, assigned_user_id, start_time, end_time
+        ) VALUES (?, 'scheduled', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+        [
+          car_id,
+          work_type,
+          notes,
+          req.session.user?.id || null,
+          tax.tax_enabled,
+          tax.tax_mode,
+          tax.tax_rate,
+          tax.prices_include_tax,
+          scheduled_date,
+          scheduled_end_date,
+          assigned_user_id,
+          start_time,
+          end_time
+        ]
+      );
+    });
+  } catch (err) {
+    if (err.validationError) return renderError(err.validationError);
+    throw err;
+  }
   return res.redirect(`/orders/${orderId}`);
 }
 
@@ -1192,21 +1202,35 @@ async function addPayment(req, res) {
   if (amount <= 0) return res.redirect(`/orders/${orderId}`);
 
   const db = await getDB();
-  const orders = await db.query("SELECT total_price FROM orders WHERE id = ?", [orderId]);
-  const total = parseMoney(orders[0]?.total_price);
-  const paid = await getPaidAmount(db, orderId);
-  const delta = kind === "refund" ? -amount : amount;
-  if (paid + delta > total + 0.005) {
-    return res.redirect(`/orders/${orderId}`);
+  const lockSql =
+    db.dialect === "postgres"
+      ? "SELECT total_price FROM orders WHERE id = ? FOR UPDATE"
+      : "SELECT total_price FROM orders WHERE id = ?";
+
+  try {
+    await db.withTransaction(async (tx) => {
+      const orders = await tx.query(lockSql, [orderId]);
+      const total = parseMoney(orders[0]?.total_price);
+      const paid = await getPaidAmount(tx, orderId);
+      const delta = kind === "refund" ? -amount : amount;
+      if (paid + delta > total + 0.005) {
+        const err = new Error("overpay");
+        err.isOverpay = true;
+        throw err;
+      }
+
+      await tx.query(
+        `
+        INSERT INTO payments(order_id, amount, method, kind, note, created_by)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `,
+        [orderId, amount, method, kind, String(req.body.note ?? "").trim() || null, req.session.user?.id || null]
+      );
+    });
+  } catch (err) {
+    if (!err.isOverpay) throw err;
   }
 
-  await db.query(
-    `
-    INSERT INTO payments(order_id, amount, method, kind, note, created_by)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `,
-    [orderId, amount, method, kind, String(req.body.note ?? "").trim() || null, req.session.user?.id || null]
-  );
   return res.redirect(`/orders/${orderId}`);
 }
 

@@ -17,6 +17,7 @@
     <% if (order.car_id) { %>
       <% if (typeof canEditMileage !== 'undefined' && canEditMileage) { %>
       <form method="post" action="/orders/<%= order.id %>/mileage" class="order-mileage-form">
+    <%- include('../partials/csrf-field') %>
         <label class="order-mileage-form__label">Пробег, км
           <input class="order-mileage-form__input" name="mileage" type="number" min="0" step="1" inputmode="numeric" placeholder="—" value="<%= order.mileage != null && order.mileage !== '' ? order.mileage : '' %>" />
         </label>
@@ -58,6 +59,7 @@
   <div class="status-chips" role="group" aria-label="Статус заказа">
     <% statusChipOptions.forEach(function(s) { %>
       <form method="post" action="/orders/<%= order.id %>/status" class="status-chip-form">
+    <%- include('../partials/csrf-field') %>
         <input type="hidden" name="status" value="<%= s %>" />
         <button type="submit" class="status-chip <%= order.status === s ? 'active' : '' %>"><%= statusLabel(s) %></button>
       </form>
@@ -97,6 +99,7 @@
     </details>
     <% if (typeof can !== 'undefined' && can('orders:mutate')) { %>
     <form method="post" action="/orders/<%= order.id %>?_method=DELETE" class="order-delete-form" onsubmit="return confirm('Удалить заказ #<%= order.id %> безвозвратно?');">
+    <%- include('../partials/csrf-field') %>
       <button type="submit" class="btn btn-sm btn-delete">Удалить заказ</button>
     </form>
     <% } %>
@@ -108,6 +111,7 @@
   <summary class="order-accordion-summary">Авто и клиент</summary>
   <div class="order-accordion-body">
     <form method="post" action="/orders/<%= order.id %>/car" class="order-car-assign-form" data-vehicle-autocomplete>
+    <%- include('../partials/csrf-field') %>
       <label style="display:block;margin-bottom:8px;">Автомобиль из базы
         <select name="car_id">
           <option value="">— новый по данным ниже —</option>
@@ -141,6 +145,7 @@
     <p class="error" style="margin-top:0;">Время начала не указано — задайте ниже и нажмите «Сохранить детали».</p>
     <% } %>
     <form method="post" action="/orders/<%= order.id %>?_method=PUT" class="order-header-form">
+    <%- include('../partials/csrf-field') %>
       <div class="order-form-grid">
         <% if (order.status !== 'completed') { %>
         <%- include('../partials/work-type-checkboxes', { workTypes, selectedWorkTypes: typeof selectedWorkTypes !== 'undefined' ? selectedWorkTypes : [], workTypeRequired: true }) %>
@@ -183,7 +188,8 @@
     <div class="work-lines-table-wrap table-scroll">
       <% works.forEach(l => { %>
         <% if (canEditLines) { %>
-          <form id="work-line-form-<%= l.id %>" method="post" action="/orders/lines/<%= l.id %>?_method=PUT"></form>
+          <form id="work-line-form-<%= l.id %>" method="post" action="/orders/lines/<%= l.id %>?_method=PUT">
+    <%- include('../partials/csrf-field') %></form>
         <% } %>
       <% }) %>
       <table class="data-table-compact work-lines-table">
@@ -243,6 +249,7 @@
                   <div class="table-row-actions">
                     <button type="submit" form="work-line-form-<%= l.id %>" class="btn btn-primary btn-sm" title="Сохранить">✓</button>
                     <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" class="line-delete-form">
+    <%- include('../partials/csrf-field') %>
                       <button type="submit" class="btn btn-sm btn-delete" title="Удалить">×</button>
                     </form>
                   </div>
@@ -258,6 +265,7 @@
     </div>
     <% if (canEditLines) { %>
     <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" id="form-add-work" data-catalog-ac data-work-category="<%= typeof catalogWorkCategory !== 'undefined' ? catalogWorkCategory : (order.work_type || '') %>">
+    <%- include('../partials/csrf-field') %>
       <input type="hidden" name="line_type" value="work" />
       <input type="hidden" name="catalog_item_id" value="" />
       <label class="order-add-line-field order-add-line-field--wide">Услуга <input name="name" placeholder="Начните вводить — подсказки из прайса" autocomplete="off" /></label>
@@ -309,6 +317,7 @@
               <td>
                 <% if (canEditLines) { %>
                 <form method="post" action="/orders/lines/<%= l.id %>?_method=DELETE" style="display:inline;">
+    <%- include('../partials/csrf-field') %>
                   <button type="submit" class="btn btn-sm btn-delete btn-line-delete" title="Удалить">×</button>
                 </form>
                 <% } %>
@@ -320,6 +329,7 @@
     </div>
     <% if (canEditLines) { %>
     <form method="post" action="/orders/<%= order.id %>/lines" class="order-add-line-form" data-catalog-ac data-work-category="">
+    <%- include('../partials/csrf-field') %>
       <input type="hidden" name="line_type" value="product" />
       <input type="hidden" name="catalog_item_id" value="" />
       <label class="order-add-line-field order-add-line-field--wide">Товар <input name="name" placeholder="Начните вводить — подсказки из прайса" autocomplete="off" /></label>
@@ -343,6 +353,7 @@
   <summary class="order-accordion-summary">Комментарий и фото</summary>
   <div class="order-accordion-body">
     <form method="post" action="/orders/<%= order.id %>/notes" class="order-master-notes-form">
+    <%- include('../partials/csrf-field') %>
       <label>Комментарий по работе
         <textarea name="annotation_notes" rows="3" placeholder="Заметки мастера, дефекты, что сделано…"><%= order.annotation_notes || '' %></textarea>
       </label>
@@ -358,6 +369,7 @@
     </div>
     <% } %>
     <form method="post" action="/orders/<%= order.id %>/photos" enctype="multipart/form-data" class="order-photo-upload">
+    <%- include('../partials/csrf-field') %>
       <input type="file" name="photo" accept="image/*" multiple />
       <button type="submit" class="btn btn-sm">Загрузить фото</button>
     </form>
@@ -381,6 +393,7 @@
     <% } %>
     <% if (canEditLines) { %>
     <form method="post" action="/orders/<%= order.id %>/photos" enctype="multipart/form-data" class="order-photo-upload">
+    <%- include('../partials/csrf-field') %>
       <input type="file" name="photo" accept="image/*" multiple />
       <button type="submit" class="btn btn-sm">Загрузить</button>
     </form>
@@ -401,6 +414,7 @@
     </ul>
     <% if (canEditLines && order.status !== 'cancelled' && due_amount > 0) { %>
     <form method="post" action="/orders/<%= order.id %>/payments" class="order-payment-form" id="form-payment">
+    <%- include('../partials/csrf-field') %>
       <label>Сумма <input name="amount" value="<%= Number(due_amount).toFixed(2) %>" required inputmode="decimal" /></label>
       <label>Способ
         <select name="method">

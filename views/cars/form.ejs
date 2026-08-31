@@ -2,6 +2,7 @@
 <section class="card">
   <% if (error) { %><div class="error"><%= error %></div><% } %>
   <form method="post" action="<%= car && car.id ? '/cars/' + car.id + '?_method=PUT' : '/cars' %>" data-vehicle-autocomplete>
+    <%- include('../partials/csrf-field') %>
     <label>Клиент
       <select name="client_id" required>
         <option value="">— выберите —</option>

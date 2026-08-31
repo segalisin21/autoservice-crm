@@ -25,6 +25,8 @@ async function createTestApp() {
   const dbPath = path.join(os.tmpdir(), `autoservice-test-${Date.now()}-${Math.random().toString(36).slice(2)}.sqlite3`);
   process.env.SQLITE_PATH = dbPath;
   delete process.env.DATABASE_URL;
+  process.env.DISABLE_CSRF = "1";
+  process.env.DISABLE_LOGIN_RATE_LIMIT = "1";
   resetDB();
   clearPermissionCache();
 

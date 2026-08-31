@@ -2,6 +2,7 @@
 <section class="card">
   <% if (error) { %><div class="error"><%= error %></div><% } %>
   <form method="post" action="<%= item.id ? '/catalog/products/' + item.id + '?_method=PUT' : '/catalog/products' %>" data-item-id="<%= item.id || '' %>" data-catalog-type="product" class="catalog-form-compact">
+    <%- include('../partials/csrf-field') %>
     <input type="hidden" name="type" value="product" />
     <input type="hidden" name="category" value="<%= item.category || 'Продажа' %>" />
     <input type="hidden" name="unit" value="<%= item.unit || 'шт' %>" />

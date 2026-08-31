@@ -10,7 +10,8 @@ test("GET /health returns 200", async (t) => {
 
   const res = await request(ctx.app).get("/health");
   assert.equal(res.status, 200);
-  assert.deepEqual(res.body, { status: "ok" });
+  assert.equal(res.body.status, "ok");
+  assert.equal(res.body.db, "sqlite");
 });
 
 test("GET /login returns 200", async (t) => {
@@ -46,11 +47,17 @@ test("POST /login with owner redirects to /", async (t) => {
 });
 
 test("POST /login persists session behind HTTPS proxy in production", async (t) => {
-  const prevEnv = process.env.NODE_ENV;
+  const prevEnv = {
+    NODE_ENV: process.env.NODE_ENV,
+    SESSION_SECRET: process.env.SESSION_SECRET
+  };
   process.env.NODE_ENV = "production";
+  process.env.SESSION_SECRET = "test-production-session-secret-32chars-min";
   const ctx = await createTestApp();
   t.after(async () => {
-    process.env.NODE_ENV = prevEnv;
+    process.env.NODE_ENV = prevEnv.NODE_ENV;
+    if (prevEnv.SESSION_SECRET) process.env.SESSION_SECRET = prevEnv.SESSION_SECRET;
+    else delete process.env.SESSION_SECRET;
     await ctx.close();
   });
 

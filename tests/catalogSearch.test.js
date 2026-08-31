@@ -3,13 +3,15 @@ const assert = require("node:assert/strict");
 const request = require("supertest");
 
 const { createTestApp } = require("./helpers/testApp");
+const { foldSearchCase } = require("../lib/sqlSearch");
 
 test("catalog search API finds active items", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
 
   await ctx.db.query(
-    `INSERT INTO catalog_items(type, category, name, default_price, unit, is_active) VALUES ('work', 'Мойка', 'ТехМойка', 500, 'шт', 1)`
+    `INSERT INTO catalog_items(type, category, name, name_lc, default_price, unit, is_active) VALUES ('work', 'Мойка', 'ТехМойка', ?, 500, 'шт', 1)`,
+    [foldSearchCase("ТехМойка")]
   );
 
   const agent = request.agent(ctx.app);

@@ -44,8 +44,10 @@ async function applyMigrations(db) {
   for (const m of migrations) {
     if (applied.has(m.id)) continue;
     const sql = fs.readFileSync(m.path, "utf8");
-    await db.exec(sql);
-    await db.query("INSERT INTO migrations(id) VALUES (?)", [m.id]);
+    await db.withTransaction(async (tx) => {
+      await tx.exec(sql);
+      await tx.query("INSERT INTO migrations(id) VALUES (?)", [m.id]);
+    });
   }
 
   const { backfillSearchLc } = require("../lib/sqlSearch");

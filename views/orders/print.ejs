@@ -49,11 +49,13 @@
     <button type="submit" form="order-print-form" class="btn btn-primary">Сохранить</button>
     <button type="button" class="btn btn-primary" id="print-btn">Печать</button>
     <form method="post" action="/orders/<%= order.id %>/print/reset" style="display:inline;" onsubmit="return confirm('Сбросить заказ-наряд и заново заполнить из карточки заказа?');">
+    <%- include('../partials/csrf-field') %>
       <button type="submit" class="btn btn-secondary">Сбросить из карточки</button>
     </form>
   </div>
 
   <form id="order-print-form" method="post" action="/orders/<%= order.id %>/print">
+    <%- include('../partials/csrf-field') %>
     <input type="hidden" name="snapshot" id="snapshot-json" value="" />
     <% if (saved) { %>
     <div class="print-banner no-print">Сохранено. Можно печатать.</div>

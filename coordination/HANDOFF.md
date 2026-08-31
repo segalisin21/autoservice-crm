@@ -1,5 +1,26 @@
 ﻿# HANDOFF
 
+## 2026-07-01 — критические фиксы безопасности перед переездом
+
+### What changed
+- **SESSION_SECRET:** fail-fast в production (≥32 символов); регенерация сессии при login; `session.destroy()` при logout.
+- **CSRF:** middleware на базе `csrf`, meta-токен в layout, hidden field во всех POST-формах; `DISABLE_CSRF=1` для тестов.
+- **Rate-limit:** 5 попыток / 15 мин на `POST /login`; migrations убраны из login handler.
+- **Транзакции:** `db.withTransaction()` для payments, create order (+ car/client), migrations.
+- **Error handler:** глобальный middleware + `asyncRoute` на всех routes; `/health` проверяет БД.
+
+### Key files
+- `lib/sessionSecret.js`, `middleware/csrf.js`, `middleware/loginLimiter.js`, `middleware/errorHandler.js`, `middleware/asyncRoute.js`
+- `config/database.js`, `config/migrations.js`, `controllers/orderController.js`, `routes/auth.js`, `server.js`
+- `views/partials/csrf-field.ejs`, `tests/csrfProtection.test.js`, `tests/login-rate-limit.test.js`, `tests/session-security.test.js`, `tests/order-payment-transaction.test.js`
+
+### Verify
+```bash
+npm test
+```
+
+---
+
 ## 2026-07-22 — страница «Анализ рынка» в CRM
 
 ### What changed

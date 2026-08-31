@@ -40,46 +40,9 @@ function returnsRows(sql) {
   return head === "SELECT" || head === "WITH  " || head === "PRAGMA" || /\bRETURNING\b/i.test(sql);
 }
 
-async function createDb() {
-  const url = process.env.DATABASE_URL;
-
-  if (isProbablyPostgresUrl(url)) {
-    const pool = new Pool({
-      connectionString: url,
-      ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false }
-    });
-
-    return {
-      dialect: "postgres",
-      async exec(sql) {
-        await pool.query(sql);
-      },
-      async query(sql, params = []) {
-        const pgSql = convertQMarksToPg(sql);
-        const res = await pool.query(pgSql, params);
-        return res.rows;
-      },
-      async insertReturning(sql, params = []) {
-        const trimmed = sql.trim().replace(/;\s*$/, "");
-        const withReturning = /\bRETURNING\b/i.test(trimmed) ? trimmed : `${trimmed} RETURNING id`;
-        const pgSql = convertQMarksToPg(withReturning);
-        const res = await pool.query(pgSql, params);
-        return res.rows[0]?.id ?? null;
-      },
-      async close() {
-        await pool.end();
-      }
-    };
-  }
-
-  const dbPath = process.env.SQLITE_PATH || path.join(__dirname, "..", "data", "dev.sqlite3");
-  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-  const sqlite = new Database(dbPath);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-
+function createSqliteApi(sqlite, dialect = "sqlite") {
   return {
-    dialect: "sqlite",
+    dialect,
     async exec(sql) {
       sqlite.exec(sql);
     },
@@ -98,10 +61,107 @@ async function createDb() {
       const row = stmt.get(params);
       return row?.id ?? null;
     },
+    async withTransaction(fn) {
+      sqlite.exec("BEGIN IMMEDIATE");
+      const txDb = createSqliteApi(sqlite, dialect);
+      try {
+        const result = await fn(txDb);
+        sqlite.exec("COMMIT");
+        return result;
+      } catch (err) {
+        sqlite.exec("ROLLBACK");
+        throw err;
+      }
+    },
     async close() {
       sqlite.close();
     }
   };
+}
+
+function createPostgresApi(pool) {
+  async function queryWithClient(client, sql, params = []) {
+    const pgSql = convertQMarksToPg(sql);
+    const res = await client.query(pgSql, params);
+    return res.rows;
+  }
+
+  function createClientApi(client) {
+    return {
+      dialect: "postgres",
+      async exec(sql) {
+        await client.query(convertQMarksToPg(sql));
+      },
+      async query(sql, params = []) {
+        return queryWithClient(client, sql, params);
+      },
+      async insertReturning(sql, params = []) {
+        const trimmed = sql.trim().replace(/;\s*$/, "");
+        const withReturning = /\bRETURNING\b/i.test(trimmed) ? trimmed : `${trimmed} RETURNING id`;
+        const rows = await queryWithClient(client, withReturning, params);
+        return rows[0]?.id ?? null;
+      }
+    };
+  }
+
+  const db = {
+    dialect: "postgres",
+    async exec(sql) {
+      await pool.query(convertQMarksToPg(sql));
+    },
+    async query(sql, params = []) {
+      const res = await pool.query(convertQMarksToPg(sql), params);
+      return res.rows;
+    },
+    async insertReturning(sql, params = []) {
+      const trimmed = sql.trim().replace(/;\s*$/, "");
+      const withReturning = /\bRETURNING\b/i.test(trimmed) ? trimmed : `${trimmed} RETURNING id`;
+      const res = await pool.query(convertQMarksToPg(withReturning), params);
+      return res.rows[0]?.id ?? null;
+    },
+    async withTransaction(fn) {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const txDb = createClientApi(client);
+        txDb.withTransaction = db.withTransaction.bind(db);
+        const result = await fn(txDb);
+        await client.query("COMMIT");
+        return result;
+      } catch (err) {
+        await client.query("ROLLBACK");
+        throw err;
+      } finally {
+        client.release();
+      }
+    },
+    async close() {
+      await pool.end();
+    }
+  };
+
+  return db;
+}
+
+async function createDb() {
+  const url = process.env.DATABASE_URL;
+
+  if (isProbablyPostgresUrl(url)) {
+    const pool = new Pool({
+      connectionString: url,
+      ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false }
+    });
+
+    return createPostgresApi(pool);
+  }
+
+  const dbPath = process.env.SQLITE_PATH || path.join(__dirname, "..", "data", "dev.sqlite3");
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  const sqlite = new Database(dbPath);
+  sqlite.pragma("journal_mode = WAL");
+  sqlite.pragma("foreign_keys = ON");
+
+  return createSqliteApi(sqlite);
 }
 
 let _dbPromise;

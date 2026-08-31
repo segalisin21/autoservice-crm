@@ -12,6 +12,7 @@
       Данные загружаются с cars-base.ru с обоими вариантами названий. Переключатель меняет только отображение в формах и поиске.
     </p>
     <form method="post" action="/admin/settings">
+    <%- include('../partials/csrf-field') %>
       <fieldset style="border:0; padding:0; margin:12px 0 0;">
         <legend class="muted" style="margin-bottom:8px;">Названия марок и моделей</legend>
         <label style="display:block; margin-bottom:8px;">

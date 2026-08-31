@@ -16,6 +16,7 @@
   <% if (error) { %><div class="error"><%= error %></div><% } %>
   <p class="muted" style="margin-top:0;">Достаточно даты, времени и сотрудника — авто и клиент укажете при приёмке.</p>
   <form method="post" action="/orders" class="new-order-form" data-vehicle-autocomplete>
+    <%- include('../partials/csrf-field') %>
     <div class="order-form-grid">
       <label>Дата
         <input type="date" name="scheduled_date" value="<%= order.scheduled_date || '' %>" required />

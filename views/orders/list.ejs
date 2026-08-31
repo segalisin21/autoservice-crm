@@ -71,6 +71,7 @@
             <% if (typeof can !== 'undefined' && can('orders:mutate')) { %>
             <td>
               <form method="post" action="/orders/<%= o.id %>?_method=DELETE" onclick="event.stopPropagation()" onsubmit="return confirm('Удалить заказ #<%= o.id %>?');">
+    <%- include('../partials/csrf-field') %>
                 <button type="submit" class="btn btn-sm btn-delete" title="Удалить">×</button>
               </form>
             </td>

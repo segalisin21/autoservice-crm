@@ -94,15 +94,19 @@ test("owner can open orders economics dashboard", async (t) => {
   const ctx = await createTestApp();
   t.after(() => ctx.close());
 
-  await ctx.db.query(
-    `INSERT INTO clients(full_name, phone_raw, phone_normalized) VALUES ('Econ', '1', '79990000099')`
+  const clientId = await ctx.db.insertReturning(
+    `INSERT INTO clients(full_name, full_name_lc, phone_raw, phone_normalized) VALUES ('Econ', 'econ', '1', '79990000099')`
   );
-  const clientId = (await ctx.db.query("SELECT id FROM clients LIMIT 1"))[0].id;
-  await ctx.db.query(`INSERT INTO cars(client_id, make, model) VALUES (?, 'VW', 'Polo')`, [clientId]);
-  const carId = (await ctx.db.query("SELECT id FROM cars LIMIT 1"))[0].id;
-  await ctx.db.query(
-    `INSERT INTO orders(car_id, status, total_price, closed_at) VALUES (?, 'completed', 1000, datetime('now'))`,
+  const carId = await ctx.db.insertReturning(`INSERT INTO cars(client_id, make, model) VALUES (?, 'VW', 'Polo')`, [
+    clientId
+  ]);
+  const orderId = await ctx.db.insertReturning(
+    `INSERT INTO orders(car_id, status, total_price, closed_at, scheduled_date) VALUES (?, 'completed', 1000, '2026-08-15 12:00:00', '2026-08-15')`,
     [carId]
+  );
+  await ctx.db.query(
+    `INSERT INTO order_lines(order_id, line_type, name, quantity, unit_price, total) VALUES (?, 'work', 'Мойка', 1, 1000, 1000)`,
+    [orderId]
   );
 
   const agent = request.agent(ctx.app);

@@ -9,7 +9,12 @@ const methodOverride = require("method-override");
 
 const { requireAuth } = require("./middleware/auth");
 const { loadUserPermissions } = require("./middleware/loadUserPermissions");
+const { errorHandler } = require("./middleware/errorHandler");
+const { asyncRoute } = require("./middleware/asyncRoute");
+const { csrfMiddleware } = require("./middleware/csrf");
+const { getDB } = require("./config/database");
 const { isProbablyPostgresUrl } = require("./config/database");
+const { resolveSessionSecret } = require("./lib/sessionSecret");
 const authRoutes = require("./routes/auth");
 const dashboardRoutes = require("./routes/dashboard");
 const clientRoutes = require("./routes/clients");
@@ -73,7 +78,7 @@ app.use(express.json());
 app.use(methodOverride("_method"));
 
 const sessionOptions = {
-  secret: process.env.SESSION_SECRET || "dev-insecure-secret",
+  secret: resolveSessionSecret(),
   resave: false,
   saveUninitialized: false,
   proxy: process.env.NODE_ENV === "production",
@@ -96,14 +101,18 @@ if (isProbablyPostgresUrl(process.env.DATABASE_URL)) {
 
 app.use(session(sessionOptions));
 
+app.use(csrfMiddleware);
+
 app.use((req, res, next) => {
   if (!req.session?.user) return next();
   return loadUserPermissions(req, res, next);
 });
 
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "ok" });
-});
+app.get("/health", asyncRoute(async (_req, res) => {
+  const db = await getDB();
+  await db.query("SELECT 1");
+  res.status(200).json({ status: "ok", db: db.dialect });
+}));
 
 app.use(authRoutes);
 app.use("/", requireAuth, dashboardRoutes);
@@ -125,6 +134,8 @@ app.use("/api/catalog", requireAuth, apiCatalogRoutes);
 app.use((req, res) => {
   res.status(404).send("Not found");
 });
+
+app.use(errorHandler);
 
 module.exports = { app };
 

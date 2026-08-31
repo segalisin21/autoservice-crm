@@ -31,6 +31,7 @@
       <a class="btn btn-primary" href="/catalog/new">Добавить работу</a>
       <a class="btn btn-secondary" href="/catalog/products/new">Добавить товар</a>
       <form method="post" action="/api/vehicles/sync">
+    <%- include('../partials/csrf-field') %>
         <button type="submit" class="btn btn-secondary btn-sm" title="Загрузить марки и модели с Auto.ru">Обновить справочник авто</button>
       </form>
     </div>
@@ -76,8 +77,10 @@
           <td>
             <div class="compact-actions">
               <a href="<%= isProduct ? '/catalog/products/' + i.id + '/edit' : '/catalog/' + i.id + '/edit' %>" class="btn btn-sm">Изм.</a>
-              <form method="post" action="/catalog/<%= i.id %>/toggle"><button type="submit" class="btn btn-sm"><%= i.is_active ? 'Выкл' : 'Вкл' %></button></form>
-              <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');"><button type="submit" class="btn btn-sm btn-delete">Удалить</button></form>
+              <form method="post" action="/catalog/<%= i.id %>/toggle">
+    <%- include('../partials/csrf-field') %><button type="submit" class="btn btn-sm"><%= i.is_active ? 'Выкл' : 'Вкл' %></button></form>
+              <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');">
+    <%- include('../partials/csrf-field') %><button type="submit" class="btn btn-sm btn-delete">Удалить</button></form>
             </div>
           </td>
         </tr>
@@ -115,8 +118,10 @@
         <% } %>
         <div class="catalog-card__actions">
           <a href="<%= isProduct ? '/catalog/products/' + i.id + '/edit' : '/catalog/' + i.id + '/edit' %>" class="btn btn-sm">Изменить</a>
-          <form method="post" action="/catalog/<%= i.id %>/toggle"><button type="submit" class="btn btn-sm"><%= i.is_active ? 'Выкл' : 'Вкл' %></button></form>
-          <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');"><button type="submit" class="btn btn-sm btn-delete">Удалить</button></form>
+          <form method="post" action="/catalog/<%= i.id %>/toggle">
+    <%- include('../partials/csrf-field') %><button type="submit" class="btn btn-sm"><%= i.is_active ? 'Выкл' : 'Вкл' %></button></form>
+          <form method="post" action="/catalog/<%= i.id %>?_method=DELETE" onsubmit="return confirm('Удалить позицию?');">
+    <%- include('../partials/csrf-field') %><button type="submit" class="btn btn-sm btn-delete">Удалить</button></form>
         </div>
       </article>
     <% }) %>

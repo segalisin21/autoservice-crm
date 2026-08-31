@@ -156,6 +156,7 @@
               <div class="resource-header">
                 <% if (typeof canMutateOrders !== 'undefined' && canMutateOrders && empIdx > 0) { %>
                   <form method="post" action="/schedule/columns/reorder" class="schedule-col-reorder-form">
+    <%- include('partials/csrf-field') %>
                     <input type="hidden" name="user_id" value="<%= emp.id %>" />
                     <input type="hidden" name="direction" value="left" />
                     <input type="hidden" name="date" value="<%= viewToday %>" />
@@ -167,6 +168,7 @@
                 <span><%= emp.name %></span>
                 <% if (typeof canMutateOrders !== 'undefined' && canMutateOrders && empIdx < dayEmployees.length - 1) { %>
                   <form method="post" action="/schedule/columns/reorder" class="schedule-col-reorder-form">
+    <%- include('partials/csrf-field') %>
                     <input type="hidden" name="user_id" value="<%= emp.id %>" />
                     <input type="hidden" name="direction" value="right" />
                     <input type="hidden" name="date" value="<%= viewToday %>" />
@@ -219,6 +221,7 @@
                   <td>
                     <% if (typeof canManageAllAbsences !== 'undefined' && canManageAllAbsences || (typeof user !== 'undefined' && user && Number(user.id) === Number(a.user_id))) { %>
                     <form method="post" action="/schedule/absences/<%= a.id %>?_method=DELETE&date=<%= viewToday %>" style="display:inline;">
+    <%- include('partials/csrf-field') %>
                       <button type="submit" class="btn btn-sm btn-delete">Удалить</button>
                     </form>
                     <% } %>
@@ -232,6 +235,7 @@
         <p class="muted" style="margin:8px 0;">Отсутствий не отмечено.</p>
       <% } %>
       <form method="post" action="/schedule/absences" class="staff-absences-form">
+    <%- include('partials/csrf-field') %>
         <input type="hidden" name="absence_date" value="<%= viewToday %>" />
         <% if (typeof canManageAllAbsences !== 'undefined' && canManageAllAbsences) { %>
           <label>Сотрудник

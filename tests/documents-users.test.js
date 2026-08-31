@@ -74,7 +74,7 @@ test("print hides empty line notes in print block", async (t) => {
   const print = await agent.get(`/orders/${orderId}/print`);
   assert.equal(print.status, 200);
   assert.match(print.text, /line-notes-print[^>]*hidden/);
-  assert.match(print.text, /syncNotesForPrint/);
+  assert.match(print.text, /order-print-edit\.js/);
 });
 
 test("print shows notes in print block when present", async (t) => {

@@ -2,6 +2,7 @@
 <section class="card">
   <% if (error) { %><div class="error"><%= error %></div><% } %>
   <form method="post" action="<%= client && client.id ? '/clients/' + client.id + '?_method=PUT' : '/clients' %>">
+    <%- include('../partials/csrf-field') %>
     <label>ФИО <input name="full_name" required value="<%= client ? client.full_name : '' %>" /></label>
     <label>Телефон <input name="phone" required value="<%= client ? client.phone_raw : '' %>" /></label>
     <label>Email <input name="email" type="email" value="<%= client && client.email ? client.email : '' %>" /></label>

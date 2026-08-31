@@ -3,6 +3,7 @@
 <section class="card">
   <h2 style="margin:0 0 8px 0; font-size:16px;">Новый сотрудник</h2>
   <form method="post" action="/admin/users" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap:8px;">
+    <%- include('../partials/csrf-field') %>
     <label>Логин <input name="username" required autocomplete="off" /></label>
     <label>Имя <input name="name" required /></label>
     <label>Роль
@@ -32,9 +33,11 @@
             <a class="btn btn-secondary btn-sm" href="/admin/users/<%= u.id %>/edit">Изменить</a>
             <% if (u.id !== user.id) { %>
             <form method="post" action="/admin/users/<%= u.id %>/toggle" style="display:inline;">
+    <%- include('../partials/csrf-field') %>
               <button type="submit" class="btn btn-sm"><%= u.is_active ? 'Отключить' : 'Включить' %></button>
             </form>
             <form method="post" action="/admin/users/<%= u.id %>?_method=DELETE" style="display:inline;" onsubmit="return confirm('Удалить сотрудника безвозвратно?');">
+    <%- include('../partials/csrf-field') %>
               <button type="submit" class="btn btn-sm btn-delete">Удалить</button>
             </form>
             <% } %>

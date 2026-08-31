@@ -1,6 +1,7 @@
 const express = require("express");
 
 const { requirePermission } = require("../middleware/auth");
+const { asyncRoute } = require("../middleware/asyncRoute");
 const { getDB } = require("../config/database");
 const {
   normalizeArticle,
@@ -8,12 +9,14 @@ const {
   findArticleConflict,
   suggestNextArticle
 } = require("../lib/catalogArticle");
-const { likePatternFolded, lcLike, foldSearchCase } = require("../lib/sqlSearch");
+const { likePatternFolded, lcLike } = require("../lib/sqlSearch");
 
 const router = express.Router();
 
-router.get("/search", requirePermission("catalog:view"), async (req, res, next) => {
-  try {
+router.get(
+  "/search",
+  requirePermission("catalog:view"),
+  asyncRoute(async (req, res) => {
     const db = await getDB();
     const q = String(req.query.q ?? "").trim();
     const type = String(req.query.type ?? "").trim();
@@ -46,13 +49,12 @@ router.get("/search", requirePermission("catalog:view"), async (req, res, next) 
 
     const rows = await db.query(sql, params);
     res.json({ items: rows });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
-router.get("/check-article", async (req, res, next) => {
-  try {
+router.get(
+  "/check-article",
+  asyncRoute(async (req, res) => {
     const db = await getDB();
     const article = normalizeArticle(req.query.article);
     const excludeId = req.query.exclude_id != null ? Number(req.query.exclude_id) : null;
@@ -75,20 +77,17 @@ router.get("/check-article", async (req, res, next) => {
       });
     }
     return res.json({ available: true });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
-router.get("/suggest-article", async (req, res, next) => {
-  try {
+router.get(
+  "/suggest-article",
+  asyncRoute(async (req, res) => {
     const db = await getDB();
     const type = req.query.type === "product" ? "product" : "work";
     const article = await suggestNextArticle(db, type);
     res.json({ article });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 module.exports = router;

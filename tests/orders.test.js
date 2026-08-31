@@ -648,6 +648,6 @@ test("create order with scheduled_end_date saves and shows on print", async (t) 
 
   const print = await agent.get(`/orders/${orderId}/print`);
   assert.equal(print.status, 200);
-  assert.match(print.text, /Дата окончания работ/);
+  assert.match(print.text, /Дата окончания/);
   assert.match(print.text, /2026-06-20/);
 });

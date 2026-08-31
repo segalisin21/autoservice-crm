@@ -8,6 +8,7 @@
   <div style="margin-top:12px; display:flex; gap:8px;">
     <a class="btn" href="/cars/<%= car.id %>/edit">Редактировать</a>
     <form method="post" action="/cars/<%= car.id %>?_method=DELETE" onsubmit="return confirm('Удалить авто?');">
+    <%- include('../partials/csrf-field') %>
       <button type="submit" class="btn btn-delete">Удалить</button>
     </form>
   </div>
@@ -72,6 +73,7 @@
 <section class="card">
   <h2 style="margin:0 0 12px 0; font-size:16px;">Напоминания</h2>
   <form method="post" action="/cars/<%= car.id %>/reminders">
+    <%- include('../partials/csrf-field') %>
     <label>Заголовок <input name="title" required /></label>
     <label>Дата <input name="due_date" type="date" /></label>
     <label>Заметка <input name="notes" /></label>
@@ -84,9 +86,11 @@
         <% if (r.due_date) { %> — <%= r.due_date %><% } %>
         <% if (r.is_done) { %><span class="muted"> (выполнено)</span><% } %>
         <form method="post" action="/cars/reminders/<%= r.id %>/toggle" style="display:inline;">
+    <%- include('../partials/csrf-field') %>
           <button type="submit"><%= r.is_done ? 'Вернуть' : 'Готово' %></button>
         </form>
         <form method="post" action="/cars/reminders/<%= r.id %>?_method=DELETE" style="display:inline;">
+    <%- include('../partials/csrf-field') %>
           <button type="submit">×</button>
         </form>
       </li>

@@ -12,6 +12,9 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Автосервис">
+  <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <% } %>
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <% var _assetV = typeof assetVersion !== 'undefined' ? assetVersion : '1'; %>
   <link rel="stylesheet" href="/css/style.css?v=<%= _assetV %>">
@@ -199,6 +202,7 @@
               <p class="top-bar-user-role"><%= typeof roleLabel !== 'undefined' ? roleLabel : user.role %></p>
             </div>
             <form action="/logout" method="POST" class="logout-form">
+    <%- include('csrf-field') %>
               <button type="submit" class="btn-logout" title="Выйти">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4m7 14l5-5-5-5m5 5H9"/></svg>
                 <span>Выйти</span>

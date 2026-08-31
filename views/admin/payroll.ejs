@@ -112,6 +112,7 @@
 
                 <% if (canMutate) { %>
                 <form method="post" action="/admin/payroll/payouts" class="form-inline payroll-inline-payout-form">
+    <%- include('../partials/csrf-field') %>
                   <input type="hidden" name="user_id" value="<%= s.id %>" />
                   <span class="payroll-inline-payout-form__label">Быстрая выплата</span>
                   <label>Сумма
@@ -162,6 +163,7 @@
         <tr>
           <td colspan="3" class="payroll-settings-form-cell">
             <form method="post" action="/admin/payroll/default" class="form-inline payroll-settings-form">
+    <%- include('../partials/csrf-field') %>
               <label>Режим
                 <select name="mode">
                   <% modes.forEach(m => { %>
@@ -194,6 +196,7 @@
               <td><%= r.effective_from %></td>
               <td class="table-actions-cell">
                 <form method="post" action="/admin/payroll/rules/<%= r.id %>?_method=DELETE" class="line-delete-form">
+    <%- include('../partials/csrf-field') %>
                   <button type="submit" class="btn btn-sm btn-delete btn-line-delete" title="Удалить">×</button>
                 </form>
               </td>
@@ -207,6 +210,7 @@
         <tr>
           <td colspan="5" class="payroll-settings-form-cell">
             <form method="post" action="/admin/payroll/rules" class="payroll-settings-form">
+    <%- include('../partials/csrf-field') %>
               <div class="master-checkboxes master-checkboxes--compact payroll-master-pick">
                 <span class="master-checkboxes__label">Мастера:</span>
                 <div class="master-checkboxes-list">
@@ -244,6 +248,7 @@
     </p>
     <form method="post" action="/admin/payroll/recalculate" class="form-inline payroll-settings-form"
       onsubmit="return confirm('Пересчитать начисления по всем мастерам на завершённых заказах с ' + this.from_date.value + '?');">
+    <%- include('../partials/csrf-field') %>
       <input type="hidden" name="start_date" value="<%= range.start_date %>" />
       <input type="hidden" name="end_date" value="<%= range.end_date %>" />
       <% if (filterUserId) { %><input type="hidden" name="user_id" value="<%= filterUserId %>" /><% } %>
@@ -268,6 +273,7 @@
               <td class="num"><%= Number(o.value) %></td>
               <td class="table-actions-cell">
                 <form method="post" action="/admin/payroll/overrides/<%= o.id %>?_method=DELETE" class="line-delete-form">
+    <%- include('../partials/csrf-field') %>
                   <button type="submit" class="btn btn-sm btn-delete btn-line-delete" title="Удалить">×</button>
                 </form>
               </td>
@@ -281,6 +287,7 @@
         <tr>
           <td colspan="5" class="payroll-settings-form-cell">
             <form method="post" action="/admin/payroll/overrides" class="payroll-settings-form">
+    <%- include('../partials/csrf-field') %>
               <div class="master-checkboxes master-checkboxes--compact payroll-master-pick">
                 <span class="master-checkboxes__label">Мастера:</span>
                 <div class="master-checkboxes-list">
@@ -321,6 +328,7 @@
 <section class="card payroll-card">
   <h2 class="payroll-card__title">Выплаты</h2>
   <form method="post" action="/admin/payroll/payouts" class="form-inline payroll-settings-form payroll-payout-form">
+    <%- include('../partials/csrf-field') %>
     <label>Мастер
       <select name="user_id" required id="payout-user-select">
         <% summary.forEach(s => { %>

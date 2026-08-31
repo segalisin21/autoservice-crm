@@ -6,6 +6,7 @@ const { vehicleDisplayName, withVehicleDisplayNames } = require("../lib/vehicleN
 const { loadVehicleCatalogSettings } = require("../lib/settings");
 const { syncAll, syncGenerationsForModel } = require("../lib/autoruCatalog");
 const { requirePermission } = require("../middleware/auth");
+const { asyncRoute } = require("../middleware/asyncRoute");
 
 const router = express.Router();
 
@@ -14,17 +15,16 @@ async function vehicleNameMode(db) {
   return settings.vehicle_catalog_names;
 }
 
-router.get("/marks", async (req, res, next) => {
-  try {
+router.get(
+  "/marks",
+  asyncRoute(async (req, res) => {
     const db = await getDB();
     const q = String(req.query.q ?? "");
     const mode = await vehicleNameMode(db);
     const rows = await searchMarks(db, q, 15);
     res.json({ items: withVehicleDisplayNames(rows, mode), name_mode: mode });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 function mapModelItems(rows, mode) {
   return (rows || []).map(function (row) {
@@ -39,8 +39,9 @@ function mapModelItems(rows, mode) {
   });
 }
 
-router.get("/models", async (req, res, next) => {
-  try {
+router.get(
+  "/models",
+  asyncRoute(async (req, res) => {
     const db = await getDB();
     const markId = req.query.mark_id;
     const q = String(req.query.q ?? "");
@@ -54,13 +55,12 @@ router.get("/models", async (req, res, next) => {
       rows = [];
     }
     res.json({ items: mapModelItems(rows, mode), name_mode: mode });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
-router.get("/generations", async (req, res, next) => {
-  try {
+router.get(
+  "/generations",
+  asyncRoute(async (req, res) => {
     const db = await getDB();
     const modelId = req.query.model_id;
     let rows = await listGenerations(db, modelId);
@@ -77,13 +77,13 @@ router.get("/generations", async (req, res, next) => {
       }
     }
     res.json({ items: rows });
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
-router.post("/sync", requirePermission("catalog:manage"), async (req, res, next) => {
-  try {
+router.post(
+  "/sync",
+  requirePermission("catalog:manage"),
+  asyncRoute(async (req, res) => {
     const db = await getDB();
     const maxMarks = Number(req.body.max_marks) || 80;
     const includeGenerations = req.body.include_generations === "1" || req.body.include_generations === true;
@@ -99,9 +99,7 @@ router.post("/sync", requirePermission("catalog:manage"), async (req, res, next)
       return res.json({ ok: true, stats });
     }
     return res.redirect(`/catalog?synced=1&marks=${stats.marks}&models=${stats.models}&source=${stats.source || "autoru"}`);
-  } catch (err) {
-    next(err);
-  }
-});
+  })
+);
 
 module.exports = router;

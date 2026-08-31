@@ -50,7 +50,8 @@
       <% if (_can('admin:reports')) { %><a href="/admin/reports">Аналитика</a><% } %>
       <% if (_can('admin:reports')) { %><a href="/admin/market">Рынок</a><% } %>
       <% if (_can('admin:users')) { %><a href="/admin/users">Сотрудники</a><% } %>
-      <form action="/logout" method="POST"><button type="submit">Выйти</button></form>
+      <form action="/logout" method="POST">
+    <%- include('csrf-field') %><button type="submit">Выйти</button></form>
     </div>
   </details>
 </nav>
