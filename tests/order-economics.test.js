@@ -100,9 +100,12 @@ test("owner can open orders economics dashboard", async (t) => {
   const carId = await ctx.db.insertReturning(`INSERT INTO cars(client_id, make, model) VALUES (?, 'VW', 'Polo')`, [
     clientId
   ]);
+  // period=month resolves to the current month, so the fixture must live there too
+  const now = new Date();
+  const midMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-15`;
   const orderId = await ctx.db.insertReturning(
-    `INSERT INTO orders(car_id, status, total_price, closed_at, scheduled_date) VALUES (?, 'completed', 1000, '2026-08-15 12:00:00', '2026-08-15')`,
-    [carId]
+    `INSERT INTO orders(car_id, status, total_price, closed_at, scheduled_date) VALUES (?, 'completed', 1000, ?, ?)`,
+    [carId, `${midMonth} 12:00:00`, midMonth]
   );
   await ctx.db.query(
     `INSERT INTO order_lines(order_id, line_type, name, quantity, unit_price, total) VALUES (?, 'work', 'Мойка', 1, 1000, 1000)`,

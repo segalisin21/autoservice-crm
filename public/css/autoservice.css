@@ -1013,6 +1013,40 @@
   margin-top: 0.5rem;
 }
 
+.market-pos {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.market-pos--below {
+  background: rgba(22, 163, 74, 0.12);
+  color: #15803d;
+}
+
+.market-pos--in {
+  background: rgba(107, 114, 128, 0.12);
+  color: #4b5563;
+}
+
+.market-pos--above {
+  background: rgba(224, 122, 47, 0.15);
+  color: #b45309;
+}
+
+.market-pos--unknown {
+  background: rgba(107, 114, 128, 0.08);
+  color: #9ca3af;
+}
+
+.market-price-src {
+  font-size: 0.6875rem;
+  white-space: nowrap;
+}
+
 /* Payroll — compact tables */
 .payroll-page .payroll-card {
   margin-bottom: var(--density-gap, 0.75rem);

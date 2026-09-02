@@ -1,4 +1,5 @@
-const { filterMarketData } = require("../lib/marketAnalysis");
+const { getDB } = require("../config/database");
+const { loadMarketComparison } = require("../lib/marketBenchmark");
 
 const jsonForScript = (obj) => JSON.stringify(obj).replace(/</g, "\\u003c");
 
@@ -9,8 +10,10 @@ function resolveMarketFilters(query) {
   };
 }
 
-function index(req, res) {
-  const data = filterMarketData(resolveMarketFilters(req.query));
+async function index(req, res) {
+  const db = await getDB();
+  const data = await loadMarketComparison(db, resolveMarketFilters(req.query));
+
   res.render("admin/market", {
     user: req.session.user,
     category: "market",
@@ -18,18 +21,23 @@ function index(req, res) {
     snapshotDate: data.snapshotDate,
     service: data.service,
     geography: data.geography,
+    serviceGroups: data.serviceGroups,
+    geographies: data.geographies,
     kpi: data.kpi,
-    priceRows: data.priceRows,
-    beltOffers: data.beltOffers,
-    localCompetition: data.localCompetition,
-    launchPrices: data.launchPrices,
+    rows: data.rows,
+    gaps: data.gaps,
+    missing: data.missing,
+    niches: data.niches,
+    priceAdvice: data.priceAdvice,
+    sources: data.sources,
     tips: data.tips,
     marketBootstrap: jsonForScript(data)
   });
 }
 
-function apiData(req, res) {
-  const data = filterMarketData(resolveMarketFilters(req.query));
+async function apiData(req, res) {
+  const db = await getDB();
+  const data = await loadMarketComparison(db, resolveMarketFilters(req.query));
   res.json(data);
 }
 

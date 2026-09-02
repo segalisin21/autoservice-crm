@@ -8,15 +8,32 @@
     muted: "rgba(27,67,50,0.55)"
   };
 
-  var beltChart = null;
+  var positionChart = null;
   var boot = window.MARKET_BOOTSTRAP || {};
 
   function escapeHtml(s) {
-    return String(s)
+    return String(s === null || s === undefined ? "" : s)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  function money(v) {
+    if (v === null || v === undefined || v === "") return "—";
+    return Number(v).toLocaleString("ru-RU") + " ₽";
+  }
+
+  function deltaLabel(d) {
+    if (d === null || d === undefined) return "—";
+    return (d > 0 ? "+" : "") + d + "%";
+  }
+
+  function positionLabel(p) {
+    if (p === "below") return "Ниже рынка";
+    if (p === "above") return "Выше рынка";
+    if (p === "in") return "В рынке";
+    return "Нет цены";
   }
 
   function fillTbody(table, rowsHtml) {
@@ -25,90 +42,60 @@
     if (tbody) tbody.innerHTML = rowsHtml;
   }
 
+  function priceCell(row) {
+    var html = money(row.effectivePrice);
+    if (row.priceSource === "orders") {
+      html += ' <span class="muted market-price-src">факт</span>';
+    } else if (row.priceSource === "none") {
+      html += ' <span class="muted market-price-src">нет услуги</span>';
+    } else if (row.ourPriceMax && row.ourPriceMax > row.ourPrice) {
+      html += ' <span class="muted market-price-src">до ' + Number(row.ourPriceMax).toLocaleString("ru-RU") + "</span>";
+    }
+    return html;
+  }
+
   function renderPriceRows(rows) {
     if (!rows.length) {
-      return '<tr><td colspan="7">Нет строк для выбранных фильтров</td></tr>';
+      return '<tr><td colspan="8">Нет строк для выбранных фильтров</td></tr>';
     }
     return rows
       .map(function (row) {
         return (
           "<tr>" +
+          "<td>" + escapeHtml(row.name) + "</td>" +
+          "<td>" + escapeHtml(row.unit) + "</td>" +
+          '<td class="num">' + priceCell(row) + "</td>" +
           "<td>" +
-          escapeHtml(row.name) +
+          money(row.min) + " – " + money(row.typicalLow) + "…" + money(row.typicalHigh) + " – " + money(row.high) +
           "</td>" +
+          '<td class="num">' + deltaLabel(row.deltaPct) + "</td>" +
           "<td>" +
-          escapeHtml(row.unit) +
+          '<span class="market-pos market-pos--' + escapeHtml(row.position) + '">' +
+          positionLabel(row.position) +
+          "</span>" +
           "</td>" +
-          "<td>" +
-          escapeHtml(row.min) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(row.typical) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(row.high) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(row.competitors) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(row.note) +
-          "</td>" +
+          '<td class="muted">' + escapeHtml(row.competitors) + "</td>" +
+          '<td class="muted">' + escapeHtml(row.note) + "</td>" +
           "</tr>"
         );
       })
       .join("");
   }
 
-  function renderLocalRows(rows) {
+  function renderGapRows(rows) {
     if (!rows.length) {
-      return '<tr><td colspan="4">Скрыто фильтром географии</td></tr>';
+      return '<tr><td colspan="5">Все услуги этого фильтра есть в каталоге</td></tr>';
     }
     return rows
       .map(function (row) {
+        var f = row.fact || {};
         return (
           "<tr>" +
-          "<td>" +
-          escapeHtml(row.service) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(row.competitors) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(row.price) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(row.verdict) +
-          "</td>" +
-          "</tr>"
-        );
-      })
-      .join("");
-  }
-
-  function renderBeltRows(rows) {
-    if (!rows.length) {
-      return '<tr><td colspan="5">Скрыто фильтром услуги</td></tr>';
-    }
-    return rows
-      .map(function (row) {
-        return (
-          "<tr>" +
-          "<td>" +
-          escapeHtml(row.name) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(row.city) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(row.solid) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(row.print) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(row.note) +
-          "</td>" +
+          "<td>" + escapeHtml(row.name) + "</td>" +
+          '<td class="num">' + money(f.min) + "</td>" +
+          '<td class="num">' + money(f.avg) + "</td>" +
+          '<td class="num">' + money(f.max) + "</td>" +
+          '<td class="num">' + (f.count || 0) + "</td>" +
           "</tr>"
         );
       })
@@ -117,10 +104,11 @@
 
   function updateKpi(kpi) {
     var map = {
-      localLeads: kpi.localLeads,
-      directBeltOffers: kpi.directBeltOffers,
-      russiaBeltTypical: kpi.russiaBeltTypical,
-      recommendedStart: kpi.recommendedStart
+      matchedLabel: kpi.matchedLabel,
+      below: kpi.below,
+      above: kpi.above,
+      notInCatalog: kpi.notInCatalog,
+      medianDeltaPct: deltaLabel(kpi.medianDeltaPct)
     };
     Object.keys(map).forEach(function (key) {
       var el = document.querySelector('[data-kpi="' + key + '"]');
@@ -128,87 +116,80 @@
     });
   }
 
-  function buildBeltChart(chartData) {
-    var canvas = document.getElementById("beltPriceChart");
+  function buildPositionChart(chartData) {
+    var canvas = document.getElementById("marketPositionChart");
     var card = document.getElementById("market-chart-card");
     if (!canvas || typeof Chart === "undefined") return;
 
     var hasData = chartData && chartData.labels && chartData.labels.length;
     if (card) card.style.display = hasData ? "" : "none";
     if (!hasData) {
-      if (beltChart) {
-        beltChart.destroy();
-        beltChart = null;
+      if (positionChart) {
+        positionChart.destroy();
+        positionChart = null;
       }
       return;
     }
 
-    var median = chartData.medianRub || 7000;
     var cfg = {
       type: "bar",
       data: {
         labels: chartData.labels,
         datasets: [
           {
-            label: "Цена за 1 ремень, ₽",
-            data: chartData.prices,
+            label: "Наша цена, ₽",
+            data: chartData.ourPrices,
             backgroundColor: C.muted,
             borderColor: C.primary,
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: "Рынок, типично, ₽",
+            data: chartData.marketTypical,
+            backgroundColor: "rgba(224,122,47,0.35)",
+            borderColor: C.accent,
             borderWidth: 1,
             borderRadius: 4
           }
         ]
       },
       options: {
+        indexAxis: "y",
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
-          annotation: undefined
+          legend: { display: true, position: "top", labels: { boxWidth: 12, font: { size: 11 } } }
         },
         scales: {
           x: {
-            grid: { display: false },
-            ticks: { maxRotation: 45, minRotation: 0, font: { size: 11 } }
-          },
-          y: {
             beginAtZero: true,
             title: { display: true, text: "₽", color: C.primary, font: { size: 11, weight: "600" } },
             ticks: { color: C.gray600 },
-            grid: {
-              color: function (ctx) {
-                return ctx.tick && ctx.tick.value === median ? "rgba(224,122,47,0.45)" : "rgba(0,0,0,0.06)";
-              }
-            }
+            grid: { color: "rgba(0,0,0,0.06)" }
+          },
+          y: {
+            grid: { display: false },
+            ticks: { font: { size: 10 }, autoSkip: false }
           }
         }
       }
     };
 
-    if (beltChart) {
-      beltChart.data = cfg.data;
-      beltChart.update();
+    if (positionChart) {
+      positionChart.data = cfg.data;
+      positionChart.options.indexAxis = "y";
+      positionChart.update();
     } else {
-      beltChart = new Chart(canvas.getContext("2d"), cfg);
+      positionChart = new Chart(canvas.getContext("2d"), cfg);
     }
   }
 
   function applyPayload(data) {
     updateKpi(data.kpi || {});
-    fillTbody(document.getElementById("market-price-table"), renderPriceRows(data.priceRows || []));
-    fillTbody(document.getElementById("market-local-table"), renderLocalRows(data.localCompetition || []));
-    fillTbody(document.getElementById("market-belts-table"), renderBeltRows(data.beltOffers || []));
-
-    var beltsSection = document.getElementById("market-belts-section");
-    if (beltsSection) {
-      beltsSection.style.display = data.beltOffers && data.beltOffers.length ? "" : "none";
-    }
-    var localCard = document.getElementById("market-local-card");
-    if (localCard) {
-      localCard.style.display = data.localCompetition && data.localCompetition.length ? "" : "none";
-    }
-
-    buildBeltChart(data.beltChart || { labels: [], prices: [] });
+    fillTbody(document.getElementById("market-price-table"), renderPriceRows(data.rows || []));
+    fillTbody(document.getElementById("market-gaps-table"), renderGapRows(data.gaps || []));
+    buildPositionChart(data.chart || { labels: [] });
   }
 
   function queryFromForm() {
