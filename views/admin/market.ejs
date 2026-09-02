@@ -52,15 +52,15 @@
   </div>
 
   <div class="stats-row" id="market-kpi">
-    <div class="stat-card stat-blue">
+    <div class="stat-card stat-blue market-kpi-card" data-position-filter="all" tabindex="0" role="button" title="Показать все услуги">
       <div class="stat-value" data-kpi="matchedLabel"><%= kpi.matchedLabel %></div>
       <div class="stat-label">Услуг сопоставлено с рынком</div>
     </div>
-    <div class="stat-card stat-green">
+    <div class="stat-card stat-green market-kpi-card" data-position-filter="below" tabindex="0" role="button" title="Показать услуги ниже рынка">
       <div class="stat-value" data-kpi="below"><%= kpi.below %></div>
       <div class="stat-label">Ниже рынка — резерв цены</div>
     </div>
-    <div class="stat-card stat-orange">
+    <div class="stat-card stat-orange market-kpi-card" data-position-filter="above" tabindex="0" role="button" title="Показать услуги выше рынка">
       <div class="stat-value" data-kpi="above"><%= kpi.above %></div>
       <div class="stat-label">Выше рынка — риск потока</div>
     </div>
@@ -76,9 +76,52 @@
 
   <div class="charts-grid charts-grid--analytics charts-grid--single" id="market-chart-card">
     <div class="chart-card">
-      <h4>Наша цена против рынка</h4>
-      <p class="chart-sub">Наша цена (каталог или факт по заказам) и середина типичного рыночного диапазона, ₽.</p>
-      <div class="chart-wrap"><canvas id="marketPositionChart"></canvas></div>
+      <div class="market-chart-head">
+        <div>
+          <h4 id="market-chart-title">Наша цена против рынка</h4>
+          <p class="chart-sub" id="market-chart-desc">Наша цена (каталог или факт по заказам) и середина типичного рыночного диапазона, ₽.</p>
+        </div>
+        <div class="market-chart-toolbar" id="market-chart-toolbar">
+          <div class="filter-group">
+            <label class="filter-label" for="market-chart-type">График</label>
+            <select id="market-chart-type" class="filter-select filter-select--compact">
+              <option value="compare">Цены: мы vs рынок</option>
+              <option value="delta">Отклонение, %</option>
+              <option value="distribution">Распределение позиций</option>
+            </select>
+          </div>
+          <div class="filter-group" data-chart-opt="bar">
+            <label class="filter-label" for="market-chart-sort">Сортировка</label>
+            <select id="market-chart-sort" class="filter-select filter-select--compact">
+              <option value="deviation_desc">По отклонению ↓</option>
+              <option value="deviation_asc">По отклонению ↑</option>
+              <option value="price_desc">По нашей цене ↓</option>
+              <option value="name">По названию</option>
+            </select>
+          </div>
+          <div class="filter-group" data-chart-opt="bar">
+            <label class="filter-label" for="market-chart-limit">Показать</label>
+            <select id="market-chart-limit" class="filter-select filter-select--compact">
+              <option value="6">6 услуг</option>
+              <option value="12" selected>12 услуг</option>
+              <option value="20">20 услуг</option>
+              <option value="all">Все</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label" for="market-chart-position">Позиция</label>
+            <select id="market-chart-position" class="filter-select filter-select--compact">
+              <option value="all">Все</option>
+              <option value="below">Ниже рынка</option>
+              <option value="in">В рынке</option>
+              <option value="above">Выше рынка</option>
+            </select>
+          </div>
+          <button type="button" class="btn market-chart-reset" id="market-chart-reset" title="Сбросить фильтры графика">Сброс</button>
+        </div>
+      </div>
+      <p class="chart-sub chart-sub--note" id="market-chart-note" hidden></p>
+      <div class="chart-wrap chart-wrap--market" id="market-chart-wrap"><canvas id="marketPositionChart"></canvas></div>
     </div>
   </div>
 
@@ -89,12 +132,12 @@
         <table class="mini-table data-table-compact" id="market-price-table">
           <thead>
             <tr>
-              <th>Услуга</th>
+              <th data-sort="name">Услуга</th>
               <th>Единица</th>
-              <th class="num">Наша цена</th>
+              <th class="num" data-sort="effectivePrice">Наша цена</th>
               <th>Рынок: мин – типично – макс</th>
-              <th class="num">Отклонение</th>
-              <th>Позиция</th>
+              <th class="num" data-sort="deltaPct">Отклонение</th>
+              <th data-sort="position">Позиция</th>
               <th>Конкуренты</th>
               <th>Комментарий</th>
             </tr>

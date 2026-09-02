@@ -16,6 +16,9 @@ test("GET /admin/market renders market dashboard for owner", async (t) => {
   assert.match(res.text, /admin-page--market/);
   assert.match(res.text, /marketFilter/);
   assert.match(res.text, /marketPositionChart/);
+  assert.match(res.text, /market-chart-type/);
+  assert.match(res.text, /market-chart-toolbar/);
+  assert.match(res.text, /market-kpi-card/);
   assert.match(res.text, /Анализ рынка/);
   assert.match(res.text, /MARKET_BOOTSTRAP/);
   assert.match(res.text, /Услуги CRM против рынка/);
@@ -51,6 +54,9 @@ test("GET /admin/market/api/data filters by service group", async (t) => {
   assert.equal(typeof body.kpi.matched, "number");
   assert.equal(typeof body.kpi.notInCatalog, "number");
   assert.equal(body.chart.labels.length, body.chart.ourPrices.length);
+  assert.equal(typeof body.chart.shown, "number");
+  assert.equal(typeof body.chart.total, "number");
+  assert.ok(body.chart.shown <= 12);
 });
 
 test("unknown service filter falls back to all", async (t) => {

@@ -138,3 +138,16 @@ test("inactive catalog item is still matched when no active twin exists", async 
   assert.equal(row.ourPrice, 3000);
   assert.equal(row.matchedItems[0].isActive, false);
 });
+
+test("chart shows at most 12 services ranked by deviation", async (t) => {
+  const ctx = await createTestApp();
+  t.after(() => ctx.close());
+
+  const data = await loadMarketComparison(ctx.db, { service: "all", geography: "all" });
+  assert.ok(data.chart.total >= data.chart.shown);
+  assert.ok(data.chart.shown <= 12);
+  assert.equal(data.chart.labels.length, data.chart.shown);
+  if (data.chart.total > 12) {
+    assert.equal(data.chart.truncated, true);
+  }
+});
